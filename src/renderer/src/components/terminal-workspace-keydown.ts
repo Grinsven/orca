@@ -22,6 +22,7 @@ import { translate } from '@/i18n/i18n'
 import { getKeybindingContext } from './terminal-workspace-model'
 import { resolveTerminalAgentTabShortcut } from './terminal-agent-tab-shortcut'
 import { handleTerminalWorkspaceEditorShortcut } from './terminal-workspace-editor-shortcuts'
+import { moveActiveTabToNewPaneColumn } from './tab-bar/tab-move-to-pane-column'
 import type { TerminalActivationController } from './use-terminal-activation-actions'
 
 export function handleTerminalWorkspaceKeyDown(
@@ -205,6 +206,17 @@ export function handleTerminalWorkspaceKeyDown(
     event.stopImmediatePropagation()
     dispatchWorkspaceTabCommand({ type: 'previous-recent' })
     return
+  }
+  // Why: only consume the chord when a move actually happens, so a single-tab group
+  // (a layout no-op the store rejects) lets the chord fall through untouched.
+  if (!event.repeat && matchShortcut('tab.moveToNewPaneColumn')) {
+    if (moveActiveTabToNewPaneColumn('right')) {
+      event.preventDefault()
+      event.stopPropagation()
+      event.stopImmediatePropagation()
+      notifyTerminalCapture('tab.moveToNewPaneColumn')
+      return
+    }
   }
   const switchSameTypeDirection = matchShortcut('tab.nextSameType')
     ? 1

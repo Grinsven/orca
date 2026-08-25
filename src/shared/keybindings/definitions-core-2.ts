@@ -162,6 +162,15 @@ export const KEYBINDING_DEFINITION_CORE_2: readonly KeybindingDefinition[] = [
     defaultBindings: platformBindings(['Mod+Shift+T'])
   },
   {
+    id: 'tab.moveToNewPaneColumn',
+    title: 'Move tab to new pane column',
+    group: 'Tabs',
+    scope: 'tabs',
+    // Why: ships unbound - the context-menu action gains a bindable chord without claiming a default that could shadow app or terminal chords.
+    searchKeywords: ['shortcut', 'tab', 'move', 'pane', 'column', 'split', 'group'],
+    defaultBindings: platformBindings([])
+  },
+  {
     id: 'tab.nextSameType',
     title: 'Next tab (same type)',
     group: 'Tab Navigation',
