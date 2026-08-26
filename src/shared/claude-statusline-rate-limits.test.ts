@@ -23,6 +23,8 @@ describe('parseClaudeStatusLineBody', () => {
     )
     expect(parsed).toEqual({
       configDir: '/home/dev/.config/managed-claude',
+      paneKey: null,
+      context: null,
       fiveHour: { used_percentage: 23.5, resets_at: 1738425600 },
       sevenDay: { used_percentage: 41.2, resets_at: 1712059200 }
     })
@@ -82,5 +84,29 @@ describe('parseClaudeStatusLineBody', () => {
         formBody({ rate_limits: { five_hour: { used_percentage: 'NaN' } } })
       )
     ).toBeNull()
+  })
+
+  it('extracts context usage and pane key without rate limits', () => {
+    const result = parseClaudeStatusLineBody({
+      paneKey: 'tab-1:pane-1',
+      payload: JSON.stringify({
+        model: { display_name: 'Fable 5' },
+        context_window: {
+          context_window_size: 1_000_000,
+          current_usage: {
+            input_tokens: 100_000,
+            cache_creation_input_tokens: 50_000,
+            cache_read_input_tokens: 250_000
+          }
+        }
+      })
+    })
+    expect(result).toEqual({
+      configDir: null,
+      paneKey: 'tab-1:pane-1',
+      fiveHour: null,
+      sevenDay: null,
+      context: { model: 'Fable 5', usedPercent: 43 }
+    })
   })
 })

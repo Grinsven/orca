@@ -82,6 +82,7 @@ import { automationsApi } from './api/automations-bridge'
 import { e2eApi } from './api/e2e-bridge'
 import { mobileApi } from './api/mobile-bridge'
 import { agentStatusApi } from './api/agent-status-bridge'
+import { claudeStatuslineApi } from './api/claude-statusline-bridge'
 import { speechApi } from './api/speech-bridge'
 
 installBrowserFindListener()
@@ -182,6 +183,7 @@ const api = {
   e2e: e2eApi,
   mobile: mobileApi,
   agentStatus: agentStatusApi,
+  claudeStatusline: claudeStatuslineApi,
   speech: speechApi
 } satisfies PreloadApi
 

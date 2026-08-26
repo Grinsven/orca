@@ -20,6 +20,7 @@ import { UpdateStatusSegment } from './UpdateStatusSegment'
 import { SkillUpdateStatusSegment } from './SkillUpdateStatusSegment'
 import { NativeChatResumeStatusSegment } from './NativeChatResumeStatusSegment'
 import { CaffeinateStatusSegment } from './CaffeinateStatusSegment'
+import { ClaudeContextStatusSegment } from './ClaudeContextStatusSegment'
 import { RemoteServerUpdateStatusSegment } from './RemoteServerUpdateStatusSegment'
 import { TOGGLE_FLOATING_TERMINAL_EVENT } from '@/lib/floating-terminal'
 import { FloatingTerminalIconContextMenu } from '@/components/floating-terminal/FloatingTerminalIconContextMenu'
@@ -300,6 +301,7 @@ export function StatusBarSurface({
             {showResourceUsage ? (
               <ResourceUsageStatusSegment compact={compact} iconOnly={segmentsIconOnly} />
             ) : null}
+            <ClaudeContextStatusSegment />
             {showPorts ? (
               <PortsStatusSegment compact={compact} iconOnly={segmentsIconOnly} />
             ) : null}

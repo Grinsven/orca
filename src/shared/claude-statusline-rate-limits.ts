@@ -17,11 +17,20 @@ export type ClaudeStatusLineWindow = {
   resets_at?: number | string
 }
 
+export type ClaudeStatusLineContext = {
+  model: string
+  usedPercent: number
+}
+
 export type ClaudeStatusLineRateLimits = {
   /** CLAUDE_CONFIG_DIR of the reporting session; null for system-default sessions. */
   configDir: string | null
+  /** ORCA_PANE_KEY of the reporting pane; null when posted outside an Orca pane. */
+  paneKey: string | null
   fiveHour: ClaudeStatusLineWindow | null
   sevenDay: ClaudeStatusLineWindow | null
+  /** Context-window usage of the reporting session, when the payload carries it. */
+  context: ClaudeStatusLineContext | null
 }
 
 function finiteNumber(value: unknown): number | undefined {
@@ -75,14 +84,55 @@ export function parseClaudeStatusLineBody(body: unknown): ClaudeStatusLineRateLi
     return null
   }
   const rateLimits = (payload as { rate_limits?: unknown }).rate_limits
-  if (typeof rateLimits !== 'object' || rateLimits === null) {
-    return null
-  }
-  const fiveHour = parseWindow((rateLimits as { five_hour?: unknown }).five_hour)
-  const sevenDay = parseWindow((rateLimits as { seven_day?: unknown }).seven_day)
-  if (!fiveHour && !sevenDay) {
+  const hasRateLimits = typeof rateLimits === 'object' && rateLimits !== null
+  const fiveHour = hasRateLimits
+    ? parseWindow((rateLimits as { five_hour?: unknown }).five_hour)
+    : null
+  const sevenDay = hasRateLimits
+    ? parseWindow((rateLimits as { seven_day?: unknown }).seven_day)
+    : null
+  const context = parseContextWindow(payload)
+  if (!fiveHour && !sevenDay && !context) {
     return null
   }
   const configDir = typeof fields.configDir === 'string' ? fields.configDir.trim() : ''
-  return { configDir: configDir || null, fiveHour, sevenDay }
+  const paneKeyField = (fields as { paneKey?: unknown }).paneKey
+  const paneKey =
+    typeof paneKeyField === 'string' && paneKeyField.trim() ? paneKeyField.trim() : null
+  return { configDir: configDir || null, paneKey, fiveHour, sevenDay, context }
+}
+
+// Why: mirror the common statusline math — Claude reserves default max-output headroom above input tokens.
+const CONTEXT_RESERVED_OUTPUT_TOKENS = 32_000
+
+function parseContextWindow(payload: unknown): ClaudeStatusLineContext | null {
+  const root = payload as { model?: { display_name?: unknown }; context_window?: unknown }
+  const window = root.context_window as
+    | { context_window_size?: unknown; current_usage?: unknown }
+    | undefined
+  const size = finiteNumber(window?.context_window_size)
+  const usage = window?.current_usage as
+    | {
+        input_tokens?: unknown
+        cache_creation_input_tokens?: unknown
+        cache_read_input_tokens?: unknown
+      }
+    | null
+    | undefined
+  if (!size || size <= 0 || typeof usage !== 'object' || usage === null) {
+    return null
+  }
+  const model = typeof root.model?.display_name === 'string' ? root.model.display_name.trim() : ''
+  if (!model) {
+    return null
+  }
+  const tokens =
+    (finiteNumber(usage.input_tokens) ?? 0) +
+    (finiteNumber(usage.cache_creation_input_tokens) ?? 0) +
+    (finiteNumber(usage.cache_read_input_tokens) ?? 0)
+  const usedPercent = Math.max(
+    0,
+    Math.min(100, Math.round(((tokens + CONTEXT_RESERVED_OUTPUT_TOKENS) * 100) / size))
+  )
+  return { model, usedPercent }
 }
