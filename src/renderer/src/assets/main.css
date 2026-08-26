@@ -3466,6 +3466,11 @@ html.native-shell .app-layout {
   --worktree-sidebar-accent-foreground: #e8eaed;
 }
 
+/* Jose fork-local: UI text ~10% larger so sidebar text keeps up with the 15px terminal font. */
+:root {
+  font-size: 110%;
+}
+
 /* Jose fork-local: VS Code Dark Modern gray variant. Default; `localStorage.setItem('jose-ui-variant','oled')`
    + reload falls back to the OLED block above. Not for upstream. */
 .dark[data-jose-ui='gray'] {
