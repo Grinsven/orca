@@ -25,12 +25,12 @@ export type ClaudeStatusLineContext = {
 export type ClaudeStatusLineRateLimits = {
   /** CLAUDE_CONFIG_DIR of the reporting session; null for system-default sessions. */
   configDir: string | null
-  /** ORCA_PANE_KEY of the reporting pane; null when posted outside an Orca pane. */
-  paneKey: string | null
+  /** ORCA_PANE_KEY of the reporting pane; null/absent when posted outside an Orca pane. */
+  paneKey?: string | null
   fiveHour: ClaudeStatusLineWindow | null
   sevenDay: ClaudeStatusLineWindow | null
   /** Context-window usage of the reporting session, when the payload carries it. */
-  context: ClaudeStatusLineContext | null
+  context?: ClaudeStatusLineContext | null
 }
 
 function finiteNumber(value: unknown): number | undefined {

@@ -157,7 +157,7 @@ export function initializeMainProcessAccountServices(): void {
     }
     if (event.context) {
       state.mainWindow?.webContents.send('claudeStatusline:context', {
-        paneKey: event.paneKey,
+        paneKey: event.paneKey ?? null,
         model: event.context.model,
         usedPercent: event.context.usedPercent
       })

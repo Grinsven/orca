@@ -3,9 +3,8 @@ import React, { useEffect, useState } from 'react'
 type ClaudeContextEvent = { paneKey: string | null; model: string; usedPercent: number }
 
 const STALE_MS = 3 * 60_000
-const BAR_WIDTH = 8
 
-// Jose fork-local: mirrors the in-TUI statusline ([model] ▓▓░ %) for the latest Claude session.
+// Jose fork-local: mirrors the in-TUI statusline (model + context bar) for the latest Claude session.
 export function ClaudeContextStatusSegment(): React.JSX.Element | null {
   const [event, setEvent] = useState<(ClaudeContextEvent & { at: number }) | null>(null)
   const [, setTick] = useState(0)
@@ -23,14 +22,26 @@ export function ClaudeContextStatusSegment(): React.JSX.Element | null {
   if (!event || Date.now() - event.at > STALE_MS) {
     return null
   }
-  const filled = Math.min(BAR_WIDTH, Math.round((event.usedPercent / 100) * BAR_WIDTH))
-  const bar = '▓'.repeat(filled) + '░'.repeat(BAR_WIDTH - filled)
+  const percent = Math.max(0, Math.min(100, event.usedPercent))
+  const fillColor =
+    percent >= 85
+      ? 'var(--destructive)'
+      : percent >= 60
+        ? 'var(--warning, #f59e0b)'
+        : 'var(--status-success)'
   return (
     <span
-      className="flex shrink-0 items-center gap-1 font-mono text-xs text-muted-foreground"
+      className="flex shrink-0 items-center gap-1.5 text-xs text-foreground"
       title="Claude context usage (latest active session)"
     >
-      [{event.model}] {bar} {event.usedPercent}%
+      <span className="text-muted-foreground">{event.model}</span>
+      <span className="h-1.5 w-16 overflow-hidden rounded-full bg-muted">
+        <span
+          className="block h-full rounded-full"
+          style={{ width: `${percent}%`, backgroundColor: fillColor }}
+        />
+      </span>
+      <span className="tabular-nums">{percent}%</span>
     </span>
   )
 }

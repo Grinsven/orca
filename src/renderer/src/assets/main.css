@@ -3465,3 +3465,20 @@ html.native-shell .app-layout {
   --worktree-sidebar-accent: #161618;
   --worktree-sidebar-accent-foreground: #e8eaed;
 }
+
+/* Jose fork-local: VS Code Dark Modern gray variant. Default; `localStorage.setItem('jose-ui-variant','oled')`
+   + reload falls back to the OLED block above. Not for upstream. */
+.dark[data-jose-ui='gray'] {
+  --background: #181818;
+  --editor-surface: #1f1f1f;
+  --card: #1f1f1f;
+  --popover: #1f1f1f;
+  --secondary: #262626;
+  --muted: #262626;
+  --accent: #2a2d2e;
+  --border: rgb(255 255 255 / 0.09);
+  --sidebar: #181818;
+  --sidebar-accent: #2a2d2e;
+  --worktree-sidebar: #1c1c1c;
+  --worktree-sidebar-accent: #2a2d2e;
+}
