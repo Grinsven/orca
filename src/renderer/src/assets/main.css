@@ -3439,3 +3439,29 @@ html.native-shell .app-layout {
 .workspace-reference-stack-count[data-multiple-digits='true'] {
   letter-spacing: -0.02em;
 }
+
+/* Jose fork-local: OLED dark — true-black canvas, layered lifts, off-white text. Not for upstream. */
+.dark {
+  --background: #000000;
+  --editor-surface: #060607;
+  --foreground: #e8eaed;
+  --card: #0e0e10;
+  --card-foreground: #e8eaed;
+  --popover: #0e0e10;
+  --popover-foreground: #e8eaed;
+  --secondary: #1a1a1e;
+  --secondary-foreground: #e8eaed;
+  --muted: #1a1a1e;
+  --muted-foreground: #a6acb8;
+  --accent: #26262b;
+  --accent-foreground: #e8eaed;
+  --border: rgb(255 255 255 / 0.08);
+  --sidebar: #0c0c0e;
+  --sidebar-foreground: #e8eaed;
+  --sidebar-accent: #1a1a1e;
+  --sidebar-accent-foreground: #e8eaed;
+  --worktree-sidebar: #121215;
+  --worktree-sidebar-foreground: #e8eaed;
+  --worktree-sidebar-accent: #1d1d22;
+  --worktree-sidebar-accent-foreground: #e8eaed;
+}
