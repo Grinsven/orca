@@ -31,8 +31,12 @@ export {
   GIT_HISTORY_DEFAULT_SCOPE,
   GIT_HISTORY_LANE_COLORS,
   GIT_HISTORY_MAX_LIMIT,
+  GIT_HISTORY_PANEL_DEFAULT_HEIGHT,
+  GIT_HISTORY_PANEL_MAX_HEIGHT,
+  GIT_HISTORY_PANEL_MIN_HEIGHT,
   GIT_HISTORY_REF_COLOR,
   GIT_HISTORY_REMOTE_REF_COLOR,
+  normalizeGitHistoryPanelHeight,
   normalizeGitHistoryScope
 } from './git-history-types'
 export { compareGitHistoryItemRefsByCategory, parseGitHistoryLog } from './git-history-log-parser'

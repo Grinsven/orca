@@ -59,6 +59,21 @@ export type GitHistoryScope = 'branch' | 'all'
 
 export const GIT_HISTORY_DEFAULT_SCOPE: GitHistoryScope = 'branch'
 
+export const GIT_HISTORY_PANEL_MIN_HEIGHT = 96
+export const GIT_HISTORY_PANEL_MAX_HEIGHT = 1600
+export const GIT_HISTORY_PANEL_DEFAULT_HEIGHT = 256
+
+/** Clamps a persisted panel height, falling back to the default for anything unusable. */
+export function normalizeGitHistoryPanelHeight(value: unknown): number {
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    return GIT_HISTORY_PANEL_DEFAULT_HEIGHT
+  }
+  return Math.min(
+    Math.max(Math.round(value), GIT_HISTORY_PANEL_MIN_HEIGHT),
+    GIT_HISTORY_PANEL_MAX_HEIGHT
+  )
+}
+
 export function normalizeGitHistoryScope(value: unknown): GitHistoryScope {
   return value === 'all' || value === 'branch' ? value : GIT_HISTORY_DEFAULT_SCOPE
 }

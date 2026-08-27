@@ -2,14 +2,23 @@ import { useCallback, useMemo, useRef, useState } from 'react'
 import { resolveSourceControlGroupOrder } from '../listing/section-order'
 import { getNextSourceControlViewMode } from './header-toolbar'
 import { normalizeSourceControlViewMode } from '../commit/commit-drafts'
-import { normalizeGitHistoryScope } from '../../../../../../shared/git-history'
+import {
+  normalizeGitHistoryPanelHeight,
+  normalizeGitHistoryScope
+} from '../../../../../../shared/git-history'
 import type { SourceControlStoreActions } from '../listing/use-store-actions'
 import type { SourceControlWorktreeContext } from '../listing/use-worktree-context'
 
 const DEFAULT_COLLAPSED_SECTIONS = ['history'] as const
 
-function createDefaultCollapsedSections(): Set<string> {
-  return new Set(DEFAULT_COLLAPSED_SECTIONS)
+// Why the flag: 'history' collapses by default, but once the user opens it that has to survive a
+// worktree switch, which resets every other section.
+function createDefaultCollapsedSections(historyExpanded: boolean): Set<string> {
+  const sections = new Set<string>(DEFAULT_COLLAPSED_SECTIONS)
+  if (historyExpanded) {
+    sections.delete('history')
+  }
+  return sections
 }
 
 /**
@@ -31,8 +40,9 @@ export function useSourceControlPanelViewState({
   const [fileListScrollElement, setFileListScrollElement] = useState<HTMLDivElement | null>(null)
   const isMac = useMemo(() => navigator.userAgent.includes('Mac'), [])
   const [filterExpanded, setFilterExpanded] = useState(false)
-  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(
-    createDefaultCollapsedSections
+  const gitHistoryExpandedSetting = settings?.sourceControlHistoryExpanded ?? false
+  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(() =>
+    createDefaultCollapsedSections(gitHistoryExpandedSetting)
   )
   const persistedSourceControlViewMode = normalizeSourceControlViewMode(
     settings?.sourceControlViewMode
@@ -66,7 +76,7 @@ export function useSourceControlPanelViewState({
   if (viewStateWorktreeId !== activeWorktreeId) {
     setViewStateWorktreeId(activeWorktreeId)
     setFilterExpanded(false)
-    setCollapsedSections(createDefaultCollapsedSections())
+    setCollapsedSections(createDefaultCollapsedSections(gitHistoryExpandedSetting))
     setCollapsedTreeDirs(new Set())
     setBaseRefDialogOpen(false)
     // Why: don't reset defaultBaseRef here — it's repo-scoped (resolved on activeRepo change); resetting would clobber non-main defaults.
@@ -74,17 +84,38 @@ export function useSourceControlPanelViewState({
     // Why: don't reset commit-in-flight state — it's per-worktree; resetting would re-enable Commit for an incoming worktree mid-commit.
   }
 
-  const toggleSection = useCallback((section: string) => {
-    setCollapsedSections((prev) => {
-      const next = new Set(prev)
-      if (next.has(section)) {
-        next.delete(section)
-      } else {
-        next.add(section)
+  const toggleSection = useCallback(
+    (section: string) => {
+      setCollapsedSections((prev) => {
+        const next = new Set(prev)
+        if (next.has(section)) {
+          next.delete(section)
+        } else {
+          next.add(section)
+        }
+        // Why persist only 'history': the other sections are per-worktree view state.
+        if (section === 'history' && settings) {
+          updateSettings({ sourceControlHistoryExpanded: !next.has('history') })
+        }
+        return next
+      })
+    },
+    [settings, updateSettings]
+  )
+
+  const gitHistoryPanelHeight = normalizeGitHistoryPanelHeight(
+    settings?.sourceControlHistoryPanelHeight
+  )
+
+  const handleGitHistoryPanelHeightChange = useCallback(
+    (height: number) => {
+      if (!settings) {
+        return
       }
-      return next
-    })
-  }, [])
+      updateSettings({ sourceControlHistoryPanelHeight: height })
+    },
+    [settings, updateSettings]
+  )
 
   const toggleTreeDir = useCallback((key: string) => {
     setCollapsedTreeDirs((prev) => {
@@ -105,7 +136,9 @@ export function useSourceControlPanelViewState({
     fileListScrollElement,
     filterExpanded,
     filterQuery,
+    gitHistoryPanelHeight,
     gitHistoryScope,
+    handleGitHistoryPanelHeightChange,
     handleToggleGitHistoryScope,
     handleToggleSourceControlViewMode,
     isGitHistoryExpanded,

@@ -231,4 +231,22 @@ describe('GitHistoryPanel', () => {
     expect(markup).toContain('git-history-ref-worktree')
     expect(markup).toContain('Feature work')
   })
+
+  // A restored height has to survive the viewport clamp, which used to cap the panel at 33vh and
+  // silently swallow the drag.
+  it('renders a restored panel height', () => {
+    const markup = renderToStaticMarkup(
+      <GitHistoryPanel
+        state={{ status: 'ready', result: makeHistoryResult() }}
+        collapsed={false}
+        scope="branch"
+        height={900}
+        onToggle={vi.fn()}
+        onToggleScope={vi.fn()}
+        onRefresh={vi.fn()}
+      />
+    )
+
+    expect(markup).toContain('min(900px, 85vh)')
+  })
 })

@@ -253,6 +253,10 @@ export type GlobalSettings = NativeChatGlobalSettings & {
   sourceControlGroupOrder: SourceControlGroupOrder
   /** Commit graph scope: the workspace branch, or every ref. Per-user; optional for legacy settings. */
   sourceControlHistoryScope?: GitHistoryScope
+  /** Whether the Commits section stays open, including across worktree switches. Per-user. */
+  sourceControlHistoryExpanded?: boolean
+  /** Height in px the user dragged the Commits section to. Per-user. */
+  sourceControlHistoryPanelHeight?: number
   /** Compare base defaults to the branch upstream instead of the repo default; affects only the compare/diff view, not the PR/rebase target. Per-user. */
   sourceControlCompareAgainstUpstream: boolean
   /** Whether to show the Orca app name in the titlebar. */

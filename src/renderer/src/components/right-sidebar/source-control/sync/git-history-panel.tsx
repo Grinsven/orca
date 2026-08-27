@@ -7,6 +7,11 @@ import type {
   GitHistoryResult,
   GitHistoryScope
 } from '../../../../../../shared/git-history'
+import {
+  GIT_HISTORY_PANEL_DEFAULT_HEIGHT,
+  GIT_HISTORY_PANEL_MAX_HEIGHT,
+  GIT_HISTORY_PANEL_MIN_HEIGHT
+} from '../../../../../../shared/git-history'
 import type { GitHistoryWorktreeRef } from '../../../../../../shared/git-history-worktree-refs'
 import type { GitBranchChangeEntry } from '../../../../../../shared/git-diff-compare-types'
 import {
@@ -28,10 +33,13 @@ export type GitHistoryPanelState =
   | { status: 'refreshing' | 'ready'; result: GitHistoryResult; error?: string }
   | { status: 'error'; result?: GitHistoryResult; error: string }
 
-const DEFAULT_GIT_HISTORY_PANEL_HEIGHT = 256
-const MIN_GIT_HISTORY_PANEL_HEIGHT = 96
-const MAX_GIT_HISTORY_PANEL_HEIGHT = 520
-const MAX_GIT_HISTORY_PANEL_VIEWPORT_HEIGHT = '33vh'
+// Shared with the settings sanitizer so a dragged height is never clamped differently on persist.
+const DEFAULT_GIT_HISTORY_PANEL_HEIGHT = GIT_HISTORY_PANEL_DEFAULT_HEIGHT
+const MIN_GIT_HISTORY_PANEL_HEIGHT = GIT_HISTORY_PANEL_MIN_HEIGHT
+const MAX_GIT_HISTORY_PANEL_HEIGHT = GIT_HISTORY_PANEL_MAX_HEIGHT
+// Why so tall: the graph is the whole point of the all-branches scope, and the drag handle has to
+// actually move it. The old 520px/33vh pair silently swallowed the drag on any large window.
+const MAX_GIT_HISTORY_PANEL_VIEWPORT_HEIGHT = '85vh'
 
 type GitHistoryResizeSession = {
   startY: number
@@ -48,8 +56,10 @@ export function GitHistoryPanel({
   state,
   collapsed,
   scope,
+  height,
   worktreesByBranch,
   canLoadMore,
+  onHeightChange,
   onToggle,
   onToggleScope,
   onLoadMore,
@@ -62,8 +72,10 @@ export function GitHistoryPanel({
   state: GitHistoryPanelState
   collapsed: boolean
   scope: GitHistoryScope
+  height?: number
   worktreesByBranch?: ReadonlyMap<string, GitHistoryWorktreeRef>
   canLoadMore?: boolean
+  onHeightChange?: (height: number) => void
   onToggle: () => void
   onToggleScope: () => void
   onLoadMore?: () => void
@@ -96,8 +108,16 @@ export function GitHistoryPanel({
 
   const loading = state.status === 'loading' || state.status === 'refreshing'
   const count = result?.items.length ?? 0
-  const [panelHeight, setPanelHeight] = useState(DEFAULT_GIT_HISTORY_PANEL_HEIGHT)
   const resizeSessionRef = useRef<GitHistoryResizeSession | null>(null)
+  const [panelHeight, setPanelHeight] = useState(height ?? DEFAULT_GIT_HISTORY_PANEL_HEIGHT)
+  const latestHeightRef = useRef(panelHeight)
+  latestHeightRef.current = panelHeight
+  // Adopt an externally restored height (settings load, another window) without fighting a live drag.
+  const [appliedHeight, setAppliedHeight] = useState(height)
+  if (height !== undefined && height !== appliedHeight && !resizeSessionRef.current) {
+    setAppliedHeight(height)
+    setPanelHeight(height)
+  }
 
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set())
   const [filesByCommit, setFilesByCommit] = useState<Record<string, GitHistoryCommitFilesState>>({})
@@ -175,14 +195,18 @@ export function GitHistoryPanel({
     resizeSessionRef.current = null
     document.body.style.cursor = session.previousCursor
     document.body.style.userSelect = session.previousUserSelect
-  }, [])
+    // Why on release, not per move: persisting mid-drag would write a settings update per pointer event.
+    onHeightChange?.(latestHeightRef.current)
+  }, [onHeightChange])
 
   const handleResizePointerMove = useCallback((event: PointerEvent): void => {
     const session = resizeSessionRef.current
     if (!session) {
       return
     }
-    setPanelHeight(clampGitHistoryPanelHeight(session.startHeight + session.startY - event.clientY))
+    const next = clampGitHistoryPanelHeight(session.startHeight + session.startY - event.clientY)
+    latestHeightRef.current = next
+    setPanelHeight(next)
   }, [])
 
   useEffect(() => {
@@ -218,22 +242,31 @@ export function GitHistoryPanel({
     [collapsed, panelHeight]
   )
 
-  const handleResizeKeyDown = useCallback((event: React.KeyboardEvent<HTMLDivElement>): void => {
-    const step = event.shiftKey ? 32 : 16
-    if (event.key === 'ArrowUp') {
-      event.preventDefault()
-      setPanelHeight((height) => clampGitHistoryPanelHeight(height + step))
-    } else if (event.key === 'ArrowDown') {
-      event.preventDefault()
-      setPanelHeight((height) => clampGitHistoryPanelHeight(height - step))
-    } else if (event.key === 'Home') {
-      event.preventDefault()
-      setPanelHeight(MIN_GIT_HISTORY_PANEL_HEIGHT)
-    } else if (event.key === 'End') {
-      event.preventDefault()
-      setPanelHeight(MAX_GIT_HISTORY_PANEL_HEIGHT)
-    }
-  }, [])
+  const handleResizeKeyDown = useCallback(
+    (event: React.KeyboardEvent<HTMLDivElement>): void => {
+      const step = event.shiftKey ? 32 : 16
+      const applyHeight = (next: number): void => {
+        const clamped = clampGitHistoryPanelHeight(next)
+        latestHeightRef.current = clamped
+        setPanelHeight(clamped)
+        onHeightChange?.(clamped)
+      }
+      if (event.key === 'ArrowUp') {
+        event.preventDefault()
+        applyHeight(latestHeightRef.current + step)
+      } else if (event.key === 'ArrowDown') {
+        event.preventDefault()
+        applyHeight(latestHeightRef.current - step)
+      } else if (event.key === 'Home') {
+        event.preventDefault()
+        applyHeight(MIN_GIT_HISTORY_PANEL_HEIGHT)
+      } else if (event.key === 'End') {
+        event.preventDefault()
+        applyHeight(MAX_GIT_HISTORY_PANEL_HEIGHT)
+      }
+    },
+    [onHeightChange]
+  )
 
   const expandedBodyClassName = 'overflow-y-auto scrollbar-sleek'
   const expandedBodyStyle = {

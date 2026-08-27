@@ -2,7 +2,11 @@ import { describe, expect, it, vi } from 'vitest'
 import type { GitHistoryExecutor } from './git-history'
 import {
   GIT_HISTORY_MAX_LIMIT,
+  GIT_HISTORY_PANEL_DEFAULT_HEIGHT,
+  GIT_HISTORY_PANEL_MAX_HEIGHT,
+  GIT_HISTORY_PANEL_MIN_HEIGHT,
   loadGitHistoryFromExecutor,
+  normalizeGitHistoryPanelHeight,
   parseGitHistoryLog
 } from './git-history'
 import { GIT_HISTORY_COMMIT_FORMAT } from './git-history-log-parser'
@@ -452,5 +456,27 @@ describe('symbolic full-name resolution', () => {
     const result = await loadGitHistoryFromExecutor(executor, '/repo', { baseRef: 'some-rev' })
 
     expect(result.baseRef).toMatchObject({ category: 'commits' })
+  })
+})
+
+describe('normalizeGitHistoryPanelHeight', () => {
+  it('keeps a height inside the allowed range', () => {
+    expect(normalizeGitHistoryPanelHeight(700)).toBe(700)
+  })
+
+  it('clamps a height above the maximum', () => {
+    expect(normalizeGitHistoryPanelHeight(99_999)).toBe(GIT_HISTORY_PANEL_MAX_HEIGHT)
+  })
+
+  it('clamps a height below the minimum', () => {
+    expect(normalizeGitHistoryPanelHeight(1)).toBe(GIT_HISTORY_PANEL_MIN_HEIGHT)
+  })
+
+  it('falls back to the default for a non-numeric value', () => {
+    expect(normalizeGitHistoryPanelHeight('tall')).toBe(GIT_HISTORY_PANEL_DEFAULT_HEIGHT)
+  })
+
+  it('falls back to the default for NaN', () => {
+    expect(normalizeGitHistoryPanelHeight(Number.NaN)).toBe(GIT_HISTORY_PANEL_DEFAULT_HEIGHT)
   })
 })

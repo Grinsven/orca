@@ -29,11 +29,13 @@ export function SourceControlPanelContent(props: SourceControlPanelReadyProps) {
     filterQuery,
     filteredBranchEntries,
     filteredGrouped,
+    gitHistoryPanelHeight,
     gitHistoryScope,
     gitHistoryState,
     gitHistoryWorktreesByBranch,
     handleAbortOperationForConflict,
     handleCommitAction,
+    handleGitHistoryPanelHeightChange,
     handleToggleGitHistoryScope,
     handleContextMenu,
     handleOpenDiff,
@@ -225,6 +227,8 @@ export function SourceControlPanelContent(props: SourceControlPanelReadyProps) {
             state={gitHistoryState}
             collapsed={collapsedSections.has('history')}
             scope={gitHistoryScope}
+            height={gitHistoryPanelHeight}
+            onHeightChange={handleGitHistoryPanelHeightChange}
             worktreesByBranch={gitHistoryWorktreesByBranch}
             canLoadMore={canLoadMoreGitHistory}
             onToggle={() => toggleSection('history')}
