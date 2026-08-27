@@ -16,6 +16,7 @@ import { normalizeTaskProviderSettings } from '../../../shared/task-providers'
 import { normalizeOpenInApplications } from '../../../shared/open-in-applications'
 import { normalizeTerminalShortcutPolicy } from '../../../shared/keybindings'
 import { normalizeSourceControlGroupOrder } from '../../../shared/source-control-group-order'
+import { normalizeGitHistoryScope } from '../../../shared/git-history-types'
 import { normalizeAppIconId } from '../../../shared/app-icon'
 import { normalizeUiLanguage } from '../../../shared/ui-language'
 import { normalizeWorktreeVisibilityDefaults } from '../../../shared/external-worktree-visibility'
@@ -186,6 +187,11 @@ export function updateSettings(
   if ('sourceControlGroupOrder' in updates) {
     sanitizedUpdates.sourceControlGroupOrder = normalizeSourceControlGroupOrder(
       updates.sourceControlGroupOrder
+    )
+  }
+  if ('sourceControlHistoryScope' in updates) {
+    sanitizedUpdates.sourceControlHistoryScope = normalizeGitHistoryScope(
+      updates.sourceControlHistoryScope
     )
   }
   if ('appIcon' in updates) {

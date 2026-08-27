@@ -1,5 +1,5 @@
 import type React from 'react'
-import { Copy, Globe, Hash, Sparkles } from 'lucide-react'
+import { Copy, FolderGit2, Globe, Hash, Sparkles } from 'lucide-react'
 import {
   ContextMenuContent,
   ContextMenuItem,
@@ -7,18 +7,32 @@ import {
 } from '@/components/ui/context-menu'
 import { translate } from '@/i18n/i18n'
 import type { GitHistoryItem } from '../../../../../../shared/git-history'
+import {
+  findGitHistoryWorktreeForRefs,
+  type GitHistoryWorktreeRef
+} from '../../../../../../shared/git-history-worktree-refs'
 import { useAppStore } from '@/store'
 import { getClientCreationActionPolicy } from '@/lib/client-creation-action-policy'
 
-export type GitHistoryCommitAction = 'open-remote' | 'copy-hash' | 'copy-message' | 'explain'
+export type GitHistoryCommitAction =
+  | 'open-remote'
+  | 'copy-hash'
+  | 'copy-message'
+  | 'explain'
+  | 'open-worktree'
 
 export function GitHistoryCommitContextMenu({
   item,
+  worktreesByBranch,
   onAction
 }: {
   item: GitHistoryItem
+  worktreesByBranch?: ReadonlyMap<string, GitHistoryWorktreeRef>
   onAction: (action: GitHistoryCommitAction, item: GitHistoryItem) => void
 }): React.JSX.Element {
+  const worktree = worktreesByBranch
+    ? findGitHistoryWorktreeForRefs(item.references ?? [], worktreesByBranch)
+    : undefined
   const managedBrowserCreationEnabled = useAppStore(
     (state) =>
       getClientCreationActionPolicy(state, state.activeWorktreeId)['managed-browser'].state ===
@@ -26,6 +40,16 @@ export function GitHistoryCommitContextMenu({
   )
   return (
     <ContextMenuContent className="w-56">
+      {worktree ? (
+        <ContextMenuItem onSelect={() => onAction('open-worktree', item)}>
+          <FolderGit2 className="size-3.5" />
+          {translate(
+            'auto.components.right.sidebar.GitHistoryCommitContextMenu.5e9a3b71d0',
+            'Open workspace {{value0}}',
+            { value0: worktree.displayName }
+          )}
+        </ContextMenuItem>
+      ) : null}
       {managedBrowserCreationEnabled ? (
         <ContextMenuItem onSelect={() => onAction('open-remote', item)}>
           <Globe className="size-3.5" />

@@ -22,6 +22,10 @@ import {
   type SourceControlRowOpenEvent
 } from '../listing/split-open'
 import type { GitHistoryCommitAction } from './git-history-commit-context-menu'
+import {
+  findGitHistoryWorktreeForRefs,
+  type GitHistoryWorktreeRef
+} from '../../../../../../shared/git-history-worktree-refs'
 import { openWorkspaceBrowserTab } from '@/lib/workspace-browser-tab-open'
 
 const EMPTY_BRANCH_CHANGE_ENTRIES: GitBranchChangeEntry[] = []
@@ -43,15 +47,18 @@ export function useGitHistoryCommitActions({
   activeWorktreeId,
   worktreePath,
   activeRepoTarget,
+  gitHistoryWorktreesByBranch,
   resolveSplitTargetGroupId
 }: {
   activeWorktreeId: string | null | undefined
   worktreePath: string | null
   activeRepoTarget: RuntimeClientTarget | null
+  gitHistoryWorktreesByBranch: ReadonlyMap<string, GitHistoryWorktreeRef>
   resolveSplitTargetGroupId: (event?: SourceControlRowOpenEvent) => string | undefined
 }): GitHistoryCommitActions {
   const openCommitAllDiffs = useAppStore((s) => s.openCommitAllDiffs)
   const openCommitDiff = useAppStore((s) => s.openCommitDiff)
+  const setActiveWorktree = useAppStore((s) => s.setActiveWorktree)
 
   // Caches each commit's compare result so expanding a commit fetches its files
   // once, and opening a single file (or the combined diff) reuses that same
@@ -231,6 +238,16 @@ export function useGitHistoryCommitActions({
           })
         return
       }
+      if (action === 'open-worktree') {
+        const worktree = findGitHistoryWorktreeForRefs(
+          item.references ?? [],
+          gitHistoryWorktreesByBranch
+        )
+        if (worktree) {
+          setActiveWorktree(worktree.worktreeId)
+        }
+        return
+      }
       if (action === 'copy-hash') {
         void copyCommitText(
           item.id,
@@ -284,7 +301,14 @@ export function useGitHistoryCommitActions({
         promptDelivery: 'submit-after-ready'
       })
     },
-    [activeRepoTarget, activeWorktreeId, copyCommitText, worktreePath]
+    [
+      activeRepoTarget,
+      activeWorktreeId,
+      copyCommitText,
+      gitHistoryWorktreesByBranch,
+      setActiveWorktree,
+      worktreePath
+    ]
   )
 
   return { loadCommitFiles, openHistoryCommitDiff, openCommitFile, handleCommitAction }

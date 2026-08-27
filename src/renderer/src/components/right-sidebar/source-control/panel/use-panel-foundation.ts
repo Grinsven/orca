@@ -17,6 +17,7 @@ export function useSourceControlPanelFoundation() {
     activeGroupId,
     activeRemoteActionSequence,
     activeRepo,
+    activeRepoId,
     activeRepoTarget,
     activeSourceControlLaunchPlatform,
     activeWorktreeId,
@@ -30,6 +31,7 @@ export function useSourceControlPanelFoundation() {
     conflictOperation,
     entries,
     filterQuery,
+    gitHistoryScope,
     isBranchVisible,
     isFolder,
     isGitHistoryExpanded,
@@ -51,6 +53,7 @@ export function useSourceControlPanelFoundation() {
 
   const listing = useSourceControlFileListing({
     activeRemoteActionSequence,
+    activeRepoId,
     activeRepoTarget,
     activeWorktreeId,
     branchEntries,
@@ -61,6 +64,7 @@ export function useSourceControlPanelFoundation() {
     compareBaseRef: reviewContext.compareBaseRef,
     entries,
     filterQuery,
+    gitHistoryScope,
     isBranchVisible,
     isFolder,
     isGitHistoryExpanded,

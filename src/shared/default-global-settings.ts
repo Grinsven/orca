@@ -15,6 +15,7 @@ import {
   DEFAULT_LEFT_SIDEBAR_TINT_OPACITY
 } from './left-sidebar-appearance'
 import { DEFAULT_SOURCE_CONTROL_GROUP_ORDER } from './source-control-group-order'
+import { GIT_HISTORY_DEFAULT_SCOPE } from './git-history-types'
 import { DESKTOP_TERMINAL_SCROLLBACK_ROWS_DEFAULT } from './terminal-scrollback-policy'
 
 export function buildDefaultSettings(args: {
@@ -148,6 +149,7 @@ export function buildDefaultSettings(args: {
     followSymlinkedDirectories: false,
     sourceControlViewMode: 'list',
     sourceControlGroupOrder: DEFAULT_SOURCE_CONTROL_GROUP_ORDER,
+    sourceControlHistoryScope: GIT_HISTORY_DEFAULT_SCOPE,
     sourceControlCompareAgainstUpstream: false,
     showTitlebarAppName: true,
     showTasksButton: true,

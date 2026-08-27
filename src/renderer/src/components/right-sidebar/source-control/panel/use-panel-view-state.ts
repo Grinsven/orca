@@ -2,6 +2,7 @@ import { useCallback, useMemo, useRef, useState } from 'react'
 import { resolveSourceControlGroupOrder } from '../listing/section-order'
 import { getNextSourceControlViewMode } from './header-toolbar'
 import { normalizeSourceControlViewMode } from '../commit/commit-drafts'
+import { normalizeGitHistoryScope } from '../../../../../../shared/git-history'
 import type { SourceControlStoreActions } from '../listing/use-store-actions'
 import type { SourceControlWorktreeContext } from '../listing/use-worktree-context'
 
@@ -38,6 +39,7 @@ export function useSourceControlPanelViewState({
   )
   const sourceControlViewMode = persistedSourceControlViewMode
   const sourceControlGroupOrder = resolveSourceControlGroupOrder(settings?.sourceControlGroupOrder)
+  const gitHistoryScope = normalizeGitHistoryScope(settings?.sourceControlHistoryScope)
   const [collapsedTreeDirs, setCollapsedTreeDirs] = useState<Set<string>>(new Set())
   const [baseRefDialogOpen, setBaseRefDialogOpen] = useState(false)
   const [filterQuery, setFilterQuery] = useState('')
@@ -51,6 +53,13 @@ export function useSourceControlPanelViewState({
       sourceControlViewMode: getNextSourceControlViewMode(sourceControlViewMode)
     })
   }, [settings, sourceControlViewMode, updateSettings])
+
+  const handleToggleGitHistoryScope = useCallback(() => {
+    if (!settings) {
+      return
+    }
+    updateSettings({ sourceControlHistoryScope: gitHistoryScope === 'all' ? 'branch' : 'all' })
+  }, [gitHistoryScope, settings, updateSettings])
 
   // Why: reset during render instead of key-remounting on switch (which caused a Windows IPC storm).
   const [viewStateWorktreeId, setViewStateWorktreeId] = useState(activeWorktreeId)
@@ -96,6 +105,8 @@ export function useSourceControlPanelViewState({
     fileListScrollElement,
     filterExpanded,
     filterQuery,
+    gitHistoryScope,
+    handleToggleGitHistoryScope,
     handleToggleSourceControlViewMode,
     isGitHistoryExpanded,
     isMac,

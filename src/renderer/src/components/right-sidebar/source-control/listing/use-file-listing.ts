@@ -7,6 +7,7 @@ import type { SourceControlActionError } from '../sync/action-error'
 import { useSourceControlBulkActions } from '../commit/use-bulk-actions'
 import type { SourceControlPanelViewState } from '../panel/use-panel-view-state'
 import { useSourceControlGitHistory } from '../sync/use-git-history'
+import { buildGitHistoryWorktreesByBranch } from '../../../../../../shared/git-history-worktree-refs'
 import type { SourceControlStatusRefresh } from '../sync/use-status-refresh'
 import { useSourceControlFileProjection } from './use-file-projection'
 import { useSourceControlRowOpening } from './use-row-opening'
@@ -19,6 +20,7 @@ import type { SourceControlWorktreeContext } from './use-worktree-context'
  */
 export function useSourceControlFileListing({
   activeRemoteActionSequence,
+  activeRepoId,
   activeRepoTarget,
   activeWorktreeId,
   branchEntries,
@@ -29,6 +31,7 @@ export function useSourceControlFileListing({
   compareBaseRef,
   entries,
   filterQuery,
+  gitHistoryScope,
   isBranchVisible,
   isFolder,
   isGitHistoryExpanded,
@@ -44,6 +47,7 @@ export function useSourceControlFileListing({
   worktreePath
 }: {
   activeRemoteActionSequence: number | null
+  activeRepoId: SourceControlWorktreeContext['activeRepoId']
   activeRepoTarget: SourceControlWorktreeContext['activeRepoTarget']
   activeWorktreeId: string | null
   branchEntries: SourceControlWorktreeContext['branchEntries']
@@ -54,6 +58,7 @@ export function useSourceControlFileListing({
   compareBaseRef: string | null
   entries: SourceControlWorktreeContext['entries']
   filterQuery: string
+  gitHistoryScope: SourceControlPanelViewState['gitHistoryScope']
   isBranchVisible: boolean
   isFolder: boolean
   isGitHistoryExpanded: boolean
@@ -102,17 +107,34 @@ export function useSourceControlFileListing({
     sourceControlViewMode,
     collapsedSections
   })
-  const { gitHistoryState, refreshGitHistory, refreshGitHistoryRef } = useSourceControlGitHistory({
+  const {
+    gitHistoryState,
+    canLoadMoreGitHistory,
+    loadMoreGitHistory,
+    refreshGitHistory,
+    refreshGitHistoryRef
+  } = useSourceControlGitHistory({
     activeRepoTarget,
     activeWorktreeId,
     worktreePath,
     compareBaseRef,
+    gitHistoryScope,
     isFolder,
     isBranchVisible,
     isGitHistoryExpanded,
     isGitHistoryVisible,
     worktreeMap
   })
+
+  // Branch pills mark refs that another Orca workspace already has checked out.
+  const gitHistoryWorktreesByBranch = useMemo(
+    () =>
+      buildGitHistoryWorktreesByBranch(worktreeMap.values(), {
+        repoId: activeRepoId,
+        excludeWorktreeId: activeWorktreeId
+      }),
+    [activeRepoId, activeWorktreeId, worktreeMap]
+  )
 
   // Why: modifier-click keeps the current pane intact by opening the file in a fresh split to the right.
   const { resolveSplitTargetGroupId, activeOpenRowKeys, handleOpenDiff, openCommittedDiff } =
@@ -207,8 +229,11 @@ export function useSourceControlFileListing({
     filteredBranchEntries,
     filteredGrouped,
     flatEntriesByKey,
+    canLoadMoreGitHistory,
     gitHistoryState,
+    gitHistoryWorktreesByBranch,
     grouped,
+    loadMoreGitHistory,
     handleBulkStage,
     handleBulkUnstage,
     handleContextMenu,

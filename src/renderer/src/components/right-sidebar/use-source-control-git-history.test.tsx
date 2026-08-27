@@ -14,14 +14,14 @@ vi.mock('@/lib/connection-context', () => ({ getConnectionId: () => undefined })
 
 import { useSourceControlGitHistory } from './source-control/sync/use-git-history'
 import { deferred, flush, mountProbe, unmountProbes } from './source-control-hook-test-harness'
-import type { GitHistoryResult } from '../../../../shared/git-history-types'
+import type { GitHistoryResult, GitHistoryScope } from '../../../../shared/git-history-types'
 
-function historyResult(subject: string): GitHistoryResult {
+function historyResult(subject: string, hasMore = false): GitHistoryResult {
   return {
     items: [{ id: subject, parentIds: [], subject, message: subject }],
     hasIncomingChanges: false,
     hasOutgoingChanges: false,
-    hasMore: false,
+    hasMore,
     limit: 50
   }
 }
@@ -40,6 +40,7 @@ function Probe(props: {
   worktreeId?: string | null
   worktreePath?: string
   compareBaseRef?: string | null
+  gitHistoryScope?: GitHistoryScope
   isFolder?: boolean
   isBranchVisible?: boolean
   isGitHistoryExpanded?: boolean
@@ -51,6 +52,7 @@ function Probe(props: {
     activeWorktreeId: props.worktreeId === undefined ? 'A' : props.worktreeId,
     worktreePath: props.worktreePath ?? '/a',
     compareBaseRef: props.compareBaseRef === undefined ? 'origin/main' : props.compareBaseRef,
+    gitHistoryScope: props.gitHistoryScope ?? 'branch',
     isFolder: props.isFolder ?? false,
     isBranchVisible: props.isBranchVisible ?? true,
     isGitHistoryExpanded: props.isGitHistoryExpanded ?? true,
@@ -223,7 +225,7 @@ describe('useSourceControlGitHistory stale completion', () => {
     await flush()
     expect(mocks.getRuntimeGitHistory).toHaveBeenLastCalledWith(
       expect.objectContaining({ worktreeId: 'A', worktreePath: '/a' }),
-      { limit: 50, baseRef: 'origin/main' }
+      { limit: 50, baseRef: 'origin/main', scope: 'branch' }
     )
 
     await act(async () => {
@@ -233,8 +235,24 @@ describe('useSourceControlGitHistory stale completion', () => {
     expect(mocks.getRuntimeGitHistory).toHaveBeenCalledTimes(2)
     expect(mocks.getRuntimeGitHistory).toHaveBeenLastCalledWith(expect.anything(), {
       limit: 50,
-      baseRef: 'origin/dev'
+      baseRef: 'origin/dev',
+      scope: 'branch'
     })
+  })
+
+  it('re-fetches with the all-branches scope when the graph scope changes', async () => {
+    const root = await mount({})
+    await flush()
+    expect(mocks.getRuntimeGitHistory).toHaveBeenCalledTimes(1)
+
+    await act(async () => {
+      root.render(<Probe gitHistoryScope="all" />)
+    })
+    await flush()
+    expect(mocks.getRuntimeGitHistory).toHaveBeenLastCalledWith(
+      expect.anything(),
+      expect.objectContaining({ scope: 'all' })
+    )
   })
 
   it('re-fetches when the owner host changes but the worktree and path stay put', async () => {
@@ -264,6 +282,66 @@ describe('useSourceControlGitHistory stale completion', () => {
     })
     await flush()
     expect(mocks.getRuntimeGitHistory).toHaveBeenCalledTimes(2)
+  })
+
+  // Why this matters in the all-branches scope: one page is shared by every ref, so the
+  // workspace's own commits (HEAD included) can sit past the first page.
+  it('grows the window a page at a time and stops at the max limit', async () => {
+    mocks.getRuntimeGitHistory.mockResolvedValue(historyResult('page', true))
+
+    await mount({ gitHistoryScope: 'all' })
+    await flush()
+    expect(mocks.getRuntimeGitHistory).toHaveBeenLastCalledWith(
+      expect.anything(),
+      expect.objectContaining({ limit: 50 })
+    )
+    expect(latest?.canLoadMoreGitHistory).toBe(true)
+
+    void latest?.loadMoreGitHistory()
+    await flush()
+    expect(mocks.getRuntimeGitHistory).toHaveBeenLastCalledWith(
+      expect.anything(),
+      expect.objectContaining({ limit: 100 })
+    )
+
+    for (let page = 0; page < 3; page += 1) {
+      void latest?.loadMoreGitHistory()
+      await flush()
+    }
+    expect(mocks.getRuntimeGitHistory).toHaveBeenLastCalledWith(
+      expect.anything(),
+      expect.objectContaining({ limit: 200 })
+    )
+    // Capped: the last page must not re-request the window the user already has.
+    expect(latest?.canLoadMoreGitHistory).toBe(false)
+    expect(mocks.getRuntimeGitHistory).toHaveBeenCalledTimes(4)
+  })
+
+  it('keeps the grown window per worktree and refreshes with it', async () => {
+    mocks.getRuntimeGitHistory.mockResolvedValue(historyResult('page', true))
+
+    const root = await mount({ worktreeId: 'A', worktreePath: '/a' })
+    await flush()
+    void latest?.loadMoreGitHistory()
+    await flush()
+
+    await act(async () => {
+      root.render(<Probe worktreeId="B" worktreePath="/b" />)
+    })
+    await flush()
+    expect(mocks.getRuntimeGitHistory).toHaveBeenLastCalledWith(
+      expect.anything(),
+      expect.objectContaining({ limit: 50 })
+    )
+
+    await act(async () => {
+      root.render(<Probe worktreeId="A" worktreePath="/a" />)
+    })
+    await flush()
+    expect(mocks.getRuntimeGitHistory).toHaveBeenLastCalledWith(
+      expect.anything(),
+      expect.objectContaining({ limit: 100 })
+    )
   })
 
   it('does not shell out to git while collapsed, hidden, or on a folder workspace', async () => {

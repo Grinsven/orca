@@ -17,6 +17,7 @@ export function SourceControlPanelContent(props: SourceControlPanelReadyProps) {
     activeOpenRowKeys,
     branchEntries,
     branchSummary,
+    canLoadMoreGitHistory,
     collapsedSections,
     collapsedTreeDirs,
     conflictOperation,
@@ -28,9 +29,12 @@ export function SourceControlPanelContent(props: SourceControlPanelReadyProps) {
     filterQuery,
     filteredBranchEntries,
     filteredGrouped,
+    gitHistoryScope,
     gitHistoryState,
+    gitHistoryWorktreesByBranch,
     handleAbortOperationForConflict,
     handleCommitAction,
+    handleToggleGitHistoryScope,
     handleContextMenu,
     handleOpenDiff,
     handleResolveConflictsWithAI,
@@ -46,6 +50,7 @@ export function SourceControlPanelContent(props: SourceControlPanelReadyProps) {
     isExecutingBulk,
     isGitHistoryVisible,
     loadCommitFiles,
+    loadMoreGitHistory,
     normalizedFilter,
     openAllDiffs,
     openBranchAllDiffs,
@@ -219,7 +224,12 @@ export function SourceControlPanelContent(props: SourceControlPanelReadyProps) {
           <GitHistoryPanel
             state={gitHistoryState}
             collapsed={collapsedSections.has('history')}
+            scope={gitHistoryScope}
+            worktreesByBranch={gitHistoryWorktreesByBranch}
+            canLoadMore={canLoadMoreGitHistory}
             onToggle={() => toggleSection('history')}
+            onToggleScope={handleToggleGitHistoryScope}
+            onLoadMore={() => void loadMoreGitHistory()}
             onRefresh={() => void refreshGitHistory()}
             onOpenCommit={(item) => void openHistoryCommitDiff(item)}
             onLoadCommitFiles={loadCommitFiles}

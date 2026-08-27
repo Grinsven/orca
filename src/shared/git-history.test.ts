@@ -204,6 +204,93 @@ describe('git history loader', () => {
     expect(result.mergeBase).toBe(BASE_OID)
   })
 
+  it('defaults to the branch scope when no scope is requested', async () => {
+    const { executor, calls } = createHistoryExecutor()
+
+    await loadGitHistoryFromExecutor(executor, '/repo', { limit: 50 })
+
+    const logCall = calls.find((args) => args[0] === 'log')
+    expect(logCall).not.toContain('--all')
+  })
+
+  it('walks every ref when the all-branches scope is requested', async () => {
+    const { executor, calls } = createHistoryExecutor()
+
+    const result = await loadGitHistoryFromExecutor(executor, '/repo', { limit: 50, scope: 'all' })
+
+    const logCall = calls.find((args) => args[0] === 'log')
+    // Why not --all: it walks refs/stash and refs/notes/* too. The detached HEAD is covered by
+    // no ref at all, so it rides along explicitly.
+    expect(logCall?.slice(-4)).toEqual(['--branches', '--remotes', '--tags', HEAD_OID])
+    expect(logCall).toEqual(
+      expect.arrayContaining([
+        `--format=${GIT_HISTORY_COMMIT_FORMAT}`,
+        '-z',
+        '--topo-order',
+        '--decorate=full',
+        '-n51'
+      ])
+    )
+    expect(calls.filter((args) => args[0] === 'log')).toHaveLength(1)
+    expect(result.items).toHaveLength(2)
+  })
+
+  it('leaves the stash and notes refs out of the all-branches walk', async () => {
+    const { executor, calls } = createHistoryExecutor()
+
+    await loadGitHistoryFromExecutor(executor, '/repo', { limit: 50, scope: 'all' })
+
+    const logCall = calls.find((args) => args[0] === 'log')
+    expect(logCall).not.toContain('--all')
+  })
+
+  it('skips the boundary rows in the all-branches scope, where upstream commits are real rows', async () => {
+    const { executor } = createHistoryExecutor()
+
+    const result = await loadGitHistoryFromExecutor(executor, '/repo', { limit: 50, scope: 'all' })
+
+    expect(result.hasIncomingChanges).toBe(false)
+    expect(result.hasOutgoingChanges).toBe(false)
+  })
+
+  it('graphs every ref on an unborn branch instead of reporting no commits', async () => {
+    const calls: string[][] = []
+    const executor = vi.fn(async (args: string[]) => {
+      calls.push(args)
+      if (args[0] === 'rev-parse') {
+        throw new Error('Needed a single revision')
+      }
+      if (args[0] === 'for-each-ref') {
+        return { stdout: '' }
+      }
+      if (args[0] === 'log') {
+        return { stdout: logRecord({ hash: BASE_OID, message: 'commit on another branch' }) }
+      }
+      throw new Error(`unexpected git command: ${args.join(' ')}`)
+    })
+
+    const result = await loadGitHistoryFromExecutor(executor, '/repo', { scope: 'all' })
+
+    const logCall = calls.find((args) => args[0] === 'log')
+    expect(logCall?.slice(-3)).toEqual(['--branches', '--remotes', '--tags'])
+    expect(result.items.map((item) => item.id)).toEqual([BASE_OID])
+    expect(result.currentRef).toBeUndefined()
+  })
+
+  it('keeps the limit clamp and hasMore in the all-branches scope', async () => {
+    const { executor, calls } = createHistoryExecutor(GIT_HISTORY_MAX_LIMIT + 1)
+
+    const result = await loadGitHistoryFromExecutor(executor, '/repo', {
+      limit: GIT_HISTORY_MAX_LIMIT + 500,
+      scope: 'all'
+    })
+
+    const logCall = calls.find((args) => args[0] === 'log')
+    expect(logCall).toContain(`-n${GIT_HISTORY_MAX_LIMIT + 1}`)
+    expect(result.limit).toBe(GIT_HISTORY_MAX_LIMIT)
+    expect(result.hasMore).toBe(true)
+  })
+
   it('does not list newly fetched upstream commits in old workspace history', async () => {
     const upstreamOnlyOid = 'd'.repeat(40)
     const calls: string[][] = []

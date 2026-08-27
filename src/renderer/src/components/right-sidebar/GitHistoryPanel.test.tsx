@@ -50,7 +50,9 @@ describe('GitHistoryPanel', () => {
         <GitHistoryPanel
           state={{ status: 'ready', result }}
           collapsed={false}
+          scope="branch"
           onToggle={vi.fn()}
+          onToggleScope={vi.fn()}
           onRefresh={vi.fn()}
           onOpenCommit={vi.fn()}
         />
@@ -67,7 +69,9 @@ describe('GitHistoryPanel', () => {
       <GitHistoryPanel
         state={{ status: 'ready', result: makeHistoryResult() }}
         collapsed={false}
+        scope="branch"
         onToggle={vi.fn()}
+        onToggleScope={vi.fn()}
         onRefresh={vi.fn()}
         onOpenCommit={vi.fn()}
       />
@@ -89,7 +93,9 @@ describe('GitHistoryPanel', () => {
       <GitHistoryPanel
         state={{ status: 'ready', result }}
         collapsed={false}
+        scope="branch"
         onToggle={vi.fn()}
+        onToggleScope={vi.fn()}
         onRefresh={vi.fn()}
         onOpenCommit={vi.fn()}
       />
@@ -100,5 +106,129 @@ describe('GitHistoryPanel', () => {
     expect(markup).not.toContain('title="feature"')
     expect(markup).not.toContain('title="v1.0.0"')
     expect(markup).not.toMatch(/\stitle=/)
+  })
+
+  it('reflects the graph scope on the all-branches toggle', () => {
+    const branchScoped = renderToStaticMarkup(
+      <GitHistoryPanel
+        state={{ status: 'ready', result: makeHistoryResult() }}
+        collapsed={false}
+        scope="branch"
+        onToggle={vi.fn()}
+        onToggleScope={vi.fn()}
+        onRefresh={vi.fn()}
+      />
+    )
+    const allScoped = renderToStaticMarkup(
+      <GitHistoryPanel
+        state={{ status: 'ready', result: makeHistoryResult() }}
+        collapsed={false}
+        scope="all"
+        onToggle={vi.fn()}
+        onToggleScope={vi.fn()}
+        onRefresh={vi.fn()}
+      />
+    )
+
+    expect(branchScoped).toContain('aria-pressed="false"')
+    expect(allScoped).toContain('aria-pressed="true"')
+  })
+
+  // The all-branches scope routinely opens more lanes than the graph draws; folding the extra
+  // lanes onto the last column is what keeps those rows from rendering as a bare line of text.
+  it('keeps the commit node inside the drawing box when the graph outgrows the lane cap', () => {
+    const result = makeHistoryResult()
+    result.currentRef = undefined
+    result.items = Array.from({ length: 13 }, (_, index) => ({
+      id: `head-${index}`,
+      parentIds: [`root-${index}`],
+      subject: `branch ${index}`,
+      message: `branch ${index}`,
+      displayId: `head-${index}`,
+      references: []
+    }))
+
+    const markup = renderToStaticMarkup(
+      <GitHistoryPanel
+        state={{ status: 'ready', result }}
+        collapsed={false}
+        scope="all"
+        onToggle={vi.fn()}
+        onToggleScope={vi.fn()}
+        onRefresh={vi.fn()}
+      />
+    )
+
+    // Header icons are svgs too; the graph is the one with the row drawing box.
+    const svgs = (markup.match(/<svg[^>]*>.*?<\/svg>/gs) ?? []).filter((svg) =>
+      svg.includes('shrink-0 overflow-hidden')
+    )
+    expect(svgs).toHaveLength(13)
+    for (const svg of svgs) {
+      const width = Number(/width="(\d+(?:\.\d+)?)"/.exec(svg)?.[1])
+      const centers = [...svg.matchAll(/cx="(-?\d+(?:\.\d+)?)"/g)].map((match) => Number(match[1]))
+      expect(centers.length).toBeGreaterThan(0)
+      expect(Math.max(...centers)).toBeLessThanOrEqual(width)
+    }
+    // Lane 12 folds onto the last drawn lane instead of sitting at x=143, outside a 106px box.
+    expect(svgs.at(-1)).toContain('cx="99"')
+  })
+
+  it('offers a load-more control only when another page is available', () => {
+    const result = makeHistoryResult()
+    result.hasMore = true
+    const onLoadMore = vi.fn()
+
+    const withMore = renderToStaticMarkup(
+      <GitHistoryPanel
+        state={{ status: 'ready', result }}
+        collapsed={false}
+        scope="all"
+        canLoadMore
+        onToggle={vi.fn()}
+        onToggleScope={vi.fn()}
+        onLoadMore={onLoadMore}
+        onRefresh={vi.fn()}
+      />
+    )
+    const withoutMore = renderToStaticMarkup(
+      <GitHistoryPanel
+        state={{ status: 'ready', result: makeHistoryResult() }}
+        collapsed={false}
+        scope="all"
+        canLoadMore={false}
+        onToggle={vi.fn()}
+        onToggleScope={vi.fn()}
+        onLoadMore={onLoadMore}
+        onRefresh={vi.fn()}
+      />
+    )
+
+    expect(withMore).toContain('Load more commits')
+    expect(withoutMore).not.toContain('Load more commits')
+  })
+
+  it('marks a branch ref that another workspace has checked out', () => {
+    const result = makeHistoryResult()
+    result.items[0].references = [
+      { id: 'refs/heads/feature', name: 'feature', category: 'branches' }
+    ]
+
+    const markup = renderToStaticMarkup(
+      <GitHistoryPanel
+        state={{ status: 'ready', result }}
+        collapsed={false}
+        scope="all"
+        worktreesByBranch={
+          new Map([['feature', { worktreeId: 'repo::/b', displayName: 'Feature work' }]])
+        }
+        onToggle={vi.fn()}
+        onToggleScope={vi.fn()}
+        onRefresh={vi.fn()}
+      />
+    )
+
+    expect(markup).toContain('git-history-ref-worktree')
+    expect(markup).toContain('Feature work')
   })
 })

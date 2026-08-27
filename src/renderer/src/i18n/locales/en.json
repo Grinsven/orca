@@ -12998,7 +12998,11 @@
             "62e685d5ec": "idle",
             "111e1d0db4": "error",
             "e5e81e59a6": "Resize commits",
-            "6d1e0a7c3b": "Failed to load commit files"
+            "6d1e0a7c3b": "Failed to load commit files",
+            "5c8b41e7a0": "Graphing all branches. Click to graph the current branch only.",
+            "b207d94f1c": "Graphing the current branch. Click to graph all branches.",
+            "3fa10c7d55": "All branches",
+            "a3d2f18b47": "Load more commits"
           },
           "HostedReviewActions": {
             "4d5fb5a284": "Close",
@@ -14209,13 +14213,15 @@
           },
           "GitHistoryRow": {
             "2f9c41ab07": "Show files in commit {{value0}}: {{value1}}",
-            "4a8d9e0c1f": "Hide files in commit {{value0}}: {{value1}}"
+            "4a8d9e0c1f": "Hide files in commit {{value0}}: {{value1}}",
+            "7b3c05e214": "{{value0}}. Checked out in workspace {{value1}}; right-click the row to open it."
           },
           "GitHistoryCommitContextMenu": {
             "7b1c4e9a02": "Open commit in browser",
             "8c2d5fab13": "Copy commit hash",
             "9d3e60bc24": "Copy commit message",
-            "ae4f71cd35": "Explain changes"
+            "ae4f71cd35": "Explain changes",
+            "5e9a3b71d0": "Open workspace {{value0}}"
           },
           "pull": {
             "policy": {

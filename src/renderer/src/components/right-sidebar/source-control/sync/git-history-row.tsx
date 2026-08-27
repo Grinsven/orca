@@ -1,31 +1,61 @@
 import React from 'react'
-import { ChevronDown } from 'lucide-react'
+import { ChevronDown, Cloud, FolderGit2, GitBranch, Tag } from 'lucide-react'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
 import type { GitHistoryItem, GitHistoryItemRef } from '../../../../../../shared/git-history'
 import type { GitHistoryItemViewModel } from '../../../../../../shared/git-history-graph'
 import { GitHistoryGraphSvg, graphColor } from './git-history-graph-svg'
 import { dedupeRemoteTrackingRefs } from '../../../../../../shared/git-history-ref-display'
+import type { GitHistoryWorktreeRef } from '../../../../../../shared/git-history-worktree-refs'
 import { translate } from '@/i18n/i18n'
 
-function GitHistoryRefBadge({ itemRef }: { itemRef: GitHistoryItemRef }): React.JSX.Element {
+const GIT_HISTORY_REF_ICONS = {
+  branches: GitBranch,
+  'remote branches': Cloud,
+  tags: Tag,
+  commits: GitBranch
+} as const
+
+function GitHistoryRefBadge({
+  itemRef,
+  worktree
+}: {
+  itemRef: GitHistoryItemRef
+  worktree?: GitHistoryWorktreeRef
+}): React.JSX.Element {
   const refLabel = itemRef.category ? `${itemRef.name} (${itemRef.category})` : itemRef.name
+  const RefIcon = GIT_HISTORY_REF_ICONS[itemRef.category ?? 'commits']
+  const refColor = itemRef.color ? graphColor(itemRef.color) : undefined
 
   return (
     <Tooltip>
       <TooltipTrigger asChild>
         <span
-          className="max-w-[8rem] truncate rounded-full border bg-sidebar px-1.5 py-0.5 text-[10px] leading-none"
+          className="flex max-w-[8rem] items-center gap-0.5 rounded-full border bg-sidebar px-1.5 py-0.5 text-[10px] leading-none"
           style={{
-            borderColor: itemRef.color ? graphColor(itemRef.color) : 'var(--border)',
-            color: itemRef.color ? graphColor(itemRef.color) : 'var(--muted-foreground)'
+            borderColor: refColor ?? 'var(--border)',
+            color: refColor ?? 'var(--muted-foreground)'
           }}
         >
-          {itemRef.name}
+          <RefIcon aria-hidden="true" className="size-2.5 shrink-0" />
+          <span className="truncate">{itemRef.name}</span>
+          {worktree && (
+            <FolderGit2
+              aria-hidden="true"
+              data-testid="git-history-ref-worktree"
+              className="size-2.5 shrink-0"
+            />
+          )}
         </span>
       </TooltipTrigger>
       <TooltipContent side="bottom" sideOffset={6} className="max-w-72">
-        {refLabel}
+        {worktree
+          ? translate(
+              'auto.components.right.sidebar.GitHistoryRow.7b3c05e214',
+              '{{value0}}. Checked out in workspace {{value1}}; right-click the row to open it.',
+              { value0: refLabel, value1: worktree.displayName }
+            )
+          : refLabel}
       </TooltipContent>
     </Tooltip>
   )
@@ -35,6 +65,7 @@ type GitHistoryRowProps = React.HTMLAttributes<HTMLElement> & {
   viewModel: GitHistoryItemViewModel
   expanded?: boolean
   preserveRefIds?: readonly string[]
+  worktreesByBranch?: ReadonlyMap<string, GitHistoryWorktreeRef>
   onOpenCommit?: (item: GitHistoryItem) => void
   onToggleExpand?: (item: GitHistoryItem) => void
 }
@@ -45,6 +76,7 @@ export const GitHistoryRow = React.forwardRef<HTMLElement, GitHistoryRowProps>(
       viewModel,
       expanded = false,
       preserveRefIds,
+      worktreesByBranch,
       onOpenCommit,
       onToggleExpand,
       className,
@@ -104,7 +136,13 @@ export const GitHistoryRow = React.forwardRef<HTMLElement, GitHistoryRowProps>(
         {refs.length > 0 && (
           <div className="flex shrink-0 items-center gap-1 overflow-hidden">
             {visibleRefs.map((ref) => (
-              <GitHistoryRefBadge key={ref.id} itemRef={ref} />
+              <GitHistoryRefBadge
+                key={ref.id}
+                itemRef={ref}
+                worktree={
+                  ref.category === 'branches' ? worktreesByBranch?.get(ref.name) : undefined
+                }
+              />
             ))}
             {hiddenRefs.length > 0 && (
               <Tooltip>

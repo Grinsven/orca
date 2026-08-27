@@ -1,15 +1,19 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { ChevronDown, CircleHelp, RefreshCw } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { RefreshCw } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { ContextMenu, ContextMenuTrigger } from '@/components/ui/context-menu'
-import type { GitHistoryItem, GitHistoryResult } from '../../../../../../shared/git-history'
+import type {
+  GitHistoryItem,
+  GitHistoryResult,
+  GitHistoryScope
+} from '../../../../../../shared/git-history'
+import type { GitHistoryWorktreeRef } from '../../../../../../shared/git-history-worktree-refs'
 import type { GitBranchChangeEntry } from '../../../../../../shared/git-diff-compare-types'
 import {
   buildDefaultGitHistoryColorMap,
   buildGitHistoryViewModels
 } from '../../../../../../shared/git-history-graph'
+import { GitHistoryPanelHeader } from './git-history-panel-header'
 import { GitHistoryRow } from './git-history-row'
 import { GitHistoryCommitFiles, type GitHistoryCommitFilesState } from './git-history-commit-files'
 import {
@@ -43,7 +47,12 @@ function clampGitHistoryPanelHeight(height: number): number {
 export function GitHistoryPanel({
   state,
   collapsed,
+  scope,
+  worktreesByBranch,
+  canLoadMore,
   onToggle,
+  onToggleScope,
+  onLoadMore,
   onRefresh,
   onOpenCommit,
   onLoadCommitFiles,
@@ -52,7 +61,12 @@ export function GitHistoryPanel({
 }: {
   state: GitHistoryPanelState
   collapsed: boolean
+  scope: GitHistoryScope
+  worktreesByBranch?: ReadonlyMap<string, GitHistoryWorktreeRef>
+  canLoadMore?: boolean
   onToggle: () => void
+  onToggleScope: () => void
+  onLoadMore?: () => void
   onRefresh: () => void
   onOpenCommit?: (item: GitHistoryItem) => void
   onLoadCommitFiles?: (item: GitHistoryItem) => Promise<GitBranchChangeEntry[]>
@@ -245,79 +259,17 @@ export function GitHistoryPanel({
           onKeyDown={handleResizeKeyDown}
         />
       )}
-      <div className="h-7 pl-1 pr-3">
-        <div className="flex h-full items-stretch rounded-md pr-1">
-          <button
-            type="button"
-            className="flex min-w-0 flex-1 items-center gap-1 px-0.5 text-left text-[11px] font-semibold uppercase tracking-wider text-foreground/70"
-            onClick={onToggle}
-          >
-            <ChevronDown
-              className={cn('size-3 shrink-0 transition-transform', collapsed && '-rotate-90')}
-            />
-            <span>
-              {translate('auto.components.right.sidebar.GitHistoryPanel.d836037d02', 'Commits')}
-            </span>
-            {result && <span className="text-[10px] font-medium tabular-nums">{count}</span>}
-            {result?.hasMore && <span className="text-[10px] font-medium">+</span>}
-          </button>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon-xs"
-                className="my-auto h-auto w-auto p-0.5 text-muted-foreground hover:bg-transparent hover:text-muted-foreground dark:hover:bg-transparent [&_svg]:size-3"
-                aria-label={translate(
-                  'auto.components.right.sidebar.GitHistoryPanel.9289ba0cb9',
-                  'What are refs?'
-                )}
-                onClick={(event) => {
-                  event.stopPropagation()
-                }}
-              >
-                <CircleHelp className="size-3.5" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom" sideOffset={6} className="max-w-72">
-              {translate(
-                'auto.components.right.sidebar.GitHistoryPanel.9f7535d22b',
-                'Refs are branch or tag names pointing at that exact commit. They only appear where Git has a named ref for the commit.'
-              )}
-            </TooltipContent>
-          </Tooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon-xs"
-                className="my-auto h-auto w-auto p-0.5 text-muted-foreground hover:bg-transparent hover:text-muted-foreground dark:hover:bg-transparent [&_svg]:size-3"
-                onClick={(event) => {
-                  event.stopPropagation()
-                  if (collapsed) {
-                    onToggle()
-                    return
-                  }
-                  onRefresh()
-                }}
-                aria-label={translate(
-                  'auto.components.right.sidebar.GitHistoryPanel.d0fb0f4bf2',
-                  'Refresh commits'
-                )}
-              >
-                <RefreshCw className={cn('size-3.5', loading && 'animate-spin')} />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom" sideOffset={6}>
-              {translate(
-                'auto.components.right.sidebar.GitHistoryPanel.d0fb0f4bf2',
-                'Refresh commits'
-              )}
-            </TooltipContent>
-          </Tooltip>
-        </div>
-      </div>
+      <GitHistoryPanelHeader
+        collapsed={collapsed}
+        count={count}
+        hasCounts={Boolean(result)}
+        hasMore={Boolean(result?.hasMore)}
+        loading={loading}
+        scope={scope}
+        onToggle={onToggle}
+        onToggleScope={onToggleScope}
+        onRefresh={onRefresh}
+      />
       {!collapsed && state.status === 'error' && !result && (
         <div
           className={cn(expandedBodyClassName, 'px-6 py-2 text-[11px] text-destructive')}
@@ -365,6 +317,7 @@ export function GitHistoryPanel({
                 viewModel={viewModel}
                 expanded={isExpanded}
                 preserveRefIds={result?.baseRef ? [result.baseRef.id] : undefined}
+                worktreesByBranch={worktreesByBranch}
                 onOpenCommit={onOpenCommit}
                 onToggleExpand={canExpand ? handleToggleExpand : undefined}
               />
@@ -374,7 +327,11 @@ export function GitHistoryPanel({
                 {onCommitAction && !isBoundaryNode ? (
                   <ContextMenu>
                     <ContextMenuTrigger asChild>{row}</ContextMenuTrigger>
-                    <GitHistoryCommitContextMenu item={item} onAction={onCommitAction} />
+                    <GitHistoryCommitContextMenu
+                      item={item}
+                      worktreesByBranch={worktreesByBranch}
+                      onAction={onCommitAction}
+                    />
                   </ContextMenu>
                 ) : (
                   row
@@ -391,6 +348,21 @@ export function GitHistoryPanel({
               </React.Fragment>
             )
           })}
+          {canLoadMore && onLoadMore && (
+            <div className="px-6 py-1">
+              <button
+                type="button"
+                className="text-[11px] text-muted-foreground hover:text-foreground disabled:opacity-60"
+                disabled={loading}
+                onClick={onLoadMore}
+              >
+                {translate(
+                  'auto.components.right.sidebar.GitHistoryPanel.a3d2f18b47',
+                  'Load more commits'
+                )}
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>

@@ -180,7 +180,9 @@ export function buildGitHistoryViewModels(
     const references = (historyItem.references ?? [])
       .map((ref) => {
         let color = colorMap.get(ref.id)
-        if (colorMap.has(ref.id) && color === undefined) {
+        // Why: refs with no pinned color (every branch/tag that is not current/remote/base) take the
+        // row's lane color, so an all-branches graph reads as tinted pills instead of grey ones.
+        if (color === undefined) {
           color = resolveNodeColor(
             historyItemId,
             firstParentId !== undefined,

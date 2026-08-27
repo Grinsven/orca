@@ -39,6 +39,7 @@ export function useSourceControlPanelModel() {
     effectiveBaseRef,
     entries,
     fetchUpstreamStatus,
+    gitHistoryWorktreesByBranch,
     grouped,
     handleOpenDiff,
     handleStageAllPrimary,
@@ -147,6 +148,7 @@ export function useSourceControlPanelModel() {
     activeWorktreeId,
     worktreePath,
     activeRepoTarget,
+    gitHistoryWorktreesByBranch,
     resolveSplitTargetGroupId
   })
   const noteOpening = useSourceControlNoteOpening({

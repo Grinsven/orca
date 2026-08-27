@@ -7,6 +7,7 @@ import {
 import {
   GIT_HISTORY_DEFAULT_LIMIT,
   GIT_HISTORY_MAX_LIMIT,
+  normalizeGitHistoryScope,
   type GitHistoryExecutor,
   type GitHistoryItemRef,
   type GitHistoryOptions,
@@ -21,15 +22,18 @@ export type {
   GitHistoryItemStatistics,
   GitHistoryOptions,
   GitHistoryRefCategory,
-  GitHistoryResult
+  GitHistoryResult,
+  GitHistoryScope
 } from './git-history-types'
 export {
   GIT_HISTORY_BASE_REF_COLOR,
   GIT_HISTORY_DEFAULT_LIMIT,
+  GIT_HISTORY_DEFAULT_SCOPE,
   GIT_HISTORY_LANE_COLORS,
   GIT_HISTORY_MAX_LIMIT,
   GIT_HISTORY_REF_COLOR,
-  GIT_HISTORY_REMOTE_REF_COLOR
+  GIT_HISTORY_REMOTE_REF_COLOR,
+  normalizeGitHistoryScope
 } from './git-history-types'
 export { compareGitHistoryItemRefsByCategory, parseGitHistoryLog } from './git-history-log-parser'
 
@@ -170,8 +174,11 @@ export async function loadGitHistoryFromExecutor(
   options: GitHistoryOptions = {}
 ): Promise<GitHistoryResult> {
   const limit = clampHistoryLimit(options.limit)
+  const scope = normalizeGitHistoryScope(options.scope)
   const headOid = await resolveCommit(git, cwd, 'HEAD')
-  if (!headOid) {
+  // Why the scope check: an unborn HEAD leaves the branch scope with nothing to walk, but the
+  // all-branches graph draws every other ref and does not need HEAD to exist.
+  if (!headOid && scope !== 'all') {
     return {
       items: [],
       hasIncomingChanges: false,
@@ -181,23 +188,31 @@ export async function loadGitHistoryFromExecutor(
     }
   }
 
-  const { currentRef, branchName } = await resolveCurrentRef(git, cwd, headOid)
+  const { currentRef, branchName } = headOid
+    ? await resolveCurrentRef(git, cwd, headOid)
+    : { currentRef: undefined, branchName: null }
   const [remoteRef, rawBaseRef] = await Promise.all([
     resolveUpstreamRef(git, cwd, branchName),
     resolveNamedRef(git, cwd, options.baseRef)
   ])
 
   const baseRef =
-    rawBaseRef && rawBaseRef.id !== remoteRef?.id && rawBaseRef.id !== currentRef.id
+    rawBaseRef && rawBaseRef.id !== remoteRef?.id && rawBaseRef.id !== currentRef?.id
       ? rawBaseRef
       : undefined
 
-  // Why: this panel is scoped to the active workspace. Upstream and base refs
-  // stay as comparison metadata so old workspaces do not list newly fetched upstream/base commits.
-  const historyRevisions = [headOid]
+  // Why 'branch' is the default: scoping to the workspace HEAD keeps an old workspace from
+  // listing newly fetched upstream/base commits. Upstream and base refs stay comparison
+  // metadata in both scopes. 'all' is the explicit opt-in that graphs every ref.
+  // Why not --all: it also walks refs/stash and refs/notes/*, so the graph would list git
+  // plumbing commits (the stash entry even opens a second lane) that carry no decoration.
+  // headOid rides along so a detached HEAD, which no ref covers, still appears.
+  const headRevisions = headOid ? [headOid] : []
+  const historyRevisions =
+    scope === 'all' ? ['--branches', '--remotes', '--tags', ...headRevisions] : headRevisions
 
   let mergeBase: string | undefined
-  if (remoteRef?.revision && currentRef.revision && remoteRef.revision !== currentRef.revision) {
+  if (remoteRef?.revision && currentRef?.revision && remoteRef.revision !== currentRef.revision) {
     try {
       const { stdout } = await git(['merge-base', currentRef.revision, remoteRef.revision], cwd)
       mergeBase = stdout.trim() || undefined
@@ -222,11 +237,18 @@ export async function loadGitHistoryFromExecutor(
   )
   const parsed = parseGitHistoryLog(stdout)
   const items = parsed.slice(0, limit)
+  // Why gated on scope: the boundary rows stand in for upstream commits that HEAD-only history
+  // omits. The all-branches walk lists those commits for real, so the pseudo-rows would sit
+  // right next to the commits they represent.
+  const drawsBoundaryRows = scope !== 'all'
   const hasIncomingChanges =
-    Boolean(remoteRef?.revision && mergeBase) && remoteRef?.revision !== mergeBase
+    drawsBoundaryRows &&
+    Boolean(remoteRef?.revision && mergeBase) &&
+    remoteRef?.revision !== mergeBase
   const hasOutgoingChanges =
-    Boolean(currentRef.revision && remoteRef?.revision && mergeBase) &&
-    currentRef.revision !== mergeBase
+    drawsBoundaryRows &&
+    Boolean(currentRef?.revision && remoteRef?.revision && mergeBase) &&
+    currentRef?.revision !== mergeBase
 
   return {
     items,

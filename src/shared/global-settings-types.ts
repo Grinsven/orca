@@ -4,6 +4,7 @@ import type { OrcaWorkspaceLayout } from './orca-workspace-layout'
 import type { GitHubProjectSettings } from './github/project-types'
 import type { VoiceSettings } from './speech-types'
 import type { AiVaultSearchSettings } from './ai-vault-search-settings'
+import type { GitHistoryScope } from './git-history-types'
 import type { GitLabProjectSettings } from './gitlab-types'
 import type { TaskProvider } from './task-providers'
 import type { KeybindingOverrides, TerminalShortcutPolicy } from './keybindings'
@@ -250,6 +251,8 @@ export type GlobalSettings = NativeChatGlobalSettings & {
   sourceControlViewMode: SourceControlViewMode
   /** Preferred Source Control group order. Per-user, not per-workspace. */
   sourceControlGroupOrder: SourceControlGroupOrder
+  /** Commit graph scope: the workspace branch, or every ref. Per-user; optional for legacy settings. */
+  sourceControlHistoryScope?: GitHistoryScope
   /** Compare base defaults to the branch upstream instead of the repo default; affects only the compare/diff view, not the PR/rebase target. Per-user. */
   sourceControlCompareAgainstUpstream: boolean
   /** Whether to show the Orca app name in the titlebar. */

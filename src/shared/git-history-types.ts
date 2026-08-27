@@ -54,9 +54,19 @@ export type GitHistoryItem = {
   references?: GitHistoryItemRef[]
 }
 
+/** Which refs the graph walks: only the workspace HEAD, or every ref in the repo. */
+export type GitHistoryScope = 'branch' | 'all'
+
+export const GIT_HISTORY_DEFAULT_SCOPE: GitHistoryScope = 'branch'
+
+export function normalizeGitHistoryScope(value: unknown): GitHistoryScope {
+  return value === 'all' || value === 'branch' ? value : GIT_HISTORY_DEFAULT_SCOPE
+}
+
 export type GitHistoryOptions = {
   limit?: number
   baseRef?: string | null
+  scope?: GitHistoryScope
 }
 
 export type GitHistoryResult = {
@@ -65,7 +75,9 @@ export type GitHistoryResult = {
   remoteRef?: GitHistoryItemRef
   baseRef?: GitHistoryItemRef
   mergeBase?: string
+  /** Draw the synthetic Incoming Changes row standing in for upstream commits the walk omits. Always false in the 'all' scope, where those commits are real rows. */
   hasIncomingChanges: boolean
+  /** Draw the synthetic Outgoing Changes row above HEAD. Always false in the 'all' scope. */
   hasOutgoingChanges: boolean
   hasMore: boolean
   limit: number

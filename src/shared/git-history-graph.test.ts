@@ -77,6 +77,18 @@ describe('git history graph model', () => {
     expect(viewModels[0]!.historyItem.references?.[0]?.color).toBe(GIT_HISTORY_REF_COLOR)
   })
 
+  it('tints refs that have no pinned color with the row lane color', () => {
+    const currentRef = branch('main', 'A')
+    const otherBranch = branch('release', 'B')
+    const viewModels = buildGitHistoryViewModels(
+      [item('A', ['B'], [currentRef]), item('B', ['C'], [otherBranch]), item('C', [])],
+      buildDefaultGitHistoryColorMap({ currentRef }),
+      currentRef
+    )
+
+    expect(viewModels[1]!.historyItem.references?.[0]?.color).toBe(GIT_HISTORY_REF_COLOR)
+  })
+
   it('allocates a side lane for a merge parent', () => {
     const currentRef = branch('feature', 'M')
     const viewModels = buildGitHistoryViewModels(
@@ -181,6 +193,34 @@ describe('git history graph model', () => {
 
     // Repeated Array#find scans grow with rows; one index build stays within a linear read budget.
     expect(reads.count).toBeLessThan(historyItems.length * 8)
+  })
+
+  it('keeps other lanes open across a mid-list root commit', () => {
+    const currentRef = branch('main', 'A')
+    // The 'all' scope puts unrelated roots (orphan branches, notes) between two commits of
+    // another lane; the root must end only its own lane.
+    const viewModels = buildGitHistoryViewModels(
+      [item('A', ['B'], [currentRef]), item('R', []), item('B', ['C']), item('C', [])],
+      buildDefaultGitHistoryColorMap({ currentRef }),
+      currentRef
+    )
+
+    expect(viewModels[1]!.inputSwimlanes).toEqual([{ id: 'B', color: GIT_HISTORY_REF_COLOR }])
+    expect(viewModels[1]!.outputSwimlanes).toEqual([{ id: 'B', color: GIT_HISTORY_REF_COLOR }])
+    expect(viewModels[2]!.inputSwimlanes).toEqual([{ id: 'B', color: GIT_HISTORY_REF_COLOR }])
+    expect(viewModels[2]!.outputSwimlanes).toEqual([{ id: 'C', color: GIT_HISTORY_REF_COLOR }])
+  })
+
+  it('closes the lane of a root commit that owns one', () => {
+    const currentRef = branch('main', 'A')
+    const viewModels = buildGitHistoryViewModels(
+      [item('A', ['B'], [currentRef]), item('B', [])],
+      buildDefaultGitHistoryColorMap({ currentRef }),
+      currentRef
+    )
+
+    expect(viewModels[1]!.inputSwimlanes).toEqual([{ id: 'B', color: GIT_HISTORY_REF_COLOR }])
+    expect(viewModels[1]!.outputSwimlanes).toEqual([])
   })
 
   it('inserts incoming and outgoing boundary rows at the merge base', () => {
