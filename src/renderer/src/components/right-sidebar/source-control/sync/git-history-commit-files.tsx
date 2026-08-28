@@ -1,6 +1,12 @@
 import { createElement } from 'react'
 import type React from 'react'
-import { ArrowUpRight, RefreshCw } from 'lucide-react'
+import { ArrowUpRight, FileText, GitCompare, RefreshCw } from 'lucide-react'
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger
+} from '@/components/ui/context-menu'
 import { STATUS_COLORS, STATUS_LABELS } from '../../status-display'
 import {
   toPermanentSourceControlRowOpenEvent,
@@ -21,12 +27,23 @@ export type GitHistoryCommitFilesState =
   | { status: 'error'; error: string }
   | { status: 'ready'; entries: GitBranchChangeEntry[] }
 
+// A menu pick is a deliberate open, so it lands as a permanent tab like a double-click.
+const MENU_OPEN_EVENT: SourceControlRowOpenEvent = {
+  altKey: false,
+  ctrlKey: false,
+  metaKey: false,
+  shiftKey: false,
+  openAsPermanent: true
+}
+
 function CommitFileRow({
   entry,
-  onOpen
+  onOpen,
+  onOpenWorkingFile
 }: {
   entry: GitBranchChangeEntry
   onOpen: (entry: GitBranchChangeEntry, event: SourceControlRowOpenEvent) => void
+  onOpenWorkingFile?: (entry: GitBranchChangeEntry, event?: SourceControlRowOpenEvent) => void
 }): React.JSX.Element {
   const status = entry.status as GitFileStatus
   const FileIcon = getFileTypeIcon(entry.path)
@@ -34,7 +51,7 @@ function CommitFileRow({
   const parentDir = dirname(entry.path)
   const dirPath = parentDir === '.' ? '' : parentDir
 
-  return (
+  const row = (
     <button
       type="button"
       className="group flex w-full min-w-0 cursor-pointer items-center gap-1 py-1 pl-9 pr-3 text-left text-xs transition-colors hover:bg-accent/40"
@@ -59,15 +76,41 @@ function CommitFileRow({
       </span>
     </button>
   )
+
+  // Why: the commit diff is two historical revisions, so it is read-only; the menu is the
+  // way out to the editable working copy. A deleted path has no working copy to open.
+  if (!onOpenWorkingFile || status === 'deleted') {
+    return row
+  }
+  return (
+    <ContextMenu>
+      <ContextMenuTrigger asChild>{row}</ContextMenuTrigger>
+      <ContextMenuContent className="w-56">
+        <ContextMenuItem onSelect={() => onOpen(entry, MENU_OPEN_EVENT)}>
+          <GitCompare className="size-3.5" />
+          {translate(
+            'auto.components.right.sidebar.GitHistoryCommitFiles.d4e5f6a7b8',
+            'Open changes'
+          )}
+        </ContextMenuItem>
+        <ContextMenuItem onSelect={() => onOpenWorkingFile(entry)}>
+          <FileText className="size-3.5" />
+          {translate('auto.components.right.sidebar.GitHistoryCommitFiles.e5f6a7b8c9', 'Open file')}
+        </ContextMenuItem>
+      </ContextMenuContent>
+    </ContextMenu>
+  )
 }
 
 function CommitFilesBody({
   state,
   onOpenFile,
+  onOpenWorkingFile,
   onOpenAll
 }: {
   state: GitHistoryCommitFilesState
   onOpenFile: (entry: GitBranchChangeEntry, event: SourceControlRowOpenEvent) => void
+  onOpenWorkingFile?: (entry: GitBranchChangeEntry, event?: SourceControlRowOpenEvent) => void
   onOpenAll?: () => void
 }): React.JSX.Element {
   if (state.status === 'loading') {
@@ -106,7 +149,12 @@ function CommitFilesBody({
   return (
     <>
       {state.entries.map((entry) => (
-        <CommitFileRow key={entry.path} entry={entry} onOpen={onOpenFile} />
+        <CommitFileRow
+          key={entry.path}
+          entry={entry}
+          onOpen={onOpenFile}
+          onOpenWorkingFile={onOpenWorkingFile}
+        />
       ))}
       {onOpenAll && (
         <button
@@ -132,12 +180,14 @@ export function GitHistoryCommitFiles({
   author,
   timestamp,
   onOpenFile,
+  onOpenWorkingFile,
   onOpenAll
 }: {
   state: GitHistoryCommitFilesState
   author?: string
   timestamp?: number
   onOpenFile: (entry: GitBranchChangeEntry, event: SourceControlRowOpenEvent) => void
+  onOpenWorkingFile?: (entry: GitBranchChangeEntry, event?: SourceControlRowOpenEvent) => void
   onOpenAll?: () => void
 }): React.JSX.Element {
   // Author and date move off the dense commit row and surface here on expand.
@@ -145,7 +195,12 @@ export function GitHistoryCommitFiles({
   return (
     <div className="border-l border-border/60 bg-muted/20">
       {meta && <div className="py-1 pl-9 pr-3 text-[11px] text-muted-foreground">{meta}</div>}
-      <CommitFilesBody state={state} onOpenFile={onOpenFile} onOpenAll={onOpenAll} />
+      <CommitFilesBody
+        state={state}
+        onOpenFile={onOpenFile}
+        onOpenWorkingFile={onOpenWorkingFile}
+        onOpenAll={onOpenAll}
+      />
     </div>
   )
 }

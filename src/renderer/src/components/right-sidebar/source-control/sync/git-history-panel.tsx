@@ -67,6 +67,7 @@ export function GitHistoryPanel({
   onOpenCommit,
   onLoadCommitFiles,
   onOpenCommitFile,
+  onOpenCommitWorkingFile,
   onCommitAction
 }: {
   state: GitHistoryPanelState
@@ -83,6 +84,11 @@ export function GitHistoryPanel({
   onOpenCommit?: (item: GitHistoryItem) => void
   onLoadCommitFiles?: (item: GitHistoryItem) => Promise<GitBranchChangeEntry[]>
   onOpenCommitFile?: (
+    item: GitHistoryItem,
+    entry: GitBranchChangeEntry,
+    event?: SourceControlRowOpenEvent
+  ) => void
+  onOpenCommitWorkingFile?: (
     item: GitHistoryItem,
     entry: GitBranchChangeEntry,
     event?: SourceControlRowOpenEvent
@@ -375,6 +381,11 @@ export function GitHistoryPanel({
                     author={item.author}
                     timestamp={item.timestamp}
                     onOpenFile={(entry, event) => onOpenCommitFile?.(item, entry, event)}
+                    onOpenWorkingFile={
+                      onOpenCommitWorkingFile
+                        ? (entry, event) => onOpenCommitWorkingFile(item, entry, event)
+                        : undefined
+                    }
                     onOpenAll={onOpenCommit ? () => onOpenCommit(item) : undefined}
                   />
                 )}

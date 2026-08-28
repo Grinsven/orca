@@ -57,6 +57,7 @@ export function SourceControlPanelContent(props: SourceControlPanelReadyProps) {
     openAllDiffs,
     openBranchAllDiffs,
     openCommitFile,
+    openCommitWorkingFile,
     openCommittedDiff,
     openConflictReview,
     openHistoryCommitDiff,
@@ -238,6 +239,7 @@ export function SourceControlPanelContent(props: SourceControlPanelReadyProps) {
             onOpenCommit={(item) => void openHistoryCommitDiff(item)}
             onLoadCommitFiles={loadCommitFiles}
             onOpenCommitFile={openCommitFile}
+            onOpenCommitWorkingFile={openCommitWorkingFile}
             onCommitAction={handleCommitAction}
           />
         </div>
