@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react'
+import { useNow } from '@/hooks/use-now'
 
 type ClaudeContextEvent = { paneKey: string | null; model: string; usedPercent: number }
 
@@ -7,19 +8,16 @@ const STALE_MS = 3 * 60_000
 // Jose fork-local: mirrors the in-TUI statusline (model + context bar) for the latest Claude session.
 export function ClaudeContextStatusSegment(): React.JSX.Element | null {
   const [event, setEvent] = useState<(ClaudeContextEvent & { at: number }) | null>(null)
-  const [, setTick] = useState(0)
+  // Why: shared slow clock ages a finished session's segment out without new events, and keeps
+  // the staleness check out of render (react/purity).
+  const now = useNow(30_000)
 
   useEffect(
     () => window.api.claudeStatusline.onContext((data) => setEvent({ ...data, at: Date.now() })),
     []
   )
-  // Why: re-render on a slow clock so a finished session's segment ages out without new events.
-  useEffect(() => {
-    const timer = setInterval(() => setTick((n) => n + 1), 30_000)
-    return () => clearInterval(timer)
-  }, [])
 
-  if (!event || Date.now() - event.at > STALE_MS) {
+  if (!event || now - event.at > STALE_MS) {
     return null
   }
   const percent = Math.max(0, Math.min(100, event.usedPercent))
