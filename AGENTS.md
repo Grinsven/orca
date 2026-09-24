@@ -10,7 +10,7 @@ Never steal monitor focus or reveal test windows: no `show()`, `showInactive()`,
 visible-window tests paused on the user's desktop; run them on an isolated display or CI.
 Rebuild modified launch-policy code before running an app; stale build wrappers are not safe.
 
-Use the `$electron` skill and Playwright CDP for rendered Orca UI checks. Do not use computer-use for Orca UI validation.
+Use Playwright CDP and the repository E2E harness for rendered Orca UI checks. Load the `$electron` skill when it is available. Do not use computer-use for Orca UI validation.
 
 # Style
 
@@ -30,8 +30,6 @@ NEVER add a `max-lines` disable (`eslint-disable max-lines`, `oxlint-disable max
 ## File and Module Naming
 
 Never use vague names like `helpers`, `utils`, `common`, `misc`, or `shared-stuff` for files, folders, or modules. They carry zero info and tend to become dumping grounds. Name files after what they _actually_ contain — prefer the concrete domain concept (e.g. `tab-group-state.ts`, `terminal-orphan-cleanup.ts`) over the generic role (`tabs-helpers.ts`, `terminal-utils.ts`). If you find yourself reaching for `helpers`, the file probably has more than one responsibility and should be split, or there's a better name hiding in the code that describes what the functions operate on.
-
-## Type Declarations: Prefer `.ts` Over `.d.ts`
 
 ## Type Assertions: Prefer Checked Types
 

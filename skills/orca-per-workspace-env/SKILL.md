@@ -1,12 +1,6 @@
 ---
 name: orca-per-workspace-env
-description: >-
-  Set up, review, debug, or validate an Orca per-workspace environment recipe: the
-  on-demand, disposable runtime (cloud sandbox, VM, SSH host, or local container)
-  Orca creates fresh for each workspace. Use to stand up a new recipe end to end,
-  fix an `environmentRecipes` entry in `orca.yaml`, scaffold provider lifecycle
-  scripts, or resolve an `orca vm recipe doctor` failure. Use `orca-cli` for
-  ordinary worktree and workspace creation with no recipe involved.
+description: 'Set up or troubleshoot Orca per-workspace environment recipes and their disposable runtimes.'
 ---
 
 # Per-Workspace Environments

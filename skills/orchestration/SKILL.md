@@ -1,13 +1,6 @@
 ---
 name: orchestration
-description: >-
-  Coordinate supervised Orca workers: threaded messages, blocking ask/reply,
-  task dispatch, worker_done/escalation waits, task DAGs, decision gates,
-  coordinator loops, and decomposing work across agents. Use `orca-cli` for full
-  ownership handoffs — "hand off", "handoff", "handover", "give this to another
-  agent", "another worktree" — unless asked to supervise, monitor, or coordinate
-  a DAG, and for terminal control, lightweight terminal prompts, shell commands,
-  Orca worktree management, and reading or waiting on terminals.
+description: 'Coordinate agents through Orca tasks, messages, and decision gates when supervised orchestration is requested.'
 ---
 
 # Orca Orchestration

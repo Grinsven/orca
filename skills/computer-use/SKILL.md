@@ -1,12 +1,6 @@
 ---
 name: computer-use
-description: >-
-  Drives the GUI of a visible local app window through `orca computer`: accessibility
-  tree, clicks, typing, menus, dialogs, and screenshots in native apps and external
-  browser windows (Chrome, Edge, Safari) or webviews. Prefer a programmatic path
-  (shell, filesystem, git, HTTP, existing CLIs) whenever it can complete the task.
-  Use only when a visible window needs GUI control those cannot reach. Do not use
-  for Orca's embedded browser (`orca-cli`).
+description: "Use Orca's computer-use CLI for native app and window-level GUI interaction when no programmatic path (shell, files, API, CLI) works, not page-only browser automation."
 ---
 
 # Computer Use
