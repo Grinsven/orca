@@ -3471,8 +3471,8 @@ html.native-shell .app-layout {
   font-size: 110%;
 }
 
-/* Jose fork-local: VS Code Dark Modern gray variant. Default; `localStorage.setItem('jose-ui-variant','oled')`
-   + reload falls back to the OLED block above. Not for upstream. */
+/* Jose fork-local: VS Code Dark Modern gray variant, opt-in via `localStorage.setItem('jose-ui-variant','gray')`;
+   'oled' falls back to the OLED block above. Not for upstream. */
 .dark[data-jose-ui='gray'] {
   --background: #181818;
   --editor-surface: #1f1f1f;
@@ -3486,4 +3486,376 @@ html.native-shell .app-layout {
   --sidebar-accent: #2a2d2e;
   --worktree-sidebar: #1c1c1c;
   --worktree-sidebar-accent: #2a2d2e;
+}
+
+/* Jose fork-local: Jose's own VS Code (Modus Vivendi + workbench.colorCustomizations).
+   Default variant; `localStorage.setItem('jose-ui-variant','gray'|'oled')` + reload switches back.
+   Not for upstream. Same (0,2,0) specificity as the gray block, so it only applies when selected. */
+.dark[data-jose-ui='vscode'] {
+  --background: #0f0f0f;
+  --foreground: #e8e8e8;
+  --editor-surface: #0f0f0f;
+  /* Why #0f0f0f: bg-card paints the tab strip, inactive tabs and the titlebar/status fallback,
+     which VS Code keeps at the canvas color; floating widgets use --popover instead. */
+  --card: #0f0f0f;
+  --card-foreground: #e8e8e8;
+  --popover: #191919;
+  --popover-foreground: #b2b2b2;
+  /* Why cyan, not the #007080 button fill: --primary is also text/icon color app-wide, where
+     #007080 is ~3:1. Button, badge and switch fills are rescoped to #007080 below. */
+  --primary: #00d3d0;
+  --primary-foreground: #0f0f0f;
+  --secondary: #242424;
+  --secondary-foreground: #e8e8e8;
+  --muted: #191919;
+  --muted-foreground: #b2b2b2;
+  --accent: #292929;
+  --accent-foreground: #ffffff;
+  --destructive: #ff5f59;
+  --border: #242424;
+  --input: #242424;
+  --ring: #00d3d0;
+  --bg-titlebar: #0f0f0f;
+  --sidebar: #0f0f0f;
+  --sidebar-foreground: #e8e8e8;
+  --sidebar-primary: #007080;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #2f2f2f;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: #292929;
+  --sidebar-ring: #00d3d0;
+  --worktree-sidebar: #0f0f0f;
+  --worktree-sidebar-foreground: #e8e8e8;
+  --worktree-sidebar-accent: #2f2f2f;
+  --worktree-sidebar-accent-foreground: #ffffff;
+  --worktree-sidebar-border: #292929;
+  --worktree-sidebar-ring: #00d3d0;
+  --tab-group-split-divider: #393939;
+  --tab-group-split-divider-strong: #00d3d0;
+  --terminal-pane-locate: #00d3d0;
+  --terminal-pane-title-on-dark-separator: #242424;
+  --git-decoration-added: #2ea043;
+  --git-decoration-modified: #58a6ff;
+  --git-decoration-deleted: #f85149;
+  --git-decoration-renamed: #80e080;
+  --git-decoration-untracked: #2ea043;
+  --git-decoration-copied: #2ea043;
+  --git-decoration-ignored: #6e7681;
+}
+
+/* Why the rules below: these surfaces hardcode colors or derive them from mixes, so no token
+   override reaches them. Unlayered, so they beat Tailwind's layered utilities. */
+.dark[data-jose-ui='vscode'] ::selection {
+  background-color: #0f3d3d;
+}
+
+/* Title bar: titleBar.activeForeground, toolbar.hoverBackground. */
+.dark[data-jose-ui='vscode'] .titlebar-app-name,
+.dark[data-jose-ui='vscode'] .titlebar-left:not(.titlebar-left-floating) .titlebar-app-name,
+.dark[data-jose-ui='vscode']
+  :is(.titlebar, .titlebar-left)
+  :is(.sidebar-toggle, .sidebar-toggle-compact, .titlebar-icon-button):not(:disabled) {
+  color: #d0d0d0;
+}
+
+.dark[data-jose-ui='vscode']
+  :is(.titlebar, .titlebar-left)
+  :is(.sidebar-toggle, .titlebar-icon-button):not(:disabled):hover {
+  background: #242424;
+}
+
+/* Status bar: statusBar.foreground on every item, statusBarItem.hoverBackground (theme). */
+.dark[data-jose-ui='vscode'] .h-6.bg-\[var\(--bg-titlebar\,var\(--card\)\)\] {
+  --foreground: #d0d0d0;
+  --muted-foreground: #d0d0d0;
+  color: #d0d0d0;
+}
+
+.dark[data-jose-ui='vscode']
+  .h-6.bg-\[var\(--bg-titlebar\,var\(--card\)\)\]
+  :is(.hover\:bg-accent, .hover\:bg-accent\/70):hover,
+.dark[data-jose-ui='vscode']
+  .h-6.bg-\[var\(--bg-titlebar\,var\(--card\)\)\]
+  .group:hover
+  .group-hover\:bg-accent\/70 {
+  background-color: #45605e;
+}
+
+/* Left sidebar seam: sideBar.border. */
+.dark[data-jose-ui='vscode']
+  .border-l.border-border:has(> .h-\[4px\][data-terminal-focus-release-surface='true']) {
+  border-left-color: #292929;
+}
+
+/* Tabs: tab.activeBackground/activeBorder/hoverBackground/inactiveForeground/dragAndDropBorder. */
+.dark[data-jose-ui='vscode'] [data-tab-id][data-active='true'],
+.dark[data-jose-ui='vscode'] [data-client-hosted-browser-row-id]:has(> span.bottom-0.h-\[2px\]) {
+  background-color: #191919;
+  color: #ffffff;
+}
+
+.dark[data-jose-ui='vscode'] [data-tab-id][data-active='true'] > span.bottom-0.h-\[2px\],
+.dark[data-jose-ui='vscode'] [data-client-hosted-browser-row-id] > span.bottom-0.h-\[2px\] {
+  background-color: #00d3d0;
+}
+
+.dark[data-jose-ui='vscode'] [data-tab-id][data-active='false'],
+.dark[data-jose-ui='vscode']
+  [data-client-hosted-browser-row-id]:not(:has(> span.bottom-0.h-\[2px\])) {
+  color: #757575;
+}
+
+.dark[data-jose-ui='vscode'] [data-tab-id][data-active='false']:hover,
+.dark[data-jose-ui='vscode']
+  [data-client-hosted-browser-row-id]:not(:has(> span.bottom-0.h-\[2px\])):hover {
+  background-color: #171717;
+  color: #e0e0e0;
+}
+
+.dark[data-jose-ui='vscode'] [data-tab-id].before\:bg-blue-500::before,
+.dark[data-jose-ui='vscode'] [data-tab-id].after\:bg-blue-500::after {
+  background-color: #00d3d0;
+}
+
+/* Unfocused split groups: tab.unfocusedActive and unfocusedInactive colors. */
+.dark[data-jose-ui='vscode'] .group\/tab-group.opacity-95 [data-tab-id][data-active='true'] {
+  color: #d0d0d0;
+}
+
+.dark[data-jose-ui='vscode']
+  .group\/tab-group.opacity-95
+  [data-tab-id][data-active='true']
+  > span.bottom-0.h-\[2px\] {
+  background-color: #00d3d080;
+}
+
+.dark[data-jose-ui='vscode']
+  .group\/tab-group.opacity-95
+  [data-tab-id][data-active='false']:not(:hover) {
+  color: #646464;
+}
+
+/* Right sidebar activity bar: activityBarTop.activeBorder/activeBackground. */
+.dark[data-jose-ui='vscode'] .right-sidebar-activity-strip button > div.bg-foreground.rounded-t,
+.dark[data-jose-ui='vscode'] .side-activity-bar-windows-inset button > div.bg-foreground.rounded-l {
+  background-color: #00d3d0;
+}
+
+.dark[data-jose-ui='vscode']
+  .right-sidebar-activity-strip
+  button:has(> div.bg-foreground.rounded-t) {
+  background-color: #191919;
+}
+
+/* Resize sashes: sash.hoverBorder. */
+.dark[data-jose-ui='vscode'] [data-sidebar-resize-handle]:is(:hover, :active) > div,
+.dark[data-jose-ui='vscode'] .cursor-col-resize.hover\:bg-ring\/20:is(:hover, :active) {
+  background-color: #00d3d0;
+}
+
+/* Lists: list.hoverBackground / activeSelectionBackground / inactiveSelectionBackground. */
+.dark[data-jose-ui='vscode'] .worktree-sidebar-card-hover:hover,
+.dark[data-jose-ui='vscode'] .bg-sidebar .hover\:bg-accent\/40:hover {
+  background: #292929;
+}
+
+.dark[data-jose-ui='vscode'] [data-worktree-card-surface][data-worktree-card-active='primary'] {
+  border-color: transparent;
+  background: #2f2f2f;
+  box-shadow: none;
+}
+
+.dark[data-jose-ui='vscode'] [data-worktree-card-surface][data-worktree-card-active='secondary'] {
+  border-color: transparent;
+  background: #252525;
+  box-shadow: none;
+}
+
+.dark[data-jose-ui='vscode'] [data-file-explorer-row][data-selected='true'],
+.dark[data-jose-ui='vscode'] [data-file-explorer-row][data-selected='true']:hover,
+.dark[data-jose-ui='vscode']
+  [data-testid='source-control-entry']:is([data-current='true'], .bg-accent\/60) {
+  background: #2f2f2f;
+  box-shadow: none;
+}
+
+.dark[data-jose-ui='vscode'] [data-slot='command-item'].jump-palette-item[data-selected='true'],
+.dark[data-jose-ui='vscode'] [role='option'].jump-palette-item[data-selected='true'],
+.dark[data-jose-ui='vscode'] .jump-palette-command [data-slot='command-item'][data-selected='true'],
+.dark[data-jose-ui='vscode'] .jump-palette-command [role='option'][data-selected='true'] {
+  --jump-palette-selection-surface: #2f2f2f;
+}
+
+/* Fills: button.background/hoverBackground, badge.background. Rescoping the token keeps
+   per-instance bg classes working. */
+.dark[data-jose-ui='vscode']
+  :is([data-slot='button'][data-variant='default'], [data-slot='badge'][data-variant='default']) {
+  --primary: #007080;
+  --primary-foreground: #ffffff;
+}
+
+.dark[data-jose-ui='vscode'] [data-slot='button'][data-variant='default']:hover:not(:disabled) {
+  --primary: #008a9a;
+}
+
+.dark[data-jose-ui='vscode']
+  :is([data-slot='switch'], [data-slot='switch-indicator'])[data-state='checked'] {
+  background-color: #007080;
+}
+
+/* Links: textLink.foreground; broken doc links keep upstream's muted cue. */
+.dark[data-jose-ui='vscode'] .markdown-body a,
+.dark[data-jose-ui='vscode'] .rich-markdown-editor a,
+.dark[data-jose-ui='vscode'] .rich-markdown-editor .rich-markdown-doc-link,
+.dark[data-jose-ui='vscode'] .rich-markdown-editor .rich-markdown-doc-link-preview {
+  color: #00d3d0;
+}
+
+.dark[data-jose-ui='vscode'] .markdown-body .markdown-doc-link-broken,
+.dark[data-jose-ui='vscode']
+  .rich-markdown-editor
+  .rich-markdown-doc-link.rich-markdown-doc-link--missing,
+.dark[data-jose-ui='vscode']
+  .rich-markdown-editor
+  .rich-markdown-doc-link-preview.rich-markdown-doc-link-preview--missing {
+  color: var(--muted-foreground);
+}
+
+/* Diff comment band sits under Monaco code; cyan at upstream's 38% drops syntax to ~2:1. */
+.dark[data-jose-ui='vscode'] .monaco-editor .orca-diff-comment-range-highlight {
+  background: color-mix(in srgb, #00d3d0 16%, transparent);
+}
+
+.dark[data-jose-ui='vscode'] .monaco-editor .orca-diff-comment-range-margin {
+  background: color-mix(in srgb, #00d3d0 12%, transparent);
+}
+
+/* Inputs: input.background/foreground (bg-input/30 alone cannot land on #191919). */
+.dark[data-jose-ui='vscode']
+  :is([data-slot='input'], [data-slot='textarea'], [data-slot='select-trigger']):not(
+    [class~='dark:bg-transparent']
+  ) {
+  background-color: #191919;
+  color: #b2b2b2;
+}
+
+/* Menus, popovers, dialogs: menu.* / editorWidget.* / quickInput.* (upstream hardcodes
+   translucent black with a blur). */
+.dark[data-jose-ui='vscode']
+  :is(
+    [data-slot='dropdown-menu-content'],
+    [data-slot='dropdown-menu-sub-content'],
+    [data-slot='context-menu-content'],
+    [data-slot='context-menu-sub-content'],
+    [data-slot='select-content'],
+    [data-slot='popover-content'],
+    [data-slot='hover-card-content'],
+    [data-slot='dialog-content'],
+    [data-slot='sheet-content']
+  ) {
+  background-color: #191919;
+  border-color: #242424;
+  color: #b2b2b2;
+  backdrop-filter: none;
+}
+
+.dark[data-jose-ui='vscode'] [role='dialog']:has(> [data-slot='command']),
+.dark[data-jose-ui='vscode'] [role='dialog']:has(> .jump-palette-command) {
+  background-color: #191919;
+  border-color: #242424;
+}
+
+.dark[data-jose-ui='vscode']
+  :is(
+    [data-slot='dropdown-menu-item'],
+    [data-slot='dropdown-menu-checkbox-item'],
+    [data-slot='dropdown-menu-radio-item'],
+    [data-slot='dropdown-menu-sub-trigger'],
+    [data-slot='context-menu-item'],
+    [data-slot='context-menu-checkbox-item'],
+    [data-slot='context-menu-radio-item'],
+    [data-slot='context-menu-sub-trigger'],
+    [data-slot='select-item']
+  ):is(:focus, [data-state='open']):not([data-variant='destructive']) {
+  background-color: #242424;
+  color: #ffffff;
+}
+
+/* Notice cards (update available + its reassurance card, star, sign-out): notifications.background. */
+.dark[data-jose-ui='vscode'] [data-slot='card'][role='complementary'],
+.dark[data-jose-ui='vscode']
+  div:has(> [data-slot='card'][role='complementary'])
+  > [data-slot='card'] {
+  background-color: #191919;
+  border-color: #242424;
+}
+
+/* Tooltips: upstream inverts them (bg-foreground/text-background), so swap the two tokens
+   inside the tooltip and every inverted child follows. */
+.dark[data-jose-ui='vscode'] [data-slot='tooltip-content'] {
+  --foreground: #191919;
+  --background: #b2b2b2;
+  border: 1px solid #242424;
+}
+
+.dark[data-jose-ui='vscode'] [data-slot='tooltip-content'] .text-background\/60 {
+  color: #8a8a8a;
+}
+
+.dark[data-jose-ui='vscode'] .pane-link-tooltip {
+  background: #191919;
+  color: #b2b2b2;
+  border-color: #242424;
+}
+
+/* Scrollbars: scrollbarSlider.background/hoverBackground/activeBackground. */
+.dark[data-jose-ui='vscode'] .scrollbar-sleek,
+.dark[data-jose-ui='vscode'] .scrollbar-editor {
+  scrollbar-color: #24242466 transparent;
+}
+
+/* Why: the worktree list shares .scrollbar-sleek but hides its thumb until hover. */
+.dark[data-jose-ui='vscode'] .worktree-sidebar-scrollbar {
+  scrollbar-color: transparent transparent;
+}
+
+.dark[data-jose-ui='vscode'] .scrollbar-sleek-parent:hover .scrollbar-sleek,
+.dark[data-jose-ui='vscode'] .scrollbar-sleek:hover,
+.dark[data-jose-ui='vscode'] .scrollbar-sleek-parent:hover .worktree-sidebar-scrollbar,
+.dark[data-jose-ui='vscode'] .worktree-sidebar-scrollbar:hover,
+.dark[data-jose-ui='vscode'] .scrollbar-editor:hover {
+  scrollbar-color: #2c2c2c66 transparent;
+}
+
+.dark[data-jose-ui='vscode'] [data-slot='scroll-area-thumb'] {
+  background-color: #24242466;
+}
+
+.dark[data-jose-ui='vscode'] [data-slot='scroll-area-thumb']:hover {
+  background-color: #2c2c2c66;
+}
+
+.dark[data-jose-ui='vscode'] [data-slot='scroll-area-thumb']:active {
+  background-color: #34343466;
+}
+
+/* Why: xterm 6 paints a DOM slider and injects its color at (0,4,0); outrank it. */
+.dark[data-jose-ui='vscode'] .xterm .xterm-scrollable-element > .xterm-scrollbar > .xterm-slider {
+  background: #24242466;
+}
+
+.dark[data-jose-ui='vscode']
+  .xterm
+  .xterm-scrollable-element
+  > .xterm-scrollbar
+  > .xterm-slider:hover {
+  background: #2c2c2c66;
+}
+
+.dark[data-jose-ui='vscode']
+  .xterm
+  .xterm-scrollable-element
+  > .xterm-scrollbar
+  > .xterm-slider.xterm-active {
+  background: #34343466;
 }

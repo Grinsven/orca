@@ -34,6 +34,13 @@ recordRendererCrashBreadcrumb('popout_bootstrap_started', { dev: import.meta.env
 installRendererCrashDiagnostics('dashboard-popout')
 setReactCommitCascadeRendererSurface('dashboard-popout')
 
+// Jose fork-local: same dark-surface variant as main.tsx.
+try {
+  document.documentElement.dataset.joseUi = localStorage.getItem('jose-ui-variant') ?? 'vscode'
+} catch {
+  document.documentElement.dataset.joseUi = 'vscode'
+}
+
 function applyPopoutAppearance(settings: GlobalSettings | null): void {
   applyDocumentTheme(settings?.theme ?? 'system', { disableTransitions: false })
   document.documentElement.style.setProperty(

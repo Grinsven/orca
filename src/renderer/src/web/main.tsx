@@ -25,6 +25,14 @@ import { installOsFileDropCancellationGuard } from '../lib/os-file-drop-cancella
 
 const disposeOsFileDropGuard = installOsFileDropCancellationGuard()
 import.meta.hot?.dispose(disposeOsFileDropGuard)
+
+// Jose fork-local: same dark-surface variant as the desktop renderer (main.tsx).
+try {
+  document.documentElement.dataset.joseUi = localStorage.getItem('jose-ui-variant') ?? 'vscode'
+} catch {
+  document.documentElement.dataset.joseUi = 'vscode'
+}
+
 const App = lazy(() => import('../App'))
 
 function WebRoot(): React.JSX.Element {

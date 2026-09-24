@@ -48,11 +48,11 @@ applyDocumentTheme('system', { disableTransitions: false })
 const browserClientPageRenderer = installBrowserClientPageRenderer()
 import.meta.hot?.dispose(() => browserClientPageRenderer?.dispose())
 
-// Jose fork-local: dark-surface variant switch ('gray' default, 'oled' opt-in via localStorage).
+// Jose fork-local: dark-surface variant switch ('vscode' default, 'gray'/'oled' opt-in via localStorage).
 try {
-  document.documentElement.dataset.joseUi = localStorage.getItem('jose-ui-variant') ?? 'gray'
+  document.documentElement.dataset.joseUi = localStorage.getItem('jose-ui-variant') ?? 'vscode'
 } catch {
-  document.documentElement.dataset.joseUi = 'gray'
+  document.documentElement.dataset.joseUi = 'vscode'
 }
 
 const rootElement = document.getElementById('root')
