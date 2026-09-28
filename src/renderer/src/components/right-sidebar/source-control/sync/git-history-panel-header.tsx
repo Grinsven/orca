@@ -6,10 +6,6 @@ import { cn } from '@/lib/utils'
 import type { GitHistoryScope } from '../../../../../../shared/git-history'
 import { translate } from '@/i18n/i18n'
 
-const HEADER_ICON_BUTTON_CLASS =
-  'my-auto h-auto w-auto p-0.5 hover:bg-transparent dark:hover:bg-transparent [&_svg]:size-3'
-const HEADER_ICON_BUTTON_MUTED_CLASS = 'text-muted-foreground hover:text-muted-foreground'
-
 /** The Commits dock title row: collapse, graph scope, the refs explainer and refresh. */
 export function GitHistoryPanelHeader({
   collapsed,
@@ -64,14 +60,9 @@ export function GitHistoryPanelHeader({
           <TooltipTrigger asChild>
             <Button
               type="button"
-              variant="ghost"
+              variant={scope === 'all' ? 'secondary' : 'ghost'}
               size="icon-xs"
-              className={cn(
-                HEADER_ICON_BUTTON_CLASS,
-                scope === 'all'
-                  ? 'text-foreground hover:text-foreground'
-                  : HEADER_ICON_BUTTON_MUTED_CLASS
-              )}
+              className="my-auto"
               aria-pressed={scope === 'all'}
               aria-label={translate(
                 'auto.components.right.sidebar.GitHistoryPanel.3fa10c7d55',
@@ -103,7 +94,7 @@ export function GitHistoryPanelHeader({
               type="button"
               variant="ghost"
               size="icon-xs"
-              className={cn(HEADER_ICON_BUTTON_CLASS, HEADER_ICON_BUTTON_MUTED_CLASS)}
+              className="my-auto"
               aria-label={translate(
                 'auto.components.right.sidebar.GitHistoryPanel.9289ba0cb9',
                 'What are refs?'
@@ -128,7 +119,7 @@ export function GitHistoryPanelHeader({
               type="button"
               variant="ghost"
               size="icon-xs"
-              className={cn(HEADER_ICON_BUTTON_CLASS, HEADER_ICON_BUTTON_MUTED_CLASS)}
+              className="my-auto"
               onClick={(event) => {
                 event.stopPropagation()
                 if (collapsed) {

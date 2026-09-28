@@ -50,6 +50,8 @@ describe('AgentHookServer /statusline/claude', () => {
     expect(events).toEqual([
       {
         configDir: '/home/dev/managed',
+        paneKey: 'pane-1',
+        context: null,
         fiveHour: { used_percentage: 12.5, resets_at: 1738425600 },
         sevenDay: { used_percentage: 40, resets_at: 1712059200 }
       }

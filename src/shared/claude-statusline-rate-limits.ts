@@ -2,6 +2,8 @@
 // turn — piggybacked on Messages API responses, so reading it costs no usage-endpoint
 // budget (the endpoint 429s under Orca's polling; see rate-limits/service.ts).
 
+import { isRecord } from './agent-status-child-work-value-guards'
+
 export const CLAUDE_STATUSLINE_PATHNAME = '/statusline/claude'
 
 // Why: the statusline ticks ~3x/sec while streaming and the service drops same-value posts
@@ -38,10 +40,10 @@ function finiteNumber(value: unknown): number | undefined {
 }
 
 function parseWindow(value: unknown): ClaudeStatusLineWindow | null {
-  if (typeof value !== 'object' || value === null) {
+  if (!isRecord(value)) {
     return null
   }
-  const raw = value as { used_percentage?: unknown; utilization?: unknown; resets_at?: unknown }
+  const raw = value
   const usedPercentage = finiteNumber(raw.used_percentage)
   // Why: mirror mapClaudeUsageWindow's OAuth-shape tolerance (utilization, 0-100) so a statusline field rename degrades instead of silently darkening the feed.
   const utilization = usedPercentage === undefined ? finiteNumber(raw.utilization) : undefined
@@ -64,13 +66,13 @@ function parseWindow(value: unknown): ClaudeStatusLineWindow | null {
 
 /**
  * Parses the form-encoded body posted by the managed Claude statusline script.
- * Returns null when the payload carries no usable rate-limit windows.
+ * Returns null when the payload carries no usable rate-limit windows or context usage.
  */
 export function parseClaudeStatusLineBody(body: unknown): ClaudeStatusLineRateLimits | null {
-  if (typeof body !== 'object' || body === null) {
+  if (!isRecord(body)) {
     return null
   }
-  const fields = body as { payload?: unknown; configDir?: unknown }
+  const fields = body
   if (typeof fields.payload !== 'string' || !fields.payload) {
     return null
   }
@@ -80,23 +82,18 @@ export function parseClaudeStatusLineBody(body: unknown): ClaudeStatusLineRateLi
   } catch {
     return null
   }
-  if (typeof payload !== 'object' || payload === null) {
+  if (!isRecord(payload)) {
     return null
   }
-  const rateLimits = (payload as { rate_limits?: unknown }).rate_limits
-  const hasRateLimits = typeof rateLimits === 'object' && rateLimits !== null
-  const fiveHour = hasRateLimits
-    ? parseWindow((rateLimits as { five_hour?: unknown }).five_hour)
-    : null
-  const sevenDay = hasRateLimits
-    ? parseWindow((rateLimits as { seven_day?: unknown }).seven_day)
-    : null
+  const rateLimits = payload.rate_limits
+  const fiveHour = isRecord(rateLimits) ? parseWindow(rateLimits.five_hour) : null
+  const sevenDay = isRecord(rateLimits) ? parseWindow(rateLimits.seven_day) : null
   const context = parseContextWindow(payload)
   if (!fiveHour && !sevenDay && !context) {
     return null
   }
   const configDir = typeof fields.configDir === 'string' ? fields.configDir.trim() : ''
-  const paneKeyField = (fields as { paneKey?: unknown }).paneKey
+  const paneKeyField = fields.paneKey
   const paneKey =
     typeof paneKeyField === 'string' && paneKeyField.trim() ? paneKeyField.trim() : null
   return { configDir: configDir || null, paneKey, fiveHour, sevenDay, context }
@@ -105,24 +102,20 @@ export function parseClaudeStatusLineBody(body: unknown): ClaudeStatusLineRateLi
 // Why: mirror the common statusline math — Claude reserves default max-output headroom above input tokens.
 const CONTEXT_RESERVED_OUTPUT_TOKENS = 32_000
 
-function parseContextWindow(payload: unknown): ClaudeStatusLineContext | null {
-  const root = payload as { model?: { display_name?: unknown }; context_window?: unknown }
-  const window = root.context_window as
-    | { context_window_size?: unknown; current_usage?: unknown }
-    | undefined
-  const size = finiteNumber(window?.context_window_size)
-  const usage = window?.current_usage as
-    | {
-        input_tokens?: unknown
-        cache_creation_input_tokens?: unknown
-        cache_read_input_tokens?: unknown
-      }
-    | null
-    | undefined
-  if (!size || size <= 0 || typeof usage !== 'object' || usage === null) {
+function parseContextWindow(payload: Record<string, unknown>): ClaudeStatusLineContext | null {
+  const window = payload.context_window
+  if (!isRecord(window)) {
     return null
   }
-  const model = typeof root.model?.display_name === 'string' ? root.model.display_name.trim() : ''
+  const size = finiteNumber(window.context_window_size)
+  const usage = window.current_usage
+  if (!size || size <= 0 || !isRecord(usage)) {
+    return null
+  }
+  const model =
+    isRecord(payload.model) && typeof payload.model.display_name === 'string'
+      ? payload.model.display_name.trim()
+      : ''
   if (!model) {
     return null
   }

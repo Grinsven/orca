@@ -92,7 +92,7 @@ describe('tab-move-to-pane-column', () => {
 
   it('creates a sibling split pane via dropUnifiedTab', () => {
     const dropUnifiedTab = vi.fn(() => true)
-    useAppStore.setState({ dropUnifiedTab } as Partial<ReturnType<typeof useAppStore.getState>>)
+    useAppStore.setState({ dropUnifiedTab })
 
     expect(
       moveTabToNewPaneColumn({ unifiedTabId: 'tab-b', groupId: 'group-1', direction: 'right' })
@@ -112,7 +112,7 @@ describe('tab-move-to-pane-column', () => {
 
   it('does not mirror when the local store rejects the move', () => {
     const dropUnifiedTab = vi.fn(() => false)
-    useAppStore.setState({ dropUnifiedTab } as Partial<ReturnType<typeof useAppStore.getState>>)
+    useAppStore.setState({ dropUnifiedTab })
 
     expect(
       moveTabToNewPaneColumn({ unifiedTabId: 'tab-b', groupId: 'group-1', direction: 'right' })
@@ -125,7 +125,7 @@ describe('tab-move-to-pane-column', () => {
     useAppStore.setState({
       dropUnifiedTab,
       activeGroupIdByWorktree: { [WT]: 'group-1' }
-    } as Partial<ReturnType<typeof useAppStore.getState>>)
+    })
 
     expect(moveActiveTabToNextPaneColumn('right')).toBe(true)
     expect(dropUnifiedTab).toHaveBeenCalledWith('tab-a', {
@@ -155,7 +155,7 @@ describe('tab-move-to-pane-column', () => {
           second: { type: 'leaf', groupId: 'group-2' }
         }
       }
-    } as Partial<ReturnType<typeof useAppStore.getState>>)
+    })
 
     expect(moveActiveTabToNextPaneColumn('right')).toBe(true)
     expect(moveUnifiedTabToGroup).toHaveBeenCalledWith('tab-a', 'group-2', { activate: true })
@@ -189,7 +189,7 @@ describe('tab-move-to-pane-column', () => {
           second: { type: 'leaf', groupId: 'group-2' }
         }
       }
-    } as Partial<ReturnType<typeof useAppStore.getState>>)
+    })
 
     expect(moveActiveTabToNextPaneColumn('right')).toBe(true)
     expect(moveUnifiedTabToGroup).toHaveBeenCalledWith('tab-a', 'group-2', { activate: true })
@@ -203,7 +203,7 @@ describe('tab-move-to-pane-column', () => {
       groupsByWorktree: {
         [WT]: [{ id: 'group-1', worktreeId: WT, activeTabId: 'tab-a', tabOrder: ['tab-a'] }]
       }
-    } as Partial<ReturnType<typeof useAppStore.getState>>)
+    })
 
     expect(moveActiveTabToNextPaneColumn('right')).toBe(false)
     expect(dropUnifiedTab).not.toHaveBeenCalled()
@@ -214,7 +214,7 @@ describe('tab-move-to-pane-column', () => {
     useAppStore.setState({
       dropUnifiedTab,
       activeGroupIdByWorktree: {}
-    } as Partial<ReturnType<typeof useAppStore.getState>>)
+    })
 
     expect(moveActiveTabToNextPaneColumn('right')).toBe(true)
     expect(dropUnifiedTab).toHaveBeenCalledWith('tab-a', {
@@ -229,7 +229,7 @@ describe('tab-move-to-pane-column', () => {
       dropUnifiedTab,
       activeWorktreeId: null,
       activeGroupIdByWorktree: {}
-    } as Partial<ReturnType<typeof useAppStore.getState>>)
+    })
 
     expect(moveActiveTabToNextPaneColumn('right')).toBe(false)
     expect(dropUnifiedTab).not.toHaveBeenCalled()

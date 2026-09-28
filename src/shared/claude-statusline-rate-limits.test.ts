@@ -109,4 +109,32 @@ describe('parseClaudeStatusLineBody', () => {
       context: { model: 'Fable 5', usedPercent: 43 }
     })
   })
+
+  it.each([
+    { context_window: null },
+    { context_window: 'invalid' },
+    { context_window: { context_window_size: 1_000_000, current_usage: [] } },
+    { context_window: { context_window_size: 1_000_000, current_usage: null } },
+    { model: null },
+    { model: { display_name: 42 } }
+  ])('keeps rate limits when context fields are malformed: %j', (fields) => {
+    const result = parseClaudeStatusLineBody(
+      formBody({
+        model: { display_name: 'Fable 5' },
+        context_window: {
+          context_window_size: 1_000_000,
+          current_usage: { input_tokens: 100_000 }
+        },
+        ...fields,
+        rate_limits: { five_hour: { used_percentage: 12 } }
+      })
+    )
+    expect(result).toEqual({
+      configDir: null,
+      paneKey: null,
+      fiveHour: { used_percentage: 12, resets_at: undefined },
+      sevenDay: null,
+      context: null
+    })
+  })
 })
