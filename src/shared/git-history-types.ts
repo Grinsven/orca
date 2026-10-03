@@ -59,6 +59,16 @@ export type GitHistoryScope = 'branch' | 'all'
 
 export const GIT_HISTORY_DEFAULT_SCOPE: GitHistoryScope = 'branch'
 
+// Lives here, not in global-settings-types.ts, which is at the max-lines ceiling.
+export type SourceControlHistorySettings = {
+  /** Commit graph scope: the workspace branch, or every ref. Per-user; optional for legacy settings. */
+  sourceControlHistoryScope?: GitHistoryScope
+  /** Whether the Commits section stays open, including across worktree switches. Per-user. */
+  sourceControlHistoryExpanded?: boolean
+  /** Height in px the user dragged the Commits section to. Per-user. */
+  sourceControlHistoryPanelHeight?: number
+}
+
 export const GIT_HISTORY_PANEL_MIN_HEIGHT = 96
 export const GIT_HISTORY_PANEL_MAX_HEIGHT = 1600
 export const GIT_HISTORY_PANEL_DEFAULT_HEIGHT = 256

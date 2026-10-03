@@ -4,7 +4,7 @@ import type { OrcaWorkspaceLayout } from './orca-workspace-layout'
 import type { GitHubProjectSettings } from './github/project-types'
 import type { VoiceSettings } from './speech-types'
 import type { AiVaultSearchSettings } from './ai-vault-search-settings'
-import type { GitHistoryScope } from './git-history-types'
+import type { SourceControlHistorySettings } from './git-history-types'
 import type { GitLabProjectSettings } from './gitlab-types'
 import type { TaskProvider } from './task-providers'
 import type { KeybindingOverrides, TerminalShortcutPolicy } from './keybindings'
@@ -251,12 +251,6 @@ export type GlobalSettings = NativeChatGlobalSettings & {
   sourceControlViewMode: SourceControlViewMode
   /** Preferred Source Control group order. Per-user, not per-workspace. */
   sourceControlGroupOrder: SourceControlGroupOrder
-  /** Commit graph scope: the workspace branch, or every ref. Per-user; optional for legacy settings. */
-  sourceControlHistoryScope?: GitHistoryScope
-  /** Whether the Commits section stays open, including across worktree switches. Per-user. */
-  sourceControlHistoryExpanded?: boolean
-  /** Height in px the user dragged the Commits section to. Per-user. */
-  sourceControlHistoryPanelHeight?: number
   /** Compare base defaults to the branch upstream instead of the repo default; affects only the compare/diff view, not the PR/rebase target. Per-user. */
   sourceControlCompareAgainstUpstream: boolean
   /** Whether to show the Orca app name in the titlebar. */
@@ -548,7 +542,7 @@ export type GlobalSettings = NativeChatGlobalSettings & {
   voice?: VoiceSettings
   /** Transcript full-text search consent + retention. Absent means off; nothing indexes until the user opts in. */
   aiVaultSearch?: AiVaultSearchSettings
-}
+} & SourceControlHistorySettings
 
 // Re-exported so existing importers keep one entry point; the shape lives in its
 // own file because this one is at the max-lines ceiling.
