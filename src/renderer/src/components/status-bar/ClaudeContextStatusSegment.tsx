@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { useNow } from '@/hooks/use-now'
+import { translate } from '@/i18n/i18n'
 
 type ClaudeContextEvent = { paneKey: string | null; model: string; usedPercent: number }
 
@@ -30,7 +31,10 @@ export function ClaudeContextStatusSegment(): React.JSX.Element | null {
   return (
     <span
       className="flex shrink-0 items-center gap-1.5 text-xs text-foreground"
-      title="Claude context usage (latest active session)"
+      title={translate(
+        'auto.components.status.bar.ClaudeContextStatusSegment.title',
+        'Claude context usage (latest active session)'
+      )}
     >
       <span className="text-muted-foreground">{event.model}</span>
       <span className="h-1.5 w-16 overflow-hidden rounded-full bg-muted">

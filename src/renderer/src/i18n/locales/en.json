@@ -4462,6 +4462,9 @@
           "usageUnitLabel": {
             "used": "Used",
             "remaining": "Remaining"
+          },
+          "ClaudeContextStatusSegment": {
+            "title": "Claude context usage (latest active session)"
           }
         }
       },
@@ -14252,7 +14255,9 @@
           "GitHistoryCommitFiles": {
             "a1b2c3d4e5": "Loading files…",
             "b2c3d4e5f6": "No file changes in this commit",
-            "c3d4e5f6a7": "Open all changes together"
+            "c3d4e5f6a7": "Open all changes together",
+            "d4e5f6a7b8": "Open changes",
+            "e5f6a7b8c9": "Open file"
           },
           "GitHistoryRow": {
             "2f9c41ab07": "Show files in commit {{value0}}: {{value1}}",
