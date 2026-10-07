@@ -3,11 +3,13 @@ import { buildAppFontFamily } from '@/lib/app-font-family'
 import { applyDocumentTheme } from '../lib/document-theme'
 import { scheduleRuntimeGraphSync } from '../runtime/sync-runtime-graph'
 import { useAppStore } from '../store'
+import { useModernUiAppearance } from './use-modern-ui-appearance'
 
 /** Applies the settings-driven theme and app font to the document root. */
 export function useDocumentAppearance(): void {
   const theme = useAppStore((s) => s.settings?.theme)
   const appFontFamily = useAppStore((s) => s.settings?.appFontFamily)
+  useModernUiAppearance()
 
   useEffect(() => {
     if (!theme) {

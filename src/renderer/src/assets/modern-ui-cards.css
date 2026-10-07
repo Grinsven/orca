@@ -1,0 +1,109 @@
+/* Jose fork-local: Modern UI floating cards (see modern-ui.css for the credit and gating).
+   Default density only; compact keeps the stock edge-to-edge layout and its separators. */
+
+html[data-modern-ui='on'][data-modern-ui-density='default'] .app-layout {
+  background: var(--modern-ui-shell);
+}
+
+/* The titlebar and status bar sit on the shell, not on a card. */
+html[data-modern-ui='on'][data-modern-ui-density='default'] .titlebar {
+  background: transparent;
+  border-bottom-color: transparent;
+}
+
+html[data-modern-ui='on'][data-modern-ui-density='default'] [data-orca-region='status-bar'] {
+  background: transparent;
+  border-top-color: transparent;
+}
+
+/* A collapsed sidebar's header floats over the tab strip; let the card show through it. */
+html[data-modern-ui='on'][data-modern-ui-density='default'] .titlebar-left-floating {
+  background: transparent;
+  border-right-color: transparent;
+}
+
+html[data-modern-ui='on'][data-modern-ui-density='default']
+  :is(
+    [data-orca-region='left-column'],
+    [data-orca-region='workspace'],
+    [data-orca-region='right-sidebar'],
+    [data-orca-region='left-sidebar']:not([data-orca-region='left-column'] *)
+  ) {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--modern-ui-radius);
+  box-shadow: var(--modern-ui-card-shadow);
+}
+
+/* Why a pseudo-element, not border/outline: a border would shift the 36px titlebar math, and an
+   outline paints under the z-indexed terminal panes that fill the card's edges. */
+html[data-modern-ui='on'][data-modern-ui-density='default']
+  :is(
+    [data-orca-region='left-column'],
+    [data-orca-region='workspace'],
+    [data-orca-region='right-sidebar'],
+    [data-orca-region='left-sidebar']:not([data-orca-region='left-column'] *)
+  )::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  border: 1px solid var(--modern-ui-card-border);
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+/* Left column (titlebar-left + worktree list): top gap, so the 36px band shrinks to keep the
+   controls centred on the macOS traffic lights (pinned at y=18). */
+html[data-modern-ui='on'][data-modern-ui-density='default'] [data-orca-region='left-column'] {
+  margin: var(--modern-ui-gap) 0 var(--modern-ui-gap) var(--modern-ui-gap);
+}
+
+html[data-modern-ui='on'][data-modern-ui-density='default']
+  [data-orca-region='left-column']
+  > .titlebar-left {
+  height: calc(36px - 2 * var(--modern-ui-gap));
+  min-height: calc(36px - 2 * var(--modern-ui-gap));
+}
+
+html[data-modern-ui='on'][data-modern-ui-density='default']
+  [data-orca-region='left-sidebar']:not([data-orca-region='left-column'] *) {
+  margin: 0 0 var(--modern-ui-gap) var(--modern-ui-gap);
+}
+
+/* Center card: tab strip and content as one frame. Its overflow clip also rounds the terminal,
+   browser and emulator panes, which are anchor-positioned siblings of the tab-group DOM. */
+html[data-modern-ui='on'][data-modern-ui-density='default'] [data-orca-region='workspace'] {
+  margin: var(--modern-ui-gap);
+  background: var(--background);
+}
+
+html[data-modern-ui='on'][data-modern-ui-density='default']
+  :is(.titlebar + [data-orca-region='workspace'], .titlebar + * [data-orca-region='workspace']) {
+  margin-top: 0;
+}
+
+/* The 4px drag strip above the tabs becomes the shell gap; the sidebar seam becomes the gutter. */
+html[data-modern-ui='on'][data-modern-ui-density='default']
+  [data-orca-region='workspace']
+  [data-orca-region='tab-group-root'] {
+  border-left-width: 0;
+}
+
+html[data-modern-ui='on'][data-modern-ui-density='default']
+  [data-orca-region='workspace']
+  [data-orca-region='tab-group-root']
+  > [data-terminal-focus-release-surface] {
+  height: 0;
+}
+
+html[data-modern-ui='on'][data-modern-ui-density='default'] [data-orca-region='right-sidebar'] {
+  margin: var(--modern-ui-gap) var(--modern-ui-gap) var(--modern-ui-gap) 0;
+}
+
+/* Inline borderLeft is the old sidebar seam; the gutter replaces it. */
+html[data-modern-ui='on'][data-modern-ui-density='default']
+  [data-orca-region='right-sidebar']
+  > div:first-child {
+  border-left: 0 !important;
+}

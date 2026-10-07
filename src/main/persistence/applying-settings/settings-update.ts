@@ -40,6 +40,7 @@ import {
   PROTECTED_SECRET_SLOT,
   type ProtectedSecretPersistence
 } from '../../protected-secret-persistence'
+import { sanitizeModernUiSettingsUpdate } from '../../../shared/modern-ui-settings'
 import { normalizeNotificationSettings } from './onboarding-normalization'
 import { retireLegacyInstructionsForClearedTextActionRecipes } from './source-control-settings'
 import {
@@ -81,6 +82,7 @@ export function updateSettings(
   if ('showMenuBarIcon' in updates) {
     sanitizedUpdates.showMenuBarIcon = updates.showMenuBarIcon === true
   }
+  Object.assign(sanitizedUpdates, sanitizeModernUiSettingsUpdate(updates))
   // Why: the artifact publish capability must be an exact boolean on disk; no truthy value grants it.
   if ('artifactSharingEnabled' in updates) {
     sanitizedUpdates.artifactSharingEnabled = updates.artifactSharingEnabled === true

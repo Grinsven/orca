@@ -127,6 +127,7 @@ export function AppWorkspaceShell(props: {
               layout.leftTitlebarChromeLayout.shouldMount ? (
                 /* Why: when the sidebar is collapsed, take this titlebar-height header out of flex layout so the terminal/editor reclaim the left edge. */
                 <div
+                  data-orca-region={layout.sidebarOpen ? 'left-column' : undefined}
                   className={`flex min-h-0 flex-col shrink-0${layout.sidebarOpen ? '' : ' relative w-0 overflow-visible'}`}
                 >
                   <div
@@ -161,7 +162,10 @@ export function AppWorkspaceShell(props: {
               layout.activeView !== 'artifacts' ? (
                 <div className="titlebar">{titlebarMainStrip}</div>
               ) : null}
-              <div className="relative flex flex-1 min-w-0 min-h-0 overflow-hidden">
+              <div
+                data-orca-region="workspace"
+                className="relative flex flex-1 min-w-0 min-h-0 overflow-hidden"
+              >
                 {/* Why: match the RightSidebar header's 36px/top-0 so the toggle's vertical center is identical open vs closed — else the icon jitters. */}
                 {layout.workspaceChromeActive && !layout.rightSidebarOpen && (
                   <div

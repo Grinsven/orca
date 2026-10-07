@@ -132,7 +132,10 @@ export function SshPortsPanel({
     <div className="flex flex-col h-full overflow-y-auto scrollbar-sleek">
       {/* Header */}
       <div className="flex items-center justify-between px-3 py-2 border-b border-border">
-        <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+        <span
+          data-orca-section-header=""
+          className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground"
+        >
           {translate('auto.components.right.sidebar.PortsPanel.6bc058dbe1', 'Ports')}
         </span>
         <button
@@ -162,7 +165,10 @@ export function SshPortsPanel({
                 !forwardedCollapsed && 'rotate-90'
               )}
             />
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            <span
+              data-orca-section-header=""
+              className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground"
+            >
               {translate('auto.components.right.sidebar.PortsPanel.ddbe58d74e', 'Forwarded')}
             </span>
             <span className="text-[10px] text-muted-foreground/60 ml-1">{allForwards.length}</span>
@@ -194,7 +200,10 @@ export function SshPortsPanel({
                 !detectedCollapsed && 'rotate-90'
               )}
             />
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            <span
+              data-orca-section-header=""
+              className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground"
+            >
               {translate('auto.components.right.sidebar.PortsPanel.36b1b2984a', 'Detected')}
             </span>
             <span className="text-[10px] text-muted-foreground/60 ml-1">{allDetected.length}</span>

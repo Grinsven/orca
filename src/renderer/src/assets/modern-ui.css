@@ -1,0 +1,42 @@
+/* Jose fork-local: "Modern UI" look, opt-out via Settings > Appearance > Modern UI. Not for upstream.
+   Design adapted from VS Code's Modern UI (workbench.experimental.modernUI) in microsoft/vscode,
+   src/vs/workbench/contrib/modernUI, Copyright (c) Microsoft Corporation, MIT License. Only the
+   measurements and approach are borrowed; every selector here targets Orca's own DOM.
+
+   Everything is gated on attributes that use-modern-ui-appearance.ts sets on <html>, so with
+   Modern UI off no rule matches. Rules stay unlayered and lead with html[...] so they outrank
+   both Tailwind's layered utilities and the unlayered .dark[data-jose-ui=...] variant blocks. */
+
+@import './modern-ui-cards.css';
+@import './modern-ui-tabs.css';
+@import './modern-ui-glass.css';
+
+html[data-modern-ui='on'] {
+  /* VS Code: 4px floating-card gutter, 8px outer radius, 6px inner radius. */
+  --modern-ui-gap: 4px;
+  --modern-ui-radius: 8px;
+  --modern-ui-inner-radius: 6px;
+  --modern-ui-shell: var(--bg-titlebar, var(--card));
+  /* VS Code surface.border: foreground at 15% over the surface; slightly softer here. */
+  --modern-ui-card-border: color-mix(in srgb, var(--foreground) 12%, transparent);
+  --modern-ui-card-shadow: 0 1px 3px rgb(0 0 0 / 0.1);
+  --modern-ui-tab-strip: color-mix(in srgb, var(--foreground) 4%, var(--card));
+  --modern-ui-tab-line: color-mix(in srgb, var(--foreground) 14%, var(--card));
+}
+
+/* Light themes: a gray shell lets white cards read as cards (VS Code Light keeps the same split). */
+html:not(.dark)[data-modern-ui='on'] {
+  --modern-ui-shell: color-mix(in srgb, var(--foreground) 6%, var(--card));
+  --modern-ui-card-shadow: 0 1px 3px rgb(0 0 0 / 0.08), 0 1px 1px rgb(0 0 0 / 0.04);
+}
+
+html.dark[data-modern-ui='on'] {
+  --modern-ui-card-shadow: 0 1px 3px rgb(0 0 0 / 0.5);
+}
+
+/* Normal-case view, section and panel headers unless the user keeps uppercase. Badges are untouched
+   because only header elements carry the attribute. */
+html[data-modern-ui='on']:not([data-modern-ui-uppercase='on']) [data-orca-section-header] {
+  text-transform: none;
+  letter-spacing: normal;
+}

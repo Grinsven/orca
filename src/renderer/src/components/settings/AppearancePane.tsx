@@ -40,6 +40,7 @@ import {
   getWorkspaceCardLayoutEntry
 } from './appearance-sidebar-search'
 import { resolveInterfaceSectionSummary } from './appearance-interface-summary'
+import { getModernUiSearchEntries } from './appearance-modern-ui-search'
 export { getAppearancePaneSearchEntries }
 
 type AppearancePaneProps = {
@@ -140,6 +141,7 @@ export function AppearancePane({
     ...getThemeEntries(),
     ...getZoomEntries(),
     ...getTypographyEntries(),
+    ...getModernUiSearchEntries(),
     ...(SHOW_UI_LANGUAGE_SETTING ? getLanguageEntries() : []),
     ...getTitlebarEntries(),
     ...getSystemTrayEntries({ showSystemTray: isDesktopWindows }),

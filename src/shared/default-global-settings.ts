@@ -17,6 +17,7 @@ import {
 import { DEFAULT_SOURCE_CONTROL_GROUP_ORDER } from './source-control-group-order'
 import { GIT_HISTORY_DEFAULT_SCOPE, GIT_HISTORY_PANEL_DEFAULT_HEIGHT } from './git-history-types'
 import { DESKTOP_TERMINAL_SCROLLBACK_ROWS_DEFAULT } from './terminal-scrollback-policy'
+import { DEFAULT_MODERN_UI_SETTINGS } from './modern-ui-settings'
 
 export function buildDefaultSettings(args: {
   workspaceDir: string
@@ -46,6 +47,7 @@ export function buildDefaultSettings(args: {
     leftSidebarAppearanceMode: 'default',
     leftSidebarTintColor: DEFAULT_LEFT_SIDEBAR_TINT_COLOR,
     leftSidebarTintOpacity: DEFAULT_LEFT_SIDEBAR_TINT_OPACITY,
+    ...DEFAULT_MODERN_UI_SETTINGS,
     uiLanguage: UI_LANGUAGE_SYSTEM,
     appIcon: DEFAULT_APP_ICON_ID,
     appFontFamily: args.appFontFamily,

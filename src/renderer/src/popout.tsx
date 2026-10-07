@@ -15,6 +15,8 @@ import {
   recordRendererCrashBreadcrumb
 } from './lib/crash-diagnostics'
 import { applyDocumentTheme } from './lib/document-theme'
+import { applyModernUiAppearance, readCachedModernUiSettings } from './lib/modern-ui-appearance'
+import { normalizeModernUiSettings } from '../../shared/modern-ui-settings'
 import { buildAppFontFamily } from './lib/app-font-family'
 import { I18nProvider } from './i18n/I18nProvider'
 import { translate } from './i18n/i18n'
@@ -43,6 +45,9 @@ try {
 
 function applyPopoutAppearance(settings: GlobalSettings | null): void {
   applyDocumentTheme(settings?.theme ?? 'system', { disableTransitions: false })
+  applyModernUiAppearance(
+    settings ? normalizeModernUiSettings(settings) : readCachedModernUiSettings()
+  )
   document.documentElement.style.setProperty(
     '--app-font-family',
     buildAppFontFamily(settings?.appFontFamily)

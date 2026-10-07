@@ -44,6 +44,7 @@ export function GitHistoryPanelHeader({
       <div className="flex h-full items-stretch rounded-md pr-1">
         <button
           type="button"
+          data-orca-section-header=""
           className="flex min-w-0 flex-1 items-center gap-1 px-0.5 text-left text-[11px] font-semibold uppercase tracking-wider text-foreground/70"
           onClick={onToggle}
         >

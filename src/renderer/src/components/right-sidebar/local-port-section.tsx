@@ -42,7 +42,10 @@ export function LocalPortSection({
           size={12}
           className={cn('shrink-0 transition-transform', !collapsed && 'rotate-90')}
         />
-        <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+        <span
+          data-orca-section-header=""
+          className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground"
+        >
           {title}
         </span>
         {ports.length > 0 && (

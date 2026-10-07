@@ -1,0 +1,41 @@
+/* Jose fork-local: Modern UI frosted glass overlays (see modern-ui.css for credit and gating).
+   Each surface keeps its theme color as a tint at --modern-ui-glass-opacity over a backdrop
+   blur (VS Code frostedGlass.css). Native OS menus are not DOM and stay untouched; reduced
+   transparency and engines without backdrop-filter keep the solid surfaces. */
+
+@supports (backdrop-filter: blur(1px)) {
+  @media (prefers-reduced-transparency: no-preference) {
+    html[data-modern-ui='on'][data-modern-ui-glass='on']
+      :is(
+        [data-slot='dropdown-menu-content'],
+        [data-slot='dropdown-menu-sub-content'],
+        [data-slot='context-menu-content'],
+        [data-slot='context-menu-sub-content'],
+        [data-slot='select-content'],
+        [data-slot='popover-content'],
+        [data-slot='hover-card-content'],
+        [data-slot='dialog-content'],
+        [data-slot='sheet-content'],
+        [role='dialog']:has(> [data-slot='command']),
+        [role='dialog']:has(> .jump-palette-command)
+      ) {
+      background-color: color-mix(
+        in srgb,
+        var(--popover) var(--modern-ui-glass-opacity, 80%),
+        transparent
+      );
+      backdrop-filter: blur(16px) saturate(150%);
+    }
+
+    html[data-modern-ui='on'][data-modern-ui-glass='on']
+      [data-sonner-toaster]
+      [data-sonner-toast][data-styled='true'] {
+      background: color-mix(
+        in srgb,
+        var(--popover) var(--modern-ui-glass-opacity, 80%),
+        transparent
+      );
+      backdrop-filter: blur(16px) saturate(150%);
+    }
+  }
+}

@@ -298,6 +298,49 @@
         "sharper": "Sharper",
         "terminalControlledHint": "Set by terminal interface.",
         "terminalControlledTooltip": "Matching your terminal interface. Turn off Match terminal interface to change this."
+      },
+      "modernUi": {
+        "title": "Modern UI",
+        "description": "Floating cards with rounded corners, refreshed tabs, normal-case headers and frosted overlays.",
+        "keyword": {
+          "cards": "cards",
+          "rounded": "rounded",
+          "layout": "layout",
+          "vscode": "VS Code",
+          "tabs": "tabs",
+          "gaps": "gaps",
+          "uppercase": "uppercase",
+          "headers": "headers",
+          "blur": "blur",
+          "translucent": "translucent",
+          "opacity": "opacity",
+          "transparency": "transparency"
+        },
+        "tabStyle": {
+          "title": "Tab Style",
+          "description": "Connected tabs join the active tab to its content; pill tabs are separate rounded shapes.",
+          "connected": "Connected",
+          "pill": "Pill"
+        },
+        "density": {
+          "title": "Layout Density",
+          "description": "Compact removes the gaps and rounded corners so panels meet the window edges.",
+          "default": "Default",
+          "compact": "Compact"
+        },
+        "uppercaseHeaders": {
+          "title": "Uppercase Headers",
+          "description": "Keep section and panel headers in capital letters."
+        },
+        "frostedGlass": {
+          "title": "Frosted Glass",
+          "description": "Blur what is behind menus, popovers, dialogs, palettes and toasts."
+        },
+        "glassOpacity": {
+          "title": "Glass Opacity",
+          "description": "Tint strength of frosted overlays. Lower values show more of the blurred backdrop.",
+          "range": "{{min}} to {{max}}%"
+        }
       }
     },
     "browser": {

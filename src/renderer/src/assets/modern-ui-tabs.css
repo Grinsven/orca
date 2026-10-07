@@ -1,0 +1,173 @@
+/* Jose fork-local: Modern UI editor/terminal tab styles (see modern-ui.css for credit and gating).
+   Shapes are painted inside each tab's own box (backgrounds, the active-indicator span and its
+   pseudo-element), never by changing slot widths or margins, so tab-strip-slot-geometry.ts,
+   overflow scrolling, the fade masks and the sticky docked tab keep their measurements. The tab
+   root's own ::before/::after stay free for the drag-and-drop insertion bars. */
+
+/* ── Connected: the active tab joins the content surface with an outside stroke and curved
+   bottom shoulders (VS Code connectedEditorTabs.css: 7px shoulder = 6px inner radius + stroke). */
+
+html[data-modern-ui='on'][data-modern-ui-tabs='connected'] [data-tab-group-strip-id] {
+  --modern-ui-tab-shoulder: 7px;
+  /* Why: without the bottom border the tabs reach the strip's last pixel, so the active tab can
+     cover the separator line that this background draws. */
+  border-bottom-width: 0;
+  background:
+    linear-gradient(var(--modern-ui-tab-line), var(--modern-ui-tab-line)) bottom / 100% 1px
+      no-repeat,
+    var(--modern-ui-tab-strip);
+}
+
+html[data-modern-ui='on'][data-modern-ui-tabs] [data-tab-group-strip-id] .terminal-tab-strip {
+  border-right-color: transparent;
+}
+
+html[data-modern-ui='on'][data-modern-ui-tabs] [data-tab-group-strip-id] [data-tab-id] {
+  border-top-color: transparent;
+  border-right-color: transparent;
+}
+
+html[data-modern-ui='on'][data-modern-ui-tabs='connected']
+  [data-tab-group-strip-id]
+  [data-tab-id][data-active='false'] {
+  background: transparent;
+}
+
+/* Short dividers only between two inactive tabs, like VS Code's connected tab dividers. */
+html[data-modern-ui='on'][data-modern-ui-tabs='connected']
+  [data-tab-group-strip-id]
+  [data-tab-strip-slot]:where(:has(+ [data-tab-strip-slot] > [data-tab-id][data-active='false']))
+  > [data-tab-id][data-active='false'] {
+  background: linear-gradient(var(--modern-ui-tab-line), var(--modern-ui-tab-line)) right center /
+    1px 14px no-repeat;
+}
+
+html[data-modern-ui='on'][data-modern-ui-tabs='connected']
+  [data-tab-group-strip-id]
+  [data-tab-strip-slot]
+  > [data-tab-id][data-active='false']:hover {
+  background:
+    linear-gradient(var(--modern-ui-tab-line), var(--modern-ui-tab-line)) bottom / 100% 1px
+      no-repeat,
+    color-mix(in srgb, var(--foreground) 6%, var(--modern-ui-tab-strip));
+}
+
+html[data-modern-ui='on'][data-modern-ui-tabs='connected']
+  [data-tab-group-strip-id]
+  [data-tab-id][data-active='true'] {
+  --modern-ui-tab-fill: var(--editor-surface);
+  /* Why isolate: the shape span sits at z-index -1, under the label but above this transparent box. */
+  isolation: isolate;
+  background: transparent;
+  color: var(--foreground);
+}
+
+/* Terminal tabs merge into the terminal theme background, published by use-modern-ui-appearance. */
+html[data-modern-ui='on'][data-modern-ui-tabs='connected']
+  [data-tab-group-strip-id]
+  [data-testid='sortable-tab'][data-active='true'] {
+  --modern-ui-tab-fill: var(--modern-ui-terminal-background, var(--editor-surface));
+}
+
+html[data-modern-ui='on'][data-modern-ui-tabs='connected']
+  [data-tab-group-strip-id]
+  [data-tab-id][data-active='true']
+  > span.bottom-0.h-\[2px\] {
+  inset: 0;
+  height: auto;
+  z-index: -1;
+  background:
+    radial-gradient(
+        circle at 0 0,
+        transparent calc(var(--modern-ui-tab-shoulder) - 1.5px),
+        var(--modern-ui-tab-line) calc(var(--modern-ui-tab-shoulder) - 1px),
+        var(--modern-ui-tab-line) var(--modern-ui-tab-shoulder),
+        var(--modern-ui-tab-fill) calc(var(--modern-ui-tab-shoulder) + 0.5px)
+      )
+      left bottom / var(--modern-ui-tab-shoulder) var(--modern-ui-tab-shoulder) no-repeat,
+    radial-gradient(
+        circle at 100% 0,
+        transparent calc(var(--modern-ui-tab-shoulder) - 1.5px),
+        var(--modern-ui-tab-line) calc(var(--modern-ui-tab-shoulder) - 1px),
+        var(--modern-ui-tab-line) var(--modern-ui-tab-shoulder),
+        var(--modern-ui-tab-fill) calc(var(--modern-ui-tab-shoulder) + 0.5px)
+      )
+      right bottom / var(--modern-ui-tab-shoulder) var(--modern-ui-tab-shoulder) no-repeat,
+    linear-gradient(var(--modern-ui-tab-fill), var(--modern-ui-tab-fill)) center bottom /
+      calc(100% - 2 * var(--modern-ui-tab-shoulder)) var(--modern-ui-tab-shoulder) no-repeat;
+}
+
+/* The cap: rounded top corners and side strokes that the shoulders above continue. */
+html[data-modern-ui='on'][data-modern-ui-tabs='connected']
+  [data-tab-group-strip-id]
+  [data-tab-id][data-active='true']
+  > span.bottom-0.h-\[2px\]::before {
+  content: '';
+  position: absolute;
+  inset: 0 calc(var(--modern-ui-tab-shoulder) - 1px) var(--modern-ui-tab-shoulder);
+  border: 1px solid var(--modern-ui-tab-line);
+  border-bottom: 0;
+  border-radius: var(--modern-ui-tab-shoulder) var(--modern-ui-tab-shoulder) 0 0;
+  background: var(--modern-ui-tab-fill);
+}
+
+/* A docked active tab overlaps its neighbours; hide them behind it and drop the stock seam. */
+html[data-modern-ui='on'][data-modern-ui-tabs='connected']
+  [data-tab-group-strip-id]
+  .terminal-tab-strip[data-active-tab-docked]
+  > [data-active-tab-dock] {
+  background: var(--modern-ui-tab-strip);
+}
+
+html[data-modern-ui='on'][data-modern-ui-tabs]
+  [data-tab-group-strip-id]
+  .terminal-tab-strip[data-active-tab-docked]
+  > [data-active-tab-dock]::before {
+  content: none;
+}
+
+/* ── Pill: separate rounded tabs, 24px tall in the 32px row (VS Code tabs.css). */
+
+html[data-modern-ui='on'][data-modern-ui-tabs='pill']
+  [data-tab-group-strip-id]
+  [data-tab-id][data-active] {
+  isolation: isolate;
+  background: transparent;
+}
+
+html[data-modern-ui='on'][data-modern-ui-tabs='pill']
+  [data-tab-group-strip-id]
+  [data-tab-id][data-active='true'] {
+  color: var(--foreground);
+}
+
+html[data-modern-ui='on'][data-modern-ui-tabs='pill']
+  [data-tab-group-strip-id]
+  [data-tab-id][data-active='true']
+  > span.bottom-0.h-\[2px\] {
+  inset: 4px 2px;
+  height: auto;
+  z-index: -1;
+  border-radius: var(--modern-ui-inner-radius);
+  background: color-mix(in srgb, var(--foreground) 11%, transparent);
+}
+
+/* Hover pill on the tab's ::before; skipped while it shows the left drop indicator. */
+html[data-modern-ui='on'][data-modern-ui-tabs='pill']
+  [data-tab-group-strip-id]
+  [data-tab-id][data-active='false']:not(.before\:bg-blue-500):hover::before {
+  content: '';
+  position: absolute;
+  inset: 4px 2px;
+  z-index: -1;
+  border-radius: var(--modern-ui-inner-radius);
+  background: color-mix(in srgb, var(--foreground) 6%, transparent);
+  pointer-events: none;
+}
+
+html[data-modern-ui='on'][data-modern-ui-tabs='pill']
+  [data-tab-group-strip-id]
+  .terminal-tab-strip[data-active-tab-docked]
+  > [data-active-tab-dock] {
+  background: var(--card);
+}
