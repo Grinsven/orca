@@ -107,3 +107,13 @@ html[data-modern-ui='on'][data-modern-ui-density='default']
   > div:first-child {
   border-left: 0 !important;
 }
+
+/* Terminals in the card: the left gets the same inset as the 7px scrollbar gutter xterm keeps on
+   the right (pane-terminal-options.ts), plus the card border, so text never hugs the left frame. */
+html[data-modern-ui='on'][data-modern-ui-density='default']
+  [data-orca-region='workspace']
+  .xterm-container {
+  --modern-ui-terminal-left-inset: calc(var(--pane-padding-x, 4px) + 8px);
+  margin-left: var(--modern-ui-terminal-left-inset);
+  width: calc(100% - var(--modern-ui-terminal-left-inset));
+}

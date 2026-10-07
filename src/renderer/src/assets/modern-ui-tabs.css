@@ -111,6 +111,40 @@ html[data-modern-ui='on'][data-modern-ui-tabs='connected']
   background: var(--modern-ui-tab-fill);
 }
 
+/* Without overflow buttons the first tab sits on the card's left frame. Like VS Code it drops its
+   own left stroke, rounding and shoulder; the card's clip and border paint that edge once. */
+html[data-modern-ui='on'][data-modern-ui-tabs='connected']
+  [data-tab-group-strip-id]
+  .group\/tab-strip:first-child
+  .terminal-tab-strip
+  > [data-tab-strip-slot]:not([data-tab-strip-slot] ~ [data-tab-strip-slot])
+  > [data-tab-id][data-active='true']
+  > span.bottom-0.h-\[2px\] {
+  background:
+    radial-gradient(
+        circle at 100% 0,
+        transparent calc(var(--modern-ui-tab-shoulder) - 1.5px),
+        var(--modern-ui-tab-line) calc(var(--modern-ui-tab-shoulder) - 1px),
+        var(--modern-ui-tab-line) var(--modern-ui-tab-shoulder),
+        var(--modern-ui-tab-fill) calc(var(--modern-ui-tab-shoulder) + 0.5px)
+      )
+      right bottom / var(--modern-ui-tab-shoulder) var(--modern-ui-tab-shoulder) no-repeat,
+    linear-gradient(var(--modern-ui-tab-fill), var(--modern-ui-tab-fill)) left bottom /
+      calc(100% - var(--modern-ui-tab-shoulder)) var(--modern-ui-tab-shoulder) no-repeat;
+}
+
+html[data-modern-ui='on'][data-modern-ui-tabs='connected']
+  [data-tab-group-strip-id]
+  .group\/tab-strip:first-child
+  .terminal-tab-strip
+  > [data-tab-strip-slot]:not([data-tab-strip-slot] ~ [data-tab-strip-slot])
+  > [data-tab-id][data-active='true']
+  > span.bottom-0.h-\[2px\]::before {
+  left: 0;
+  border-left-width: 0;
+  border-top-left-radius: 0;
+}
+
 /* A docked active tab overlaps its neighbours; hide them behind it and drop the stock seam. */
 html[data-modern-ui='on'][data-modern-ui-tabs='connected']
   [data-tab-group-strip-id]
