@@ -69,46 +69,61 @@ html[data-modern-ui='on'][data-modern-ui-tabs='connected']
   --modern-ui-tab-fill: var(--modern-ui-terminal-background, var(--editor-surface));
 }
 
+/* The cap is the indicator span itself: rounded top corners and side strokes, filled down to the
+   strip's last pixel so the tab joins the content. Its ::before/::after are the shoulders: bordered
+   rounded corners whose outside is filled by box-shadow. Every stroke is a border, never a
+   gradient, so curve and side stroke snap to the same device pixels at fractional tab positions. */
 html[data-modern-ui='on'][data-modern-ui-tabs='connected']
   [data-tab-group-strip-id]
   [data-tab-id][data-active='true']
   > span.bottom-0.h-\[2px\] {
-  inset: 0;
+  inset: 0 calc(var(--modern-ui-tab-shoulder) - 1px) 0;
   height: auto;
   z-index: -1;
-  background:
-    radial-gradient(
-        circle at 0 0,
-        transparent calc(var(--modern-ui-tab-shoulder) - 1.5px),
-        var(--modern-ui-tab-line) calc(var(--modern-ui-tab-shoulder) - 1px),
-        var(--modern-ui-tab-line) var(--modern-ui-tab-shoulder),
-        var(--modern-ui-tab-fill) calc(var(--modern-ui-tab-shoulder) + 0.5px)
-      )
-      left bottom / var(--modern-ui-tab-shoulder) var(--modern-ui-tab-shoulder) no-repeat,
-    radial-gradient(
-        circle at 100% 0,
-        transparent calc(var(--modern-ui-tab-shoulder) - 1.5px),
-        var(--modern-ui-tab-line) calc(var(--modern-ui-tab-shoulder) - 1px),
-        var(--modern-ui-tab-line) var(--modern-ui-tab-shoulder),
-        var(--modern-ui-tab-fill) calc(var(--modern-ui-tab-shoulder) + 0.5px)
-      )
-      right bottom / var(--modern-ui-tab-shoulder) var(--modern-ui-tab-shoulder) no-repeat,
-    linear-gradient(var(--modern-ui-tab-fill), var(--modern-ui-tab-fill)) center bottom /
-      calc(100% - 2 * var(--modern-ui-tab-shoulder)) var(--modern-ui-tab-shoulder) no-repeat;
-}
-
-/* The cap: rounded top corners and side strokes that the shoulders above continue. */
-html[data-modern-ui='on'][data-modern-ui-tabs='connected']
-  [data-tab-group-strip-id]
-  [data-tab-id][data-active='true']
-  > span.bottom-0.h-\[2px\]::before {
-  content: '';
-  position: absolute;
-  inset: 0 calc(var(--modern-ui-tab-shoulder) - 1px) var(--modern-ui-tab-shoulder);
   border: 1px solid var(--modern-ui-tab-line);
   border-bottom: 0;
   border-radius: var(--modern-ui-tab-shoulder) var(--modern-ui-tab-shoulder) 0 0;
   background: var(--modern-ui-tab-fill);
+}
+
+html[data-modern-ui='on'][data-modern-ui-tabs='connected']
+  [data-tab-group-strip-id]
+  [data-tab-id][data-active='true']
+  > span.bottom-0.h-\[2px\]::before,
+html[data-modern-ui='on'][data-modern-ui-tabs='connected']
+  [data-tab-group-strip-id]
+  [data-tab-id][data-active='true']
+  > span.bottom-0.h-\[2px\]::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  width: var(--modern-ui-tab-shoulder);
+  height: var(--modern-ui-tab-shoulder);
+  border-bottom: 1px solid var(--modern-ui-tab-line);
+  pointer-events: none;
+}
+
+/* right: 100% puts this border-right exactly on the cap's left border (the padding-box edge). */
+html[data-modern-ui='on'][data-modern-ui-tabs='connected']
+  [data-tab-group-strip-id]
+  [data-tab-id][data-active='true']
+  > span.bottom-0.h-\[2px\]::before {
+  right: 100%;
+  border-right: 1px solid var(--modern-ui-tab-line);
+  border-bottom-right-radius: var(--modern-ui-tab-shoulder);
+  box-shadow: calc(var(--modern-ui-tab-shoulder) / 2) calc(var(--modern-ui-tab-shoulder) / 2) 0
+    calc(var(--modern-ui-tab-shoulder) / 2) var(--modern-ui-tab-fill);
+}
+
+html[data-modern-ui='on'][data-modern-ui-tabs='connected']
+  [data-tab-group-strip-id]
+  [data-tab-id][data-active='true']
+  > span.bottom-0.h-\[2px\]::after {
+  left: 100%;
+  border-left: 1px solid var(--modern-ui-tab-line);
+  border-bottom-left-radius: var(--modern-ui-tab-shoulder);
+  box-shadow: calc(var(--modern-ui-tab-shoulder) / -2) calc(var(--modern-ui-tab-shoulder) / 2) 0
+    calc(var(--modern-ui-tab-shoulder) / 2) var(--modern-ui-tab-fill);
 }
 
 /* Without overflow buttons the first tab sits on the card's left frame. Like VS Code it drops its
@@ -120,17 +135,9 @@ html[data-modern-ui='on'][data-modern-ui-tabs='connected']
   > [data-tab-strip-slot]:not([data-tab-strip-slot] ~ [data-tab-strip-slot])
   > [data-tab-id][data-active='true']
   > span.bottom-0.h-\[2px\] {
-  background:
-    radial-gradient(
-        circle at 100% 0,
-        transparent calc(var(--modern-ui-tab-shoulder) - 1.5px),
-        var(--modern-ui-tab-line) calc(var(--modern-ui-tab-shoulder) - 1px),
-        var(--modern-ui-tab-line) var(--modern-ui-tab-shoulder),
-        var(--modern-ui-tab-fill) calc(var(--modern-ui-tab-shoulder) + 0.5px)
-      )
-      right bottom / var(--modern-ui-tab-shoulder) var(--modern-ui-tab-shoulder) no-repeat,
-    linear-gradient(var(--modern-ui-tab-fill), var(--modern-ui-tab-fill)) left bottom /
-      calc(100% - var(--modern-ui-tab-shoulder)) var(--modern-ui-tab-shoulder) no-repeat;
+  left: 0;
+  border-left-width: 0;
+  border-top-left-radius: 0;
 }
 
 html[data-modern-ui='on'][data-modern-ui-tabs='connected']
@@ -140,9 +147,7 @@ html[data-modern-ui='on'][data-modern-ui-tabs='connected']
   > [data-tab-strip-slot]:not([data-tab-strip-slot] ~ [data-tab-strip-slot])
   > [data-tab-id][data-active='true']
   > span.bottom-0.h-\[2px\]::before {
-  left: 0;
-  border-left-width: 0;
-  border-top-left-radius: 0;
+  content: none;
 }
 
 /* A docked active tab overlaps its neighbours; hide them behind it and drop the stock seam. */
