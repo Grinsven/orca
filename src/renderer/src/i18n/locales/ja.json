@@ -5586,7 +5586,8 @@
           "automation": "オートメーション",
           "folderPathIdentity": "ブランチ / フォルダーパス",
           "cli": "Orca CLI",
-          "workspaceOptions": "ワークスペースのオプション"
+          "workspaceOptions": "ワークスペースのオプション",
+          "thenBy": "次にグループ化"
         },
         "SshTargetRow": {
           "4677394048": "接続中…",

@@ -2,10 +2,23 @@ import type React from 'react'
 import type { FolderWorkspace } from '../../../../../../shared/folder-workspace-types'
 import type { ProjectGroup } from '../../../../../../shared/project-group-types'
 import type { Repo } from '../../../../../../shared/repo-types'
-import type { DetectedWorktree, Worktree } from '../../../../../../shared/worktree/types'
+import type {
+  DetectedWorktree,
+  WorkspaceStatus,
+  Worktree
+} from '../../../../../../shared/worktree/types'
 import type { ExecutionHostId } from '../../../../../../shared/execution-host'
 
 export type WorktreeGroupBy = 'none' | 'workspace-status' | 'repo' | 'pr-status'
+export type WorktreeGroupDimension = Exclude<WorktreeGroupBy, 'none'>
+export type WorktreeGroupBySecondary = 'none' | WorktreeGroupDimension
+export type GroupHeaderKind =
+  | 'all'
+  | 'pinned'
+  | 'repo'
+  | 'project-group'
+  | 'workspace-status'
+  | 'pr-status'
 export type PinnedWorktreeDisplayPolicy = 'single-location' | 'duplicate-in-groups'
 
 export function getPinnedWorktreeDisplayPolicy(
@@ -18,6 +31,8 @@ export type GroupHeaderRow = {
   type: 'header'
   collapseKey?: string
   key: string
+  /** Semantic role stays explicit when a secondary grouping differs from the primary mode. */
+  groupKind?: GroupHeaderKind
   label: string
   count: number
   tone: string
@@ -29,6 +44,7 @@ export type GroupHeaderRow = {
   hostWorktreeCounts?: ReadonlyMap<ExecutionHostId, number>
   hostWorktreeIds?: ReadonlyMap<ExecutionHostId, readonly string[]>
   worktreeIds?: readonly string[]
+  workspaceStatus?: WorkspaceStatus
 }
 
 export type WorktreeRow = {
@@ -39,6 +55,7 @@ export type WorktreeRow = {
   repo: Repo | undefined
   depth: number
   groupDepth: number
+  projectGrouped?: boolean
   lineageTrail: boolean[]
   isLastLineageChild: boolean
   lineageChildCount: number
@@ -92,6 +109,7 @@ export type FolderWorkspaceRow = {
   projectGroup: ProjectGroup
   depth: number
   groupDepth: number
+  projectGrouped?: boolean
 }
 
 /** Minimal shape buildRows needs for an in-flight create. Deliberately not the

@@ -15,7 +15,11 @@ import {
 } from '../../worktree-lineage-projection'
 import { getWorktreeLineageGroupKey, PINNED_GROUP_KEY } from '../grouping/group-keys'
 import type { ProjectGroupingModel } from '../grouping/project-grouping'
-import type { PinnedWorktreeDisplayPolicy, WorktreeGroupBy } from '../grouping/row-types'
+import type {
+  PinnedWorktreeDisplayPolicy,
+  WorktreeGroupBy,
+  WorktreeGroupBySecondary
+} from '../grouping/row-types'
 import { getGroupKeysForWorktree } from '../grouping/worktree-group-keys'
 
 export function getWorktreeRevealCollapsedGroupKeys(args: {
@@ -28,6 +32,7 @@ export function getWorktreeRevealCollapsedGroupKeys(args: {
   hostScopedGroups: boolean
   collapsedGroups: ReadonlySet<string>
   groupBy: WorktreeGroupBy
+  groupBySecondary: WorktreeGroupBySecondary
   pinnedDisplayPolicy: PinnedWorktreeDisplayPolicy
   prCache: AppState['prCache'] | null
   workspaceStatuses: readonly WorkspaceStatusDefinition[]
@@ -75,7 +80,8 @@ export function getWorktreeRevealCollapsedGroupKeys(args: {
         args.workspaceStatuses,
         args.settings,
         args.projectGroups,
-        args.projectGrouping
+        args.projectGrouping,
+        args.groupBySecondary
       ).map(sectionKey)
     )
   }

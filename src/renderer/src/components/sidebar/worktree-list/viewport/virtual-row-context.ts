@@ -83,6 +83,7 @@ export function buildWorktreeVirtualRowContext(args: BuildArgs): WorktreeVirtual
       getRepoSshGate: args.getRepoSshGate,
       highlightedRevealRowKey: reveal.highlightedRevealRowKey,
       dragOverStatus: runtime.dragOverStatus,
+      dragOverStatusGroupKey: runtime.dragOverStatusGroupKey,
       pinDragOver: runtime.pinDragOver,
       headerDrag,
       getCachedFolderWorkspacePathStatus: args.getCachedFolderWorkspacePathStatus,

@@ -13,13 +13,13 @@ import {
   composeWorktreeHostIdentity,
   getExecutionHostIdFromWorktreeHostIdentity
 } from '../../../../../../shared/worktree/host-qualified-identity'
-import { getProjectGroupHeaderKey } from '../grouping/group-keys'
+import { getNestedGroupKey, getProjectGroupHeaderKey } from '../grouping/group-keys'
 import {
   getRepoExecutionHostId,
   type ExecutionHostId
 } from '../../../../../../shared/execution-host'
 import { getFolderWorkspaceLaneKey } from '../grouping/folder-workspace-lanes'
-import type { WorktreeGroupBy } from '../grouping/row-types'
+import type { WorktreeGroupBy, WorktreeGroupBySecondary } from '../grouping/row-types'
 import { getFolderWorkspaceHostId } from '../../folder-workspace-host-id'
 import { getHostSectionCollapseKey } from '../../host-section-collapse'
 
@@ -88,6 +88,7 @@ export function getFolderWorkspaceRevealGroupKeys(
   projectGroups: readonly ProjectGroup[],
   options?: {
     groupBy?: WorktreeGroupBy
+    groupBySecondary?: WorktreeGroupBySecondary
     workspaceStatuses?: readonly WorkspaceStatusDefinition[]
     defaultHostId?: ExecutionHostId
     hostScopedGroups?: boolean
@@ -124,24 +125,57 @@ export function getFolderWorkspaceRevealGroupKeys(
     groupId = group.parentGroupId
   }
 
-  // Under non-repo grouping the project-group headers above do not exist, so the
-  // lane and host headers are the ones actually hiding the row (#15362). Lane
-  // keys come from the same function grouping uses, so the two cannot disagree.
   const owningGroup = groupsById.get(folderWorkspace.projectGroupId)
+  const secondaryGroupBy =
+    options?.groupBySecondary !== options?.groupBy ? options?.groupBySecondary : 'none'
+  if (
+    options?.groupBy === 'repo' &&
+    secondaryGroupBy &&
+    secondaryGroupBy !== 'none' &&
+    secondaryGroupBy !== 'repo' &&
+    owningGroup
+  ) {
+    const secondaryLaneKey = getFolderWorkspaceLaneKey(
+      { folderWorkspace, projectGroup: owningGroup },
+      secondaryGroupBy,
+      options.workspaceStatuses ?? []
+    )
+    keys.push(getNestedGroupKey(getProjectGroupHeaderKey(owningGroup.id), secondaryLaneKey))
+  }
+
+  // Under non-Project grouping the unqualified Project Group headers above do
+  // not exist. A Project secondary restores that hierarchy, with every key
+  // qualified by its primary lane so collapse state stays independent.
   if (options?.groupBy && options.groupBy !== 'repo' && owningGroup) {
     const laneKey = getFolderWorkspaceLaneKey(
       { folderWorkspace, projectGroup: owningGroup },
       options.groupBy,
       options.workspaceStatuses ?? []
     )
-    keys.push(
+    const hostLaneKey =
       options.hostScopedGroups && options.defaultHostId
         ? getHostSectionCollapseKey(
             laneKey,
             getFolderWorkspaceHostId(folderWorkspace, owningGroup, options.defaultHostId)
           )
         : laneKey
-    )
+    if (secondaryGroupBy === 'repo') {
+      keys.splice(
+        0,
+        keys.length,
+        hostLaneKey,
+        ...keys.map((key) => getNestedGroupKey(laneKey, key))
+      )
+    } else if (secondaryGroupBy && secondaryGroupBy !== 'none') {
+      const secondaryLaneKey = getFolderWorkspaceLaneKey(
+        { folderWorkspace, projectGroup: owningGroup },
+        secondaryGroupBy,
+        options.workspaceStatuses ?? []
+      )
+      keys.splice(0, keys.length, hostLaneKey, getNestedGroupKey(laneKey, secondaryLaneKey))
+    } else {
+      keys.splice(0, keys.length, hostLaneKey)
+    }
   }
   if (owningGroup && options?.defaultHostId) {
     keys.push(

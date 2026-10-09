@@ -5,7 +5,11 @@ import type { ProjectGroup } from '../../../../../../shared/project-group-types'
 import type { Repo } from '../../../../../../shared/repo-types'
 import type { WorkspaceStatusDefinition, Worktree } from '../../../../../../shared/worktree/types'
 import type { WorktreeLineage } from '../../../../../../shared/worktree/lineage-types'
-import type { PinnedWorktreeDisplayPolicy, WorktreeGroupBy } from '../grouping/row-types'
+import type {
+  PinnedWorktreeDisplayPolicy,
+  WorktreeGroupBy,
+  WorktreeGroupBySecondary
+} from '../grouping/row-types'
 import type { ProjectGroupingModel } from '../grouping/project-grouping'
 import { getFolderWorkspaceRevealGroupKeys } from '../navigation/folder-reveal'
 import type { FolderWorkspace } from '../../../../../../shared/folder-workspace-types'
@@ -17,6 +21,7 @@ export function useEffectiveCollapsedGroups(args: {
   collapsedGroups: Set<string>
   agentSendTargetWorktreeId: string | null
   groupBy: WorktreeGroupBy
+  groupBySecondary: WorktreeGroupBySecondary
   pinnedDisplayPolicy: PinnedWorktreeDisplayPolicy
   worktrees: readonly Worktree[]
   visibleWorktrees: readonly Worktree[]
@@ -36,6 +41,7 @@ export function useEffectiveCollapsedGroups(args: {
     hostScopedGroups = false,
     agentSendTargetWorktreeId,
     groupBy,
+    groupBySecondary,
     pinnedDisplayPolicy,
     worktrees,
     visibleWorktrees,
@@ -62,7 +68,7 @@ export function useEffectiveCollapsedGroups(args: {
         agentSendTargetWorktreeId,
         folderWorkspaces,
         projectGroups,
-        { groupBy, workspaceStatuses, defaultHostId, hostScopedGroups }
+        { groupBy, groupBySecondary, workspaceStatuses, defaultHostId, hostScopedGroups }
       )
       if (folderKeys.length === 0) {
         return collapsedGroups
@@ -84,6 +90,7 @@ export function useEffectiveCollapsedGroups(args: {
       hostScopedGroups,
       collapsedGroups,
       groupBy,
+      groupBySecondary,
       pinnedDisplayPolicy,
       prCache,
       workspaceStatuses,
@@ -99,6 +106,7 @@ export function useEffectiveCollapsedGroups(args: {
     collapsedGroups,
     hostScopedGroups,
     groupBy,
+    groupBySecondary,
     pinnedDisplayPolicy,
     worktrees,
     visibleWorktrees,
