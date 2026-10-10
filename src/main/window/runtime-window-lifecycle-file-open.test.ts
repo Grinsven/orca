@@ -98,4 +98,36 @@ describe('runtime window file-open notifications', () => {
       expect.objectContaining({ navigation: 'caller' })
     )
   })
+
+  it('adds preview to the file-open payload only when the caller asked for it', () => {
+    const { notifier, send } = attachNotifier()
+
+    notifier.openFile?.('wt-1', '/repo/map.html', 'map.html', undefined, 'caller', undefined, true)
+    notifier.openFile?.('wt-1', '/repo/map.html', 'map.html', undefined, 'caller')
+
+    expect(send.mock.calls).toEqual([
+      [
+        'ui:openFileFromMobile',
+        {
+          worktreeId: 'wt-1',
+          filePath: '/repo/map.html',
+          relativePath: 'map.html',
+          runtimeEnvironmentId: undefined,
+          navigation: 'caller',
+          preview: true
+        }
+      ],
+      [
+        'ui:openFileFromMobile',
+        {
+          worktreeId: 'wt-1',
+          filePath: '/repo/map.html',
+          relativePath: 'map.html',
+          runtimeEnvironmentId: undefined,
+          navigation: 'caller'
+        }
+      ]
+    ])
+    expect(send.mock.calls[1][1]).not.toHaveProperty('preview')
+  })
 })

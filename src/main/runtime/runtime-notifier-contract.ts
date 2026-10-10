@@ -128,7 +128,8 @@ export type RuntimeNotifier = {
     relativePath: string,
     runtimeEnvironmentId?: string | null,
     navigation?: RuntimeNavigationTarget,
-    position?: RuntimeFileOpenPosition
+    position?: RuntimeFileOpenPosition,
+    preview?: boolean
   ): void
   openDiff?(
     worktreeId: string,

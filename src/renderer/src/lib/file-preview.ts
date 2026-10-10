@@ -169,7 +169,7 @@ export function getWorkspaceFileBrowserOpenTarget(params: {
   }
 }
 
-function openDocPreviewTab(
+export function openDocPreviewTab(
   state: AppState,
   params: { filePath: string; worktreeId: string; targetGroupId?: string; activate: boolean }
 ): void {

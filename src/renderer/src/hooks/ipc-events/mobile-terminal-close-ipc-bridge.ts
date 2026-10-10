@@ -9,6 +9,7 @@ import { revealWorkspaceSurface } from '@/lib/workspace-surface-reveal'
 import { selectFloatingWorkspacePanelVisible } from '@/store/floating-workspace-panel-selector'
 import { isFloatingWorkspaceId } from '../../../../shared/floating-workspace-worktree'
 import { useAppStore } from '../../store'
+import { openRuntimeFilePreview } from './runtime-file-preview-open'
 import type { AppState } from '../../store/types'
 import type { EditorTabSelection } from '../../store/slices/editor/types/open-file'
 import {
@@ -44,7 +45,19 @@ export function registerMobileAndTerminalCloseIpcBridge(
   const positionFile = createRuntimeFilePositionQueue(unsubs)
   unsubs.push(
     window.api.ui.onOpenFileFromMobile(
-      ({ worktreeId, filePath, relativePath, runtimeEnvironmentId, navigation, position }) => {
+      ({
+        worktreeId,
+        filePath,
+        relativePath,
+        runtimeEnvironmentId,
+        navigation,
+        position,
+        preview
+      }) => {
+        // Why: an unsupported preview falls through to the source tab this bridge always opened.
+        if (preview && openRuntimeFilePreview({ worktreeId, filePath, navigation })) {
+          return
+        }
         const basename = relativePath.split(/[\\/]/).pop() || relativePath
         openRuntimeEditorTab(worktreeId, navigation, (store, selection) => {
           // Why: renderer owns tab creation so grouped order and markdown bridges share the desktop File Explorer's store path.

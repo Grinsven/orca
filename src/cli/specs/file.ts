@@ -7,18 +7,20 @@ export const FILE_COMMAND_SPECS: CommandSpec[] = [
     summary:
       'Open a file as a tab in its worktree without changing your view; --focus brings you to it',
     usage:
-      'orca file open <path> [--line <n> [--column <n>]] [--worktree <selector>] [--focus] [--json]',
-    allowedFlags: [...GLOBAL_FLAGS, 'path', 'line', 'column', 'worktree', 'focus'],
+      'orca file open <path> [--line <n> [--column <n>] | --preview] [--worktree <selector>] [--focus] [--json]',
+    allowedFlags: [...GLOBAL_FLAGS, 'path', 'line', 'column', 'preview', 'worktree', 'focus'],
     positionalArgs: ['path'],
     notes: [
       '--line and --column use 1-based positions; --column requires --line. Without --focus, the position is applied when you select the file. Markdown opens in source view for positioning. Older hosts open the file without positioning.',
       'The file opens as a tab in that worktree without changing what you are looking at, even in the worktree on screen. --focus brings you to it; agents should pass --focus only when the user asked to see the file.',
-      'The path may be relative to the selected worktree or an absolute path inside that worktree. When --worktree is omitted, local CLI calls infer the current Orca worktree from cwd.'
+      'The path may be relative to the selected worktree or an absolute path inside that worktree. When --worktree is omitted, local CLI calls infer the current Orca worktree from cwd.',
+      '--preview renders an .html or .htm file as a page instead of its source and cannot be combined with --line. A tab that already shows the file is reused and reloaded, so run it again after editing the file.'
     ],
     examples: [
       'orca file open src/App.tsx',
       'orca file open src/App.tsx --line 42 --column 7 --focus',
-      'orca file open --path docs/readme.md --worktree active --focus'
+      'orca file open --path docs/readme.md --worktree active --focus',
+      'orca file open docs/project-map.html --preview --focus'
     ]
   },
   {

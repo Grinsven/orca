@@ -20,6 +20,8 @@ export type RuntimeFileOpenResult = {
   relativePath: string
   kind: 'markdown' | 'text' | 'binary' | 'image'
   opened: boolean
+  /** Echoed by hosts that understood `preview`; an older host drops the param and opens source. */
+  preview?: true
 }
 
 export type RuntimeFileOpenPosition = {

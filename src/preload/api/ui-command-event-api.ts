@@ -244,6 +244,7 @@ export type UiCommandEventApi = {
       runtimeEnvironmentId?: string | null
       navigation?: RuntimeNavigationTarget
       position?: RuntimeFileOpenPosition
+      preview?: true
     }) => void
   ) => () => void
   onOpenDiffFromMobile: (

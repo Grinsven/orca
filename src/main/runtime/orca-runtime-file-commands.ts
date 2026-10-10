@@ -4,6 +4,7 @@ import { OrcaRuntimeWithPreservedBranchCleanup } from './orca-runtime-preserved-
 import { RuntimeFileCommands } from './orca-runtime-files'
 import { nativeChatTranscriptIncludesPath } from '../native-chat/native-chat-file-provenance'
 import { createRuntimeFileWatcherRemoval } from './runtime-file-watcher-removal'
+import { runtimeFileOpenTrailingArgs } from './runtime-file-preview-open'
 import { RuntimeGitCommands } from './orca-runtime-git'
 import type { GlobalSettings } from '../../shared/global-settings-types'
 import { RuntimeHostedReviewCommands } from './runtime-hosted-review-commands'
@@ -69,7 +70,15 @@ export abstract class OrcaRuntimeWithFileCommands extends OrcaRuntimeWithPreserv
         absolutePath
       }),
     resolveRuntimeGitTarget: (selector) => this.resolveRuntimeGitTarget(selector),
-    openFile: (worktreeId, filePath, relativePath, runtimeEnvironmentId, navigation, position) => {
+    openFile: (
+      worktreeId,
+      filePath,
+      relativePath,
+      runtimeEnvironmentId,
+      navigation,
+      position,
+      preview
+    ) => {
       // The UI cannot open a tab in a workspace that has no row.
       if (isChatScratchWorktreeId(worktreeId)) {
         throw new Error('chat_scratch_not_openable')
@@ -83,7 +92,7 @@ export abstract class OrcaRuntimeWithFileCommands extends OrcaRuntimeWithPreserv
         relativePath,
         runtimeEnvironmentId,
         navigation,
-        ...(position ? [position] : [])
+        ...runtimeFileOpenTrailingArgs(position, preview)
       )
     },
     openDiff: (worktreeId, filePath, relativePath, staged, runtimeEnvironmentId, navigation) => {

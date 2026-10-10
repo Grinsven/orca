@@ -17,6 +17,7 @@ import type { RuntimeFileOpenResult } from '../../../shared/runtime-types'
 import type { RuntimeNavigationTarget } from '../../../shared/runtime-navigation'
 import { joinWorktreeRelativePath } from '../runtime-relative-paths'
 import { isENOENT } from '../../ipc/filesystem-path-containment'
+import { assertRuntimeFilePreviewPath, runtimeFileOpenTrailingArgs } from '../runtime-file-preview-open'
 import {
   requireRuntimeFileProvider,
   resolveFileExplorerPath,
@@ -37,8 +38,12 @@ export class RuntimeFileAccess {
     worktreeSelector: string,
     relativePath: string,
     navigation?: RuntimeNavigationTarget,
-    position?: RuntimeFileOpenPosition
+    position?: RuntimeFileOpenPosition,
+    preview?: boolean
   ): Promise<RuntimeFileOpenResult> {
+    if (preview) {
+      assertRuntimeFilePreviewPath(relativePath)
+    }
     const target = await this.host.resolveRuntimeFileTarget(worktreeSelector)
     const { worktree } = target
     if (!isSafeMobileRelativePath(relativePath)) {
@@ -61,9 +66,15 @@ export class RuntimeFileAccess {
       relativePath,
       runtimeOwnerForTarget(target),
       navigation,
-      ...(position ? [position] : [])
+      ...runtimeFileOpenTrailingArgs(position, preview)
     )
-    return { worktree: worktree.id, relativePath, kind, opened: true }
+    return {
+      worktree: worktree.id,
+      relativePath,
+      kind,
+      opened: true,
+      ...(preview ? { preview: true } : {})
+    }
   }
 
   private async assertOpenTargetIsFile(
