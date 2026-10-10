@@ -1,14 +1,18 @@
 /* Jose fork-local: Modern UI editor/terminal tab styles (see modern-ui.css for credit and gating).
-   Shapes are painted inside each tab's own box (backgrounds, the active-indicator span and its
-   pseudo-element), never by changing slot widths or margins, so tab-strip-slot-geometry.ts,
-   overflow scrolling, the fade masks and the sticky docked tab keep their measurements. The tab
-   root's own ::before/::after stay free for the drag-and-drop insertion bars. */
+   Shapes are painted by each tab (backgrounds, the active-indicator span and its pseudo-elements;
+   only the active tab's shoulders reach past its edges), never by changing slot widths or margins,
+   so tab-strip-slot-geometry.ts, overflow scrolling, the fade masks and the sticky docked tab keep
+   their measurements. The tab root's own ::before/::after stay free for the drag-and-drop
+   insertion bars. */
 
 /* ── Connected: the active tab joins the content surface with an outside stroke and curved
    bottom shoulders (VS Code connectedEditorTabs.css: 7px shoulder = 6px inner radius + stroke). */
 
 html[data-modern-ui='on'][data-modern-ui-tabs='connected'] [data-tab-group-strip-id] {
   --modern-ui-tab-shoulder: 7px;
+  /* Why the surface colour: like VS Code's connected tabs, the fill draws the shape; a bright
+     stroke boxed in the neighbours and doubled the card frame above the active tab. */
+  --modern-ui-tab-line: var(--editor-surface);
   /* Why: without the bottom border the tabs reach the strip's last pixel, so the active tab can
      cover the separator line that this background draws. */
   border-bottom-width: 0;
@@ -69,6 +73,11 @@ html[data-modern-ui='on'][data-modern-ui-tabs='connected']
   --modern-ui-tab-fill: var(--modern-ui-terminal-background, var(--editor-surface));
 }
 
+html[data-modern-ui='on'][data-modern-ui-tabs='connected']
+  [data-tab-group-strip-id]:has([data-testid='sortable-tab'][data-active='true']) {
+  --modern-ui-tab-line: var(--modern-ui-terminal-background, var(--editor-surface));
+}
+
 /* The cap is the indicator span itself: rounded top corners and side strokes, filled down to the
    strip's last pixel so the tab joins the content. Its ::before/::after are the shoulders: bordered
    rounded corners whose outside is filled by box-shadow. Every stroke is a border, never a
@@ -77,7 +86,9 @@ html[data-modern-ui='on'][data-modern-ui-tabs='connected']
   [data-tab-group-strip-id]
   [data-tab-id][data-active='true']
   > span.bottom-0.h-\[2px\] {
-  inset: 0 calc(var(--modern-ui-tab-shoulder) - 1px) 0;
+  /* Why inset 0: as VS Code's tab-connected-edge, the sides sit on the tab's edges so the first icon
+     keeps the tab's padding; both shoulders reach into the neighbours' empty bottom corners. */
+  inset: 0;
   height: auto;
   z-index: -1;
   border: 1px solid var(--modern-ui-tab-line);
