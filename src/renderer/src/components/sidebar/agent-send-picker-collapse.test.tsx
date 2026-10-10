@@ -55,6 +55,8 @@ function sections(
   return renderHook(() =>
     useSidebarSectionRows({
       groupBy,
+      groupBySecondary: 'none',
+      emptySecondaryStatusSourceGroupKey: null,
       projectOrderBy: 'manual',
       pinnedDisplayPolicy: 'single-location',
       defaultHostId: 'local',
@@ -91,6 +93,7 @@ for (const hostId of ['ssh:builder', 'runtime:builder'] as const) {
         collapsedGroups,
         agentSendTargetWorktreeId: remote.id,
         groupBy: 'none',
+        groupBySecondary: 'none',
         pinnedDisplayPolicy: 'single-location',
         worktrees,
         visibleWorktrees: worktrees,
@@ -157,6 +160,7 @@ for (const hostId of ['local', 'ssh:builder', 'runtime:builder'] as const) {
         collapsedGroups,
         agentSendTargetWorktreeId: child.id,
         groupBy: 'none',
+        groupBySecondary: 'none',
         pinnedDisplayPolicy: 'single-location',
         worktrees,
         visibleWorktrees: worktrees,
@@ -211,6 +215,7 @@ it.each([true, false])('reveals ancestors with pinned parent visible=%s', (visib
         collapsedGroups,
         agentSendTargetWorktreeId: targetId,
         groupBy: 'none',
+        groupBySecondary: 'none',
         pinnedDisplayPolicy: 'single-location',
         worktrees,
         visibleWorktrees: visible ? worktrees : [local, child],
