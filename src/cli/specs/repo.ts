@@ -22,15 +22,19 @@ export const REPO_COMMAND_SPECS: CommandSpec[] = [
   },
   {
     path: ['repo', 'set'],
-    summary: 'Set whether non-Orca worktrees are shown for a repo',
+    summary: "Set a repo's worktree visibility or project map",
     usage:
-      'orca repo set --repo <selector> --external-worktree-visibility show|hide|inherit [--json]',
-    allowedFlags: [...GLOBAL_FLAGS, 'repo', 'external-worktree-visibility'],
+      'orca repo set --repo <selector> [--external-worktree-visibility show|hide|inherit] [--project-map <path>|null] [--json]',
+    allowedFlags: [...GLOBAL_FLAGS, 'repo', 'external-worktree-visibility', 'project-map'],
     notes: [
       'show and hide override the global non-Orca worktree visibility default for this repo; inherit clears the override.',
-      'Per-worktree visibility rules still apply.'
+      'Per-worktree visibility rules still apply.',
+      '--project-map takes an absolute .html or .htm path on the repo host, which may be outside the repo; the sidebar then shows a Project map button for it. null clears it.'
     ],
-    examples: ['orca repo set --repo path:/path/to/repo --external-worktree-visibility show --json']
+    examples: [
+      'orca repo set --repo path:/path/to/repo --external-worktree-visibility show --json',
+      'orca repo set --repo path:/path/to/repo --project-map /path/to/repo/docs/map.html --json'
+    ]
   },
   {
     path: ['repo', 'set-base-ref'],

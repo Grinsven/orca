@@ -5371,6 +5371,9 @@
           "openTerminalWarningOne": "이 프로젝트에서 열려 있는 터미널 1개가 닫힙니다.",
           "openTerminalWarningMany": "이 프로젝트에서 열려 있는 터미널 {{count}}개가 닫힙니다."
         },
+        "ProjectMapToolbarButton": {
+          "32cb15ce9c": "프로젝트 맵"
+        },
         "ScrollToCurrentWorkspaceToolbarButton": {
           "23989bb663": "활성 워크스페이스로 이동"
         },

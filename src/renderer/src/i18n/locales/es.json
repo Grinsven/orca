@@ -5390,6 +5390,9 @@
           "openTerminalWarningOne": "Se cerrará 1 terminal abierto en este proyecto.",
           "openTerminalWarningMany": "Se cerrarán {{count}} terminales abiertos en este proyecto."
         },
+        "ProjectMapToolbarButton": {
+          "32cb15ce9c": "Mapa del proyecto"
+        },
         "ScrollToCurrentWorkspaceToolbarButton": {
           "23989bb663": "Mostrar espacio de trabajo activo"
         },

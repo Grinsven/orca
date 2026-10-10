@@ -52,14 +52,14 @@ describe('repo set worktree visibility', () => {
   )
 
   it.each([
-    { args: ['--repo', 'id:repo-1'], message: 'Missing required --external-worktree-visibility' },
+    { args: ['--repo', 'id:repo-1'], message: 'repo set needs --external-worktree-visibility' },
     {
       args: ['--repo', 'id:repo-1', '--external-worktree-visibility'],
       message: '--external-worktree-visibility requires a value'
     },
     {
       args: ['--repo', 'id:repo-1', '--external-worktree-visibility='],
-      message: 'Missing required --external-worktree-visibility'
+      message: 'repo set needs --external-worktree-visibility'
     },
     { args: ['--external-worktree-visibility', 'show'], message: 'Missing required --repo' },
     {

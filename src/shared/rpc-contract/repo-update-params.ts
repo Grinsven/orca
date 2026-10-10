@@ -8,6 +8,7 @@ import {
   normalizeCustomWorktreeVisibilitySources,
   normalizeWorktreeVisibilitySourcePreferences
 } from '../worktree/visibility-sources'
+import { RepoProjectMapPathUpdate } from '../repo-project-map-path'
 import { OptionalFiniteNumber, OptionalString } from './rpc-param-primitives'
 
 export const RepoSourceControlAiOverrides = z
@@ -89,6 +90,7 @@ export function createRepoUpdateSchema<T extends Readonly<Record<string, z.ZodTy
       externalWorktreeDiscoverySuppressedAt: z.number().finite().nullable().optional(),
       projectGroupId: OptionalString.nullable().optional(),
       projectGroupOrder: OptionalFiniteNumber,
+      projectMapPath: RepoProjectMapPathUpdate,
       sourceControlAi: RepoSourceControlAiOverrides
     })
   })

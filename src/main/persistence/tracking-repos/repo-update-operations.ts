@@ -108,6 +108,7 @@ export class RepoUpdatePersistenceOperations {
       sourceControlAi?: Repo['sourceControlAi'] | null
       externalWorktreeDiscoverySuppressedAt?: Repo['externalWorktreeDiscoverySuppressedAt'] | null
       ghAccount?: GhAccountBinding | null
+      projectMapPath?: Repo['projectMapPath'] | null
     },
     hostId?: ExecutionHostId
   ): Repo | null {
@@ -196,6 +197,10 @@ export class RepoUpdatePersistenceOperations {
     ) {
       delete repo.agentWorktreeVisibility
       delete sanitizedUpdates.agentWorktreeVisibility
+    }
+    if ('projectMapPath' in sanitizedUpdates && sanitizedUpdates.projectMapPath === null) {
+      delete repo.projectMapPath
+      delete sanitizedUpdates.projectMapPath
     }
     if (
       'externalWorktreeVisibility' in sanitizedUpdates &&

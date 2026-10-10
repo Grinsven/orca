@@ -5700,6 +5700,9 @@
           "openTerminalWarningOne": "1 open terminal in this project will be closed.",
           "openTerminalWarningMany": "{{count}} open terminals in this project will be closed."
         },
+        "ProjectMapToolbarButton": {
+          "32cb15ce9c": "Project map"
+        },
         "ScrollToCurrentWorkspaceToolbarButton": {
           "23989bb663": "Reveal active workspace"
         },

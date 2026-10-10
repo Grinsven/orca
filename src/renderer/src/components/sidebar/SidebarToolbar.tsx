@@ -3,6 +3,7 @@ import { Kanban } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
+import { ProjectMapToolbarButton } from './ProjectMapToolbarButton'
 import { ScrollToCurrentWorkspaceToolbarButton } from './ScrollToCurrentWorkspaceToolbarButton'
 import { SidebarSettingsHelpMenu } from './SidebarSettingsHelpMenu'
 import { translate } from '@/i18n/i18n'
@@ -76,6 +77,7 @@ const SidebarToolbar = React.memo(function SidebarToolbar({
           <SidebarSettingsHelpMenu />
         </div>
         <div className="flex items-center gap-1">
+          <ProjectMapToolbarButton />
           <ScrollToCurrentWorkspaceToolbarButton />
           <Tooltip open={workspaceBoardMovedHintOpen ? true : undefined}>
             <TooltipTrigger asChild>

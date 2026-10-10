@@ -123,6 +123,8 @@ export type Repo = {
   sourceControlAi?: RepoSourceControlAiOverrides
   /** Transitional source for ProjectHostSetup.setupMethod while Repo remains compatibility storage. */
   projectHostSetupMethod?: RepoProjectHostSetupMethod
+  /** Absolute path, on the repo's execution host, of an HTML project map shown from the sidebar. */
+  projectMapPath?: string
 }
 
 /**

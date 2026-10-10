@@ -5371,6 +5371,9 @@
           "openTerminalWarningOne": "このプロジェクトで開いているターミナル 1 個が閉じられます。",
           "openTerminalWarningMany": "このプロジェクトで開いているターミナル {{count}} 個が閉じられます。"
         },
+        "ProjectMapToolbarButton": {
+          "32cb15ce9c": "プロジェクトマップ"
+        },
         "ScrollToCurrentWorkspaceToolbarButton": {
           "23989bb663": "アクティブなワークスペースを表示する"
         },

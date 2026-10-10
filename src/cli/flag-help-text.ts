@@ -48,6 +48,8 @@ export const FLAG_HELP_TEXT: Record<string, string> = {
   'no-parent': '--no-parent            Force no parent lineage for unrelated work',
   'no-screenshot': '--no-screenshot       Skip screenshot capture after the operation',
   pages: '--pages <n>           Number of scroll pages',
+  'project-map':
+    '--project-map <path>   Absolute path of an .html project map for the repo, or null to clear',
   'parent-worktree':
     '--parent-worktree <selector> Parent worktree selector such as identity:<identity>, id:<repo-id>::<path>, branch:<branch>, issue:<number>, path:<path>, or active/current',
   path: '--path <path>          Path argument for the command',
