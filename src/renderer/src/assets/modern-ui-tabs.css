@@ -97,6 +97,15 @@ html[data-modern-ui='on'][data-modern-ui-tabs='connected']
   background: var(--modern-ui-tab-fill);
 }
 
+/* Why: the Jose VS Code layer tints the unfocused group's active underline teal; in connected mode
+   that span is the whole tab, so it keeps the surface and the dimmer label shows the state. */
+html[data-modern-ui='on'][data-modern-ui-tabs='connected']
+  .group\/tab-group.opacity-95
+  [data-tab-id][data-active='true']
+  > span.bottom-0.h-\[2px\] {
+  background-color: var(--modern-ui-tab-fill);
+}
+
 html[data-modern-ui='on'][data-modern-ui-tabs='connected']
   [data-tab-group-strip-id]
   [data-tab-id][data-active='true']
