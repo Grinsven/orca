@@ -28,6 +28,8 @@ export type WorktreeCardProps = {
   activationRowKey?: string
   renameRowKey?: string
   contentIndent?: number
+  /** Jose fork: pulls a nested Status/PR card's content left by one header step. */
+  contentShift?: number
   flushSurface?: boolean
   lineageChildCount?: number
   lineageCollapsed?: boolean

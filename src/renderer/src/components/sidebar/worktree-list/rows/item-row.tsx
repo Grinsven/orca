@@ -23,6 +23,7 @@ import type { LineageToggleHandler } from '../../worktree-lineage-toggle-handler
 import { stopNestedWorktreeCardBubble } from './header-event-guards'
 import type { WorktreeItemRow } from '../listing/renderable-rows'
 import { getWorktreeOptionId } from './option-dom'
+import { getNestedAlignContentShift } from './two-level-nested-alignment'
 import type { WorktreeRowDragState } from '../drag/row-state'
 
 export type WorktreeItemRowContext = {
@@ -204,6 +205,8 @@ export function renderWorktreeItemRow(
         nativeDragEnabled={false}
         isLineageDropTarget={Boolean(isLineageDropTarget)}
         contentIndent={cardContentIndent}
+        // Why nested 0: lineage children sit inside the parent's shifted content and move with it.
+        contentShift={nested ? 0 : getNestedAlignContentShift(itemRow.sectionKey)}
         flushSurface
         activationRowKey={itemRow.rowKey}
         onImmediateActivate={ctx.onImmediateActivate}

@@ -5,6 +5,7 @@ import {
   getFlushWorktreeCardPaddingLeft,
   getNewCardStyleParentContentMarginLeft
 } from './worktree-list/rows/indentation'
+import { withNestedAlignShift } from './worktree-list/rows/two-level-nested-alignment'
 import {
   hasWorktreeCardDetails,
   WorktreeCardDetailsHover,
@@ -23,6 +24,7 @@ export function buildWorktreeCardPresentation(card: WorktreeCardController) {
     affiliateListMode,
     flushSurface,
     contentIndent,
+    contentShift,
     newCardStyle,
     compactCards,
     isFolder,
@@ -155,7 +157,10 @@ export function buildWorktreeCardPresentation(card: WorktreeCardController) {
   // Why: sidebar rows need a small surface inset while content stays aligned with the pre-inset layout.
   const applyNewCardStyleStatusLaneOffset = newCardStyle && showCombinedStatusSlot
   const cardPaddingLeft = flushSurface
-    ? getFlushWorktreeCardPaddingLeft(contentIndent, applyNewCardStyleStatusLaneOffset)
+    ? withNestedAlignShift(
+        getFlushWorktreeCardPaddingLeft(contentIndent, applyNewCardStyleStatusLaneOffset),
+        contentShift
+      )
     : contentIndent > 0
       ? `calc(0.125rem + ${contentIndent}px)`
       : null
