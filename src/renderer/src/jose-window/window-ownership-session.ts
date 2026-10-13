@@ -93,9 +93,14 @@ export function startWindowOwnership(
       return
     }
     claiming = true
+    // Why: a reply that crosses a reconnect answers the old stream; the new stream's snapshot is
+    // the truth, so the reply is dropped and the claim re-synced against it.
+    const claimGeneration = generation
+    let stale = false
     try {
       const claimed = await deps.claim(target, worktreeId)
-      if (stopped) {
+      stale = claimGeneration !== generation
+      if (stopped || stale) {
         return
       }
       ownedHere = claimed ? worktreeId : null
@@ -104,6 +109,7 @@ export function startWindowOwnership(
         state.setActiveWorktree(null)
       }
     } catch (error) {
+      stale = claimGeneration !== generation
       if (deps.isMissingMethod(error)) {
         markUnsupported()
       } else {
@@ -111,7 +117,7 @@ export function startWindowOwnership(
       }
     } finally {
       claiming = false
-      if (claimAgain) {
+      if (claimAgain || stale) {
         claimAgain = false
         void syncClaim()
       }

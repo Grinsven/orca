@@ -163,6 +163,37 @@ describe('startWindowOwnership', () => {
     stop()
   })
 
+  it('drops a claim reply that crossed a reconnect and re-claims on the new stream', async () => {
+    seedStore('repo::a')
+    let resolveFirstClaim: (claimed: boolean) => void = () => {}
+    const h = harness()
+    h.deps.claim.mockImplementationOnce(
+      () =>
+        new Promise<boolean>((resolve) => {
+          resolveFirstClaim = resolve
+        })
+    )
+    const stop = startWindowOwnership(LOCAL, h.deps)
+    await flush()
+    h.frame({ type: 'snapshot', ownedElsewhere: [], ownedHere: null })
+    await flush()
+
+    // The stream drops while the claim is in flight; the host releases A and the new stream says so.
+    h.callbacks()?.onClose()
+    h.timers.shift()?.()
+    await flush()
+    h.frame({ type: 'snapshot', ownedElsewhere: [], ownedHere: null })
+    await flush()
+    resolveFirstClaim(true)
+    await flush()
+
+    expect(h.deps.claim.mock.calls.map(([, worktreeId]) => worktreeId)).toEqual([
+      'repo::a',
+      'repo::a'
+    ])
+    stop()
+  })
+
   it('raises this window when the host forwards a reveal', async () => {
     seedStore('repo::a')
     const h = harness()
