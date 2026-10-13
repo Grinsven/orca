@@ -320,6 +320,33 @@ describe('startWindowOwnership', () => {
     stop()
   })
 
+  it('keeps SSH workspaces out of ownership while paired to a host without host-qualified refs', async () => {
+    seedStore('repo::a')
+    useAppStore.setState({
+      worktreesByRepo: {
+        repo: [{ ...worktree('repo::a', 'repo'), hostId: 'ssh:box' }, worktree('repo::b', 'repo')]
+      },
+      activeWorkspaceExecutionHostId: 'ssh:box'
+    })
+    const h = harness()
+    const stop = startWindowOwnership(LOCAL, h.deps)
+    await flush()
+    // An older host sends bare ids only; it reads every id as one of its own checkouts.
+    h.frame({ type: 'snapshot', ownedElsewhere: ['repo::a'], ownedHere: null })
+    await flush()
+    const sshGuarded = isOwnedByAnotherWindow('repo::a', { executionHostId: 'ssh:box' })
+    useAppStore.setState({ activeWorktreeId: 'repo::b', activeWorkspaceExecutionHostId: null })
+    await flush()
+    h.frame({ type: 'reveal', worktreeId: 'repo::b' })
+    stop()
+
+    expect({
+      claims: h.deps.claim.mock.calls.map(([, ref]) => ref),
+      sshGuarded,
+      localRaised: h.deps.raise.mock.calls.length
+    }).toEqual({ claims: [local('repo::b')], sshGuarded: false, localRaised: 1 })
+  })
+
   it('releases the claim when the selection moves to the same id on another host', async () => {
     seedStore('repo::a')
     const h = harness()

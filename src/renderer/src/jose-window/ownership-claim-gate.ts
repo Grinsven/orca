@@ -97,9 +97,11 @@ export class ClaimWaiters {
     }
   }
 
-  settleAll(claimed: boolean): void {
+  settleAll(claimed: boolean, which: (key: string) => boolean = () => true): void {
     for (const pendingKey of this.byKey.keys()) {
-      this.settle(pendingKey, claimed)
+      if (which(pendingKey)) {
+        this.settle(pendingKey, claimed)
+      }
     }
   }
 

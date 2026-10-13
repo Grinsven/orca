@@ -27,6 +27,21 @@ export function ownershipKey(ref: JoseWindowWorktreeRef): string {
   return composeWorktreeHostIdentity(parseExecutionHostId(ref.executionHostId)?.id, ref.worktreeId)
 }
 
+// Why: an ownership host from before host-qualified refs reads every id as its own checkout, so
+// while paired to one only its checkouts take part; same-id SSH workspaces stay independent.
+let localRefsOnly = false
+
+export function setOwnershipLocalRefsOnly(next: boolean): void {
+  localRefsOnly = next
+}
+
+/** A snapshot without the `*Refs` fields comes from such an older host. */
+export function isLegacyOwnershipSnapshot(
+  frame: Extract<JoseWindowOwnershipFrame, { type: 'snapshot' }>
+): boolean {
+  return frame.ownedElsewhereRefs === undefined
+}
+
 function hostEnvironmentId(target: RuntimeClientTarget): string | null {
   return target.kind === 'environment' ? target.environmentId : null
 }
@@ -69,7 +84,9 @@ export function resolveOwnershipRef(
       ? { worktreeId, executionHostId: 'local' }
       : null
   }
-  return parsed ? { worktreeId, executionHostId: parsed.id } : null
+  return parsed && (!localRefsOnly || parsed.kind === 'local')
+    ? { worktreeId, executionHostId: parsed.id }
+    : null
 }
 
 /** The ref this window has active, read with its selected host. */

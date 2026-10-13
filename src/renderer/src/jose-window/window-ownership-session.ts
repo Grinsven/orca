@@ -13,11 +13,14 @@ import { createClaimRetry } from './ownership-claim-retry'
 import { restoreSelectionAfterRefusal, type WorkspaceSelection } from './refused-claim-restore'
 import {
   activeOwnershipRef,
+  isLegacyOwnershipSnapshot,
   keyOf,
   ownershipKey,
+  setOwnershipLocalRefsOnly,
   snapshotRefs,
   viewExecutionHostId
 } from './ownership-ref'
+import { getExecutionHostIdFromWorktreeHostIdentity } from '../../../shared/worktree/host-qualified-identity'
 import type { OwnershipSubscriptionCallbacks } from './window-ownership-client'
 import { createOwnershipLink, intentRequest, toViewIntent } from './navigation-intent'
 
@@ -226,6 +229,15 @@ export function startWindowOwnership(
       return
     }
     retryMs = RETRY_MIN_MS
+    const legacyHost = isLegacyOwnershipSnapshot(frame)
+    setOwnershipLocalRefsOnly(legacyHost)
+    if (legacyHost) {
+      // Waits taken before the host's age was known: its SSH workspaces do not take part.
+      claimWaiters.settleAll(
+        true,
+        (key) => getExecutionHostIdFromWorktreeHostIdentity(key) !== 'local'
+      )
+    }
     const refs = snapshotRefs(frame)
     ownedHere = keyOf(refs.here)
     ownedElsewhereKeys = new Set(refs.elsewhere.map(ownershipKey))
@@ -249,6 +261,7 @@ export function startWindowOwnership(
   function teardownStream(): void {
     generation += 1
     claimRetry.cancel()
+    setOwnershipLocalRefsOnly(false)
     ownedHere = undefined
     ownedElsewhereKeys = new Set()
     setWindowOwnershipView(null)
