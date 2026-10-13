@@ -405,6 +405,7 @@ describe('startWindowOwnership', () => {
           {
             worktreeId: 'remote-repo::z',
             runtimeEnvironmentId: 'other-env',
+            executionHostId: 'runtime:other-env',
             intent: { kind: 'file', filePath: '/x/z/a.ts', relativePath: 'a.ts' }
           }
         ]
@@ -426,7 +427,11 @@ describe('startWindowOwnership', () => {
     h.frame({ type: 'reveal', worktreeId: 'repo::a', executionHostId: 'local', intent })
     stop()
 
-    expect(h.deps.applyIntent).toHaveBeenCalledWith({ worktreeId: 'repo::a', intent })
+    expect(h.deps.applyIntent).toHaveBeenCalledWith({
+      worktreeId: 'repo::a',
+      executionHostId: 'local',
+      intent
+    })
   })
 
   it('ignores a reveal for a worktree this window has since left', async () => {

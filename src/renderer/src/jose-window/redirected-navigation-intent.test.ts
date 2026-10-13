@@ -8,8 +8,16 @@ import { useAppStore } from '@/store'
 import { registerMobileAndTerminalCloseIpcBridge } from '@/hooks/ipc-events/mobile-terminal-close-ipc-bridge'
 import { registerTerminalUiRoutingIpcBridge } from '@/hooks/ipc-events/terminal-ui-routing-ipc-bridge'
 import { setWindowOwnershipView } from './ownership-guard'
+import { startWindowOwnership } from './window-ownership-session'
+import type { Worktree } from '../../../shared/worktree/types'
+import type { ExecutionHostId } from '../../../shared/execution-host'
+import type * as TerminalCommandState from '@/hooks/ipc-events/terminal-command-state'
 
 vi.mock('@/components/sidebar/sleep-worktree-flow', () => ({ runSleepWorktree: vi.fn() }))
+vi.mock('@/hooks/ipc-events/terminal-command-state', async (importOriginal) => ({
+  ...(await importOriginal<typeof TerminalCommandState>()),
+  focusTerminalInitiatedTab: vi.fn()
+}))
 
 const OWNED = 'repo::owned'
 const initialAppStoreState = useAppStore.getState()
@@ -150,5 +158,112 @@ describe('uiEventForIntent', () => {
       'ui:focusEditorTab',
       null
     ])
+  })
+})
+
+describe('a request replayed in the owning window', () => {
+  const SHARED_ID = 'repo-1::a'
+  const HUB: ExecutionHostId = 'runtime:hub'
+
+  function row(hostId: ExecutionHostId): Worktree {
+    return {
+      id: SHARED_ID,
+      repoId: 'repo-1',
+      hostId,
+      path: '/workspace/a',
+      head: 'abc123',
+      branch: 'refs/heads/a',
+      isBare: false,
+      isMainWorktree: false,
+      displayName: 'a',
+      comment: '',
+      linkedIssue: null,
+      linkedPR: null,
+      linkedLinearIssue: null,
+      isArchived: false,
+      isUnread: false,
+      isPinned: false,
+      sortOrder: 0,
+      lastActivityAt: 0
+    }
+  }
+
+  it.each<[string, JoseWindowNavigationIntent]>([
+    ['file', { kind: 'file', filePath: '/workspace/a/x.ts', relativePath: 'x.ts' }],
+    ['diff', { kind: 'diff', filePath: '/workspace/a/x.ts', relativePath: 'x.ts', staged: false }],
+    ['terminal pane', { kind: 'terminal', tabId: 'term-1', leafId: 'leaf-1' }],
+    ['editor tab', { kind: 'tab', tabId: 'editor-1' }]
+  ])('keeps the validated host when the same id exists on another host (%s)', (_, intent) => {
+    setWindowOwnershipView(null)
+    const setActiveWorktree = vi.fn()
+    const noop = vi.fn()
+    useAppStore.setState({
+      repos: [{ id: 'repo-1', path: '/r', displayName: 'r', badgeColor: '#000', addedAt: 0 }],
+      worktreesByRepo: { 'repo-1': [row(HUB), row('runtime:other-hub')] },
+      unifiedTabsByWorktree: {
+        [SHARED_ID]: [
+          {
+            id: 'editor-1',
+            entityId: 'file-1',
+            groupId: 'group-1',
+            worktreeId: SHARED_ID,
+            contentType: 'editor',
+            label: 'x.ts',
+            customLabel: null,
+            color: null,
+            sortOrder: 0,
+            createdAt: 0
+          }
+        ]
+      },
+      activeWorktreeId: SHARED_ID,
+      activeWorkspaceExecutionHostId: HUB,
+      setActiveWorktree,
+      markWorktreeVisited: noop,
+      openFile: noop,
+      openDiff: noop,
+      setActiveTab: noop,
+      setActiveView: noop,
+      setActiveTabType: noop,
+      setActiveFile: noop,
+      focusGroup: noop,
+      activateTab: noop,
+      revealWorktreeInSidebar: noop,
+      recordWorktreeVisit: noop
+    })
+    const stop = startWindowOwnership(
+      { kind: 'environment', environmentId: 'hub' },
+      {
+        store: useAppStore,
+        subscribe: async (_target, callbacks) => {
+          callbacks.onFrame({
+            type: 'reveal',
+            worktreeId: SHARED_ID,
+            executionHostId: 'local',
+            intent
+          })
+          return { unsubscribe: () => {} }
+        },
+        claim: async () => true,
+        reveal: async () => true,
+        raise: () => {},
+        // Main re-sends the request on its UI event; the bridge listener receives that payload.
+        applyIntent: (request) => {
+          const event = uiEventForIntent(request)
+          const name = {
+            'ui:openFileFromMobile': 'openFile',
+            'ui:openDiffFromMobile': 'openDiff',
+            'ui:focusTerminal': 'focusTerminal',
+            'ui:focusEditorTab': 'focusEditorTab'
+          }[event?.channel ?? '']
+          listeners[name ?? '']?.(event?.payload ?? {})
+        },
+        activateHere: () => true,
+        isMissingMethod: () => false
+      }
+    )
+    stop()
+
+    expect(setActiveWorktree.mock.calls).toEqual([[SHARED_ID, HUB]])
   })
 })

@@ -17,7 +17,9 @@ import {
   type RuntimeNavigationTarget
 } from '../../../../shared/runtime-navigation'
 import { redirectIfOwnedElsewhere } from '@/jose-window/ownership-guard'
+import { replayedExecutionHostId } from '@/jose-window/navigation-intent'
 import type { JoseWindowNavigationIntent } from '../../../../shared/rpc-contract/jose-window-params'
+import type { ExecutionHostId } from '../../../../shared/execution-host'
 
 // Why: a caller that names a non-host target (CLI without --focus) must not change anything on screen;
 // the tab is selected only inside a worktree the user is not viewing, without counting as a visit.
@@ -26,6 +28,7 @@ function openRuntimeEditorTab(
   worktreeId: string,
   navigation: RuntimeNavigationTarget | undefined,
   intent: JoseWindowNavigationIntent,
+  executionHostId: ExecutionHostId | undefined,
   open: (store: AppState, selection: EditorTabSelection) => void
 ): void {
   const store = useAppStore.getState()
@@ -36,10 +39,10 @@ function openRuntimeEditorTab(
     open(store, isViewed ? 'none' : 'background')
     return
   }
-  if (redirectIfOwnedElsewhere(worktreeId, { intent })) {
+  if (redirectIfOwnedElsewhere(worktreeId, { intent, executionHostId })) {
     return
   }
-  revealWorkspaceSurface(store, worktreeId)
+  revealWorkspaceSurface(store, worktreeId, undefined, executionHostId)
   open(store, 'focus')
   store.setActiveTabType('editor', worktreeId)
 }
@@ -58,15 +61,26 @@ export function registerMobileAndTerminalCloseIpcBridge(
         runtimeEnvironmentId,
         navigation,
         position,
-        preview
+        preview,
+        ...rest
       }) => {
+        const executionHostId = replayedExecutionHostId(rest)
         // Why: an unsupported preview falls through to the source tab this bridge always opened.
-        if (preview && openRuntimeFilePreview({ worktreeId, filePath, relativePath, navigation })) {
+        if (
+          preview &&
+          openRuntimeFilePreview({
+            worktreeId,
+            filePath,
+            relativePath,
+            navigation,
+            executionHostId
+          })
+        ) {
           return
         }
         const basename = relativePath.split(/[\\/]/).pop() || relativePath
         const intent = { kind: 'file', filePath, relativePath } satisfies JoseWindowNavigationIntent
-        openRuntimeEditorTab(worktreeId, navigation, intent, (store, selection) => {
+        openRuntimeEditorTab(worktreeId, navigation, intent, executionHostId, (store, selection) => {
           // Why: renderer owns tab creation so grouped order and markdown bridges share the desktop File Explorer's store path.
           const fileId = store.openFile(
             {
@@ -87,14 +101,23 @@ export function registerMobileAndTerminalCloseIpcBridge(
 
   unsubs.push(
     window.api.ui.onOpenDiffFromMobile(
-      ({ worktreeId, filePath, relativePath, staged, runtimeEnvironmentId, navigation }) => {
+      ({
+        worktreeId,
+        filePath,
+        relativePath,
+        staged,
+        runtimeEnvironmentId,
+        navigation,
+        ...rest
+      }) => {
         const intent = {
           kind: 'diff',
           filePath,
           relativePath,
           staged
         } satisfies JoseWindowNavigationIntent
-        openRuntimeEditorTab(worktreeId, navigation, intent, (store, selection) =>
+        const executionHostId = replayedExecutionHostId(rest)
+        openRuntimeEditorTab(worktreeId, navigation, intent, executionHostId, (store, selection) =>
           // Why: mobile renders diffs from metadata; the editor-local Changes shortcut would send plain markdown back to mobile.
           store.openDiff(worktreeId, filePath, relativePath, detectLanguage(relativePath), staged, {
             runtimeEnvironmentId,

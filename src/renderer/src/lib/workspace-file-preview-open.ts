@@ -7,6 +7,7 @@ import { useAppStore } from '@/store'
 import type { AppState } from '@/store/types'
 import { browserPageDocLocationsEqual } from '../../../shared/browser-page-doc-location'
 import type { BrowserPage } from '../../../shared/browser-workspace-types'
+import type { ExecutionHostId } from '../../../shared/execution-host'
 
 export type WorkspaceFilePreviewOpenResult =
   | { status: 'opened'; reused: boolean }
@@ -65,15 +66,16 @@ export function openWorkspaceFilePreview(params: {
   filePath: string
   worktreeId: string
   focus: boolean
+  executionHostId?: ExecutionHostId
 }): WorkspaceFilePreviewOpenResult {
-  const { filePath, worktreeId, focus } = params
+  const { filePath, worktreeId, focus, executionHostId } = params
   const plan = getWorkspaceFilePreviewPlan(useAppStore.getState(), worktreeId, filePath)
   if (plan.status === 'unsupported') {
     return { status: 'unsupported', message: plan.message }
   }
   if (focus) {
     // Why: mirrors the terminal Cmd-click; the preview is the surface, so no shell is seeded.
-    activateAndRevealWorktree(worktreeId, { providesInitialSurface: true })
+    activateAndRevealWorktree(worktreeId, { providesInitialSurface: true, executionHostId })
   }
   const state = useAppStore.getState()
   const docLocation = { kind: 'workspace-doc' as const, worktreeId, filePath }

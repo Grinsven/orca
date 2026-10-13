@@ -1,10 +1,16 @@
-import type { JoseWindowNavigationIntent } from '../../../shared/rpc-contract/jose-window-params'
+import type {
+  JoseWindowNavigationIntent,
+  JoseWindowWorktreeRef
+} from '../../../shared/rpc-contract/jose-window-params'
 import type { JoseWindowIntentRequest } from '../../../shared/jose-window-intent'
+import { parseExecutionHostId, type ExecutionHostId } from '../../../shared/execution-host'
 import type { RuntimeClientTarget } from '@/runtime/runtime-rpc-client'
 import {
   hostSessionTabIdsByLocalTabForWorktree,
   resolveLocalTabIdForHostSessionTab
 } from '@/runtime/web-session-tabs-sync/tracking-mappings'
+import type { WindowOwnershipLink } from './ownership-guard'
+import { resolveOwnershipRef, viewExecutionHostId, type OwnershipState } from './ownership-ref'
 
 function withTabId(
   intent: JoseWindowNavigationIntent,
@@ -50,11 +56,52 @@ export function toViewIntent(
 export function intentRequest(
   worktreeId: string,
   intent: JoseWindowNavigationIntent,
-  target: RuntimeClientTarget
+  target: RuntimeClientTarget,
+  executionHostId: ExecutionHostId | undefined
 ): JoseWindowIntentRequest {
   return {
     worktreeId,
     ...(target.kind === 'environment' ? { runtimeEnvironmentId: target.environmentId } : {}),
+    ...(executionHostId ? { executionHostId } : {}),
     intent
+  }
+}
+
+/** The validated host a replayed UI event carries (see uiEventForIntent); other senders have none. */
+export function replayedExecutionHostId(payload: object): ExecutionHostId | undefined {
+  return 'executionHostId' in payload && typeof payload.executionHostId === 'string'
+    ? parseExecutionHostId(payload.executionHostId)?.id
+    : undefined
+}
+
+/** How the click guard reaches the ownership host, and carries a request out here after all. */
+export function createOwnershipLink(
+  target: RuntimeClientTarget,
+  deps: {
+    store: { getState: () => OwnershipState }
+    reveal: (
+      target: RuntimeClientTarget,
+      ref: JoseWindowWorktreeRef,
+      intent?: JoseWindowNavigationIntent
+    ) => Promise<boolean>
+    applyIntent: (request: JoseWindowIntentRequest) => void
+    activateHere: (worktreeId: string, executionHostId: ExecutionHostId | undefined) => boolean
+  }
+): WindowOwnershipLink {
+  return {
+    resolve: (worktreeId, executionHostId) =>
+      resolveOwnershipRef(deps.store.getState(), target, worktreeId, executionHostId),
+    reveal: (ref, intent) =>
+      intent
+        ? deps.reveal(target, ref, toHostIntent(intent, target, ref.worktreeId))
+        : deps.reveal(target, ref),
+    activateHere: (ref, intent) => {
+      const executionHostId = viewExecutionHostId(ref, target)
+      if (intent && intent.kind !== 'workspace') {
+        deps.applyIntent(intentRequest(ref.worktreeId, intent, target, executionHostId))
+        return
+      }
+      deps.activateHere(ref.worktreeId, executionHostId)
+    }
   }
 }

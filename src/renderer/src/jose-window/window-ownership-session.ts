@@ -15,12 +15,11 @@ import {
   activeOwnershipRef,
   keyOf,
   ownershipKey,
-  resolveOwnershipRef,
   snapshotRefs,
   viewExecutionHostId
 } from './ownership-ref'
 import type { OwnershipSubscriptionCallbacks } from './window-ownership-client'
-import { intentRequest, toHostIntent, toViewIntent } from './navigation-intent'
+import { createOwnershipLink, intentRequest, toViewIntent } from './navigation-intent'
 
 type OwnershipStore = {
   getState: () => AppState
@@ -69,21 +68,7 @@ export function startWindowOwnership(
       const handle = setTimeout(callback, ms)
       return () => clearTimeout(handle)
     })
-  const link = {
-    resolve: (worktreeId: string, executionHostId?: ExecutionHostId | null) =>
-      resolveOwnershipRef(deps.store.getState(), target, worktreeId, executionHostId),
-    reveal: (ref: JoseWindowWorktreeRef, intent?: JoseWindowNavigationIntent) =>
-      intent
-        ? deps.reveal(target, ref, toHostIntent(intent, target, ref.worktreeId))
-        : deps.reveal(target, ref),
-    activateHere: (ref: JoseWindowWorktreeRef, intent?: JoseWindowNavigationIntent) => {
-      if (intent && intent.kind !== 'workspace') {
-        deps.applyIntent(intentRequest(ref.worktreeId, intent, target))
-        return
-      }
-      deps.activateHere(ref.worktreeId, viewExecutionHostId(ref, target))
-    }
-  }
+  const link = createOwnershipLink(target, deps)
   const claimWaiters = new ClaimWaiters(setTimer)
   const claimGate = { resolve: link.resolve, waitForClaim: (key: string) => claimWaiters.wait(key) }
   let stopped = false
@@ -211,7 +196,12 @@ export function startWindowOwnership(
     if (intent && intent.kind !== 'workspace') {
       // The bridge handler switches to the terminal surface itself.
       deps.applyIntent(
-        intentRequest(ref.worktreeId, toViewIntent(intent, target, ref.worktreeId), target)
+        intentRequest(
+          ref.worktreeId,
+          toViewIntent(intent, target, ref.worktreeId),
+          target,
+          viewExecutionHostId(ref, target)
+        )
       )
     } else if (state.activeView !== 'terminal') {
       // Tasks or Settings keep the active worktree; the reveal asks for its workspace surface.

@@ -13,6 +13,7 @@ import { resolveWindowTabIdForHostTab } from './host-session-tab-target'
 import { revealWorkspaceSurface } from '@/lib/workspace-surface-reveal'
 import { focusTerminalInitiatedTab } from './terminal-command-state'
 import { redirectIfOwnedElsewhere } from '@/jose-window/ownership-guard'
+import { replayedExecutionHostId } from '@/jose-window/navigation-intent'
 import type { JoseWindowNavigationIntent } from '../../../../shared/rpc-contract/jose-window-params'
 
 type RuntimeTerminalSplitRequest = SplitTerminalPaneDetail & { worktreeId?: string }
@@ -126,8 +127,10 @@ export function registerTerminalUiRoutingIpcBridge(unsubs: (() => void)[]): void
         leafId,
         ackPaneKeyOnSuccess,
         flashFocusedPane,
-        scrollToBottomIfOutputSinceLastView
+        scrollToBottomIfOutputSinceLastView,
+        ...rest
       }) => {
+        const executionHostId = replayedExecutionHostId(rest)
         const intent = {
           kind: 'terminal',
           tabId,
@@ -135,11 +138,11 @@ export function registerTerminalUiRoutingIpcBridge(unsubs: (() => void)[]): void
           flashFocusedPane,
           scrollToBottomIfOutputSinceLastView
         } satisfies JoseWindowNavigationIntent
-        if (redirectIfOwnedElsewhere(worktreeId, { intent })) {
+        if (redirectIfOwnedElsewhere(worktreeId, { intent, executionHostId })) {
           return
         }
         const store = useAppStore.getState()
-        revealWorkspaceSurface(store, worktreeId)
+        revealWorkspaceSurface(store, worktreeId, undefined, executionHostId)
         store.setActiveTab(tabId)
         if (ackPaneKeyOnSuccess || flashFocusedPane || scrollToBottomIfOutputSinceLastView) {
           activateTabAndFocusPane(tabId, leafId ?? null, {
@@ -157,7 +160,8 @@ export function registerTerminalUiRoutingIpcBridge(unsubs: (() => void)[]): void
   )
 
   unsubs.push(
-    window.api.ui.onFocusEditorTab(({ tabId, worktreeId, userInitiated }) => {
+    window.api.ui.onFocusEditorTab(({ tabId, worktreeId, userInitiated, ...rest }) => {
+      const executionHostId = replayedExecutionHostId(rest)
       const localTabId = resolveWindowTabIdForHostTab(worktreeId, tabId)
       const store = useAppStore.getState()
       const tab = (store.unifiedTabsByWorktree[worktreeId] ?? []).find(
@@ -175,19 +179,20 @@ export function registerTerminalUiRoutingIpcBridge(unsubs: (() => void)[]): void
       ) {
         return
       }
-      if (redirectIfOwnedElsewhere(worktreeId, { intent: { kind: 'tab', tabId, userInitiated } })) {
+      const intent = { kind: 'tab', tabId, userInitiated } satisfies JoseWindowNavigationIntent
+      if (redirectIfOwnedElsewhere(worktreeId, { intent, executionHostId })) {
         return
       }
       if (!tab) {
         if (browserTarget) {
           // Why: older/mobile fallback snapshots identify browser tabs by workspace id when no unified tab wrapper exists.
-          revealWorkspaceSurface(store, worktreeId)
+          revealWorkspaceSurface(store, worktreeId, undefined, executionHostId)
           store.setActiveBrowserTab(browserTarget.workspaceId)
           store.setActiveTabType('browser', worktreeId)
         }
         return
       }
-      revealWorkspaceSurface(store, worktreeId)
+      revealWorkspaceSurface(store, worktreeId, undefined, executionHostId)
       store.focusGroup(worktreeId, tab.groupId)
       store.activateTab(tab.id)
       if (tab.contentType === 'agent-session') {

@@ -5,10 +5,12 @@ import { JoseWindowNavigationIntent } from './rpc-contract/jose-window-params'
  *  it on the UI event the request first arrived on, so the existing bridge handler applies it. */
 export const JOSE_WINDOW_APPLY_INTENT_CHANNEL = 'joseWindow:applyIntent'
 
-/** Tab ids are this window's own; `runtimeEnvironmentId` is how this window reaches the files. */
+/** Tab ids are this window's own; `runtimeEnvironmentId` is how this window reaches the files and
+ *  `executionHostId` the host ownership validated, so a same-id workspace elsewhere is not activated. */
 export const JoseWindowIntentRequest = z.object({
   worktreeId: z.string().min(1),
   runtimeEnvironmentId: z.string().min(1).optional(),
+  executionHostId: z.string().min(1).optional(),
   intent: JoseWindowNavigationIntent
 })
 export type JoseWindowIntentRequest = z.infer<typeof JoseWindowIntentRequest>
@@ -18,6 +20,7 @@ export function uiEventForIntent(
   request: JoseWindowIntentRequest
 ): { channel: string; payload: Record<string, unknown> } | null {
   const { worktreeId, runtimeEnvironmentId, intent } = request
+  const host = request.executionHostId ? { executionHostId: request.executionHostId } : {}
   switch (intent.kind) {
     case 'workspace':
       return null
@@ -29,6 +32,7 @@ export function uiEventForIntent(
           filePath: intent.filePath,
           relativePath: intent.relativePath,
           runtimeEnvironmentId,
+          ...host,
           ...(intent.preview ? { preview: true } : {})
         }
       }
@@ -40,7 +44,8 @@ export function uiEventForIntent(
           filePath: intent.filePath,
           relativePath: intent.relativePath,
           staged: intent.staged,
-          runtimeEnvironmentId
+          runtimeEnvironmentId,
+          ...host
         }
       }
     case 'terminal':
@@ -50,6 +55,7 @@ export function uiEventForIntent(
           worktreeId,
           tabId: intent.tabId,
           leafId: intent.leafId,
+          ...host,
           ...(intent.flashFocusedPane ? { flashFocusedPane: true } : {}),
           ...(intent.scrollToBottomIfOutputSinceLastView
             ? { scrollToBottomIfOutputSinceLastView: true }
@@ -62,6 +68,7 @@ export function uiEventForIntent(
         payload: {
           worktreeId,
           tabId: intent.tabId,
+          ...host,
           ...(intent.userInitiated ? { userInitiated: true } : {})
         }
       }

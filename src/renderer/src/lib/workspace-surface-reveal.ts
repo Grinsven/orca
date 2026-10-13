@@ -1,5 +1,6 @@
 import type { AppState } from '@/store/types'
 import { isFloatingWorkspaceId } from '../../../shared/floating-workspace-worktree'
+import type { ExecutionHostId } from '../../../shared/execution-host'
 import { revealFloatingWorkspacePanel } from './floating-workspace-panel-reveal'
 
 type FloatingPanelState = Pick<
@@ -10,6 +11,7 @@ type FloatingPanelState = Pick<
 /**
  * Shows a workspace where it lives: the floating one in its panel (selecting it blanks the main window), others as the main selection and a visit.
  * @param createdTabIds tabs the caller just created into a requested group; activation would otherwise prune its empty groups.
+ * @param executionHostId fork: the host a window-ownership replay validated, so a same-id workspace keeps its routing.
  */
 export function revealWorkspaceSurface(
   state: FloatingPanelState &
@@ -23,7 +25,8 @@ export function revealWorkspaceSurface(
       | 'revealWorktreeInSidebar'
     >,
   worktreeId: string,
-  createdTabIds?: readonly string[]
+  createdTabIds?: readonly string[],
+  executionHostId?: ExecutionHostId
 ): void {
   if (isFloatingWorkspaceId(worktreeId)) {
     revealFloatingWorkspacePanel(state)
@@ -31,7 +34,9 @@ export function revealWorkspaceSurface(
   }
   state.setActiveView('terminal')
   if (createdTabIds) {
-    state.setActiveWorktree(worktreeId, undefined, { createdTabIds })
+    state.setActiveWorktree(worktreeId, executionHostId, { createdTabIds })
+  } else if (executionHostId) {
+    state.setActiveWorktree(worktreeId, executionHostId)
   } else {
     state.setActiveWorktree(worktreeId)
   }
