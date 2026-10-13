@@ -44,6 +44,7 @@ export function createSecondWindowOpener(
   deps: SecondWindowOpenerDeps
 ): () => Promise<SecondWindowLaunchOutcome> {
   const launching = new Set<number>()
+  const preparing = new Map<number, Promise<SecondWindowLaunchOutcome>>()
   const setTimer = deps.setTimer ?? ((callback, ms) => void setTimeout(callback, ms))
   const now = deps.now ?? Date.now
 
@@ -67,28 +68,35 @@ export function createSecondWindowOpener(
     )
     const slotDir = getSecondWindowSlotDir(hostUserDataPath, picked.windowNumber)
     // Why no pairing for a running slot: the relaunch only hands focus to it through its single-instance lock.
+    // A slot still being prepared is not running yet, so that request joins its launch instead.
     if (picked.running) {
-      return deps.start(deps.buildLaunch(slotDir), () => {})
+      return preparing.get(picked.windowNumber) ?? deps.start(deps.buildLaunch(slotDir), () => {})
     }
     const { windowNumber } = picked
     launching.add(windowNumber)
     const release = (): void => {
       launching.delete(windowNumber)
     }
-    try {
-      await deps.prepareSlot(slotDir, windowNumber)
-      const outcome = deps.start(deps.buildLaunch(slotDir), release)
-      if (outcome === 'spawned') {
-        releaseWhenLocked(windowNumber, slotDir, now() + LOCK_WAIT_MS)
-      } else {
-        // Nothing was started, so nothing will take the lock.
+    const launch = (async (): Promise<SecondWindowLaunchOutcome> => {
+      try {
+        await deps.prepareSlot(slotDir, windowNumber)
+        const outcome = deps.start(deps.buildLaunch(slotDir), release)
+        if (outcome === 'spawned') {
+          releaseWhenLocked(windowNumber, slotDir, now() + LOCK_WAIT_MS)
+        } else {
+          // Nothing was started, so nothing will take the lock.
+          release()
+        }
+        return outcome
+      } catch (error) {
         release()
+        throw error
+      } finally {
+        preparing.delete(windowNumber)
       }
-      return outcome
-    } catch (error) {
-      release()
-      throw error
-    }
+    })()
+    preparing.set(windowNumber, launch)
+    return launch
   }
 }
 

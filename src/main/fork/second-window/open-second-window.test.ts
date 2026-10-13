@@ -67,6 +67,28 @@ describe('createSecondWindowOpener', () => {
     expect(h.launchedSlots()).toEqual([slot(2), slot(3), slot(2)])
   })
 
+  it('joins a slot still being prepared when every slot is taken, instead of starting it early', async () => {
+    const h = harness()
+    let finishPreparing: () => void = () => {}
+    const prepared = new Promise<void>((resolve) => {
+      finishPreparing = resolve
+    })
+    h.deps.prepareSlot.mockImplementation(() => prepared)
+    const open = createSecondWindowOpener(h.deps)
+    const requests = [open(), open(), open(), open()]
+
+    const extra = open()
+    const startedBeforePrepared = h.launchedSlots()
+    finishPreparing()
+    await Promise.all([...requests, extra])
+
+    expect({ startedBeforePrepared, started: h.launchedSlots(), extra: await extra }).toEqual({
+      startedBeforePrepared: [],
+      started: [slot(2), slot(3), slot(4), slot(5)],
+      extra: 'spawned'
+    })
+  })
+
   it('frees the slot when the launch fails', async () => {
     const h = harness()
     const open = createSecondWindowOpener(h.deps)
