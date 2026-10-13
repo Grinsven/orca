@@ -9,6 +9,7 @@ import {
   subscribeOwnership
 } from './window-ownership-client'
 import { startWindowOwnership } from './window-ownership-session'
+import { openWindowOnHost } from './open-window-on-host'
 
 /** One worktree per Orca window (fork). Deliberately not parked while hidden: a hidden window
  *  still owns its worktree and must still answer a reveal. */
@@ -44,5 +45,14 @@ export function useWindowOwnership(): void {
         isMissingMethod: isMissingOwnershipMethod
       }
     )
+  }, [environmentId])
+  useEffect(() => {
+    // Only a second window forwards New Window; the host window's menu opens it directly.
+    if (!environmentId) {
+      return undefined
+    }
+    return window.joseWindow?.onOpenWindowRequest?.(() => {
+      void openWindowOnHost({ kind: 'environment', environmentId })
+    })
   }, [environmentId])
 }

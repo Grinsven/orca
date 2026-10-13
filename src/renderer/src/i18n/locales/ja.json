@@ -237,6 +237,8 @@
     "openWorktreePalette": "ワークツリーパレットを開く",
     "window": "ウィンドウ",
     "newOrcaWindow": "新しいウィンドウ",
+    "newOrcaWindowHostTooOld": "ここから新しいウィンドウを開くには、メインの Orca ウィンドウを更新してください。",
+    "newOrcaWindowFailed": "新しいウィンドウを開けませんでした。",
     "help": "ヘルプ",
     "paste": "貼り付け",
     "copy": "コピー",

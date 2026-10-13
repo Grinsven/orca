@@ -1013,6 +1013,7 @@ export const RPC_PARAMS_BY_METHOD = {
   'jira.testConnection': SiteSelection,
   'jira.updateIssue': IssueUpdate,
   'joseWindow.claim': JoseWindowClaimParams,
+  'joseWindow.openWindow': null,
   'joseWindow.reveal': JoseWindowRevealParams,
   'joseWindow.subscribe': null,
   'layout.getRemoteSnapshots': null,

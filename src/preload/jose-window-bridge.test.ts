@@ -39,8 +39,27 @@ describe('jose window preload bridge', () => {
     expect(invoke).toHaveBeenCalledWith('joseWindow:applyIntent', request)
   })
 
+  it("hands a New Window request from this window's menu to the renderer until unsubscribed", () => {
+    const unsubscribe = vi.fn()
+    const on = vi.fn((_channel: string, _callback: () => void) => unsubscribe)
+    const callback = vi.fn()
+    const stop = createJoseWindowApi({}, vi.fn(), on).onOpenWindowRequest(callback)
+    on.mock.calls[0]?.[1]()
+    stop()
+    expect({
+      channel: on.mock.calls[0]?.[0],
+      delivered: callback.mock.calls.length,
+      unsubscribed: unsubscribe.mock.calls.length
+    }).toEqual({ channel: 'joseWindow:openWindowRequested', delivered: 1, unsubscribed: 1 })
+  })
+
   it('exposes the api as window.joseWindow through the context bridge', () => {
-    const api = { isSecondWindow: true, raise: vi.fn(), applyIntent: vi.fn() }
+    const api = {
+      isSecondWindow: true,
+      raise: vi.fn(),
+      applyIntent: vi.fn(),
+      onOpenWindowRequest: vi.fn()
+    }
     Object.defineProperty(process, 'contextIsolated', { value: true, configurable: true })
     try {
       exposeJoseWindowApi(api)
@@ -53,7 +72,12 @@ describe('jose window preload bridge', () => {
   it('assigns window.joseWindow directly when context isolation is off', () => {
     const fakeWindow: { joseWindow?: unknown } = {}
     vi.stubGlobal('window', fakeWindow)
-    const api = { isSecondWindow: false, raise: vi.fn(), applyIntent: vi.fn() }
+    const api = {
+      isSecondWindow: false,
+      raise: vi.fn(),
+      applyIntent: vi.fn(),
+      onOpenWindowRequest: vi.fn()
+    }
     exposeJoseWindowApi(api)
     expect(fakeWindow.joseWindow).toBe(api)
     expect(exposeInMainWorld).not.toHaveBeenCalled()

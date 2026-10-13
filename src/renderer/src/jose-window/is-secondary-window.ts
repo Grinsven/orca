@@ -9,6 +9,7 @@ declare global {
       isSecondWindow?: boolean
       raise?: () => Promise<RaiseOwnWindowResult>
       applyIntent?: (request: JoseWindowIntentRequest) => Promise<boolean>
+      onOpenWindowRequest?: (callback: () => void) => () => void
     }
   }
 }

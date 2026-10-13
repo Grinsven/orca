@@ -237,6 +237,8 @@
     "openWorktreePalette": "打开工作树面板",
     "window": "窗口",
     "newOrcaWindow": "新建窗口",
+    "newOrcaWindowHostTooOld": "请更新 Orca 主窗口，才能从这里打开新窗口。",
+    "newOrcaWindowFailed": "无法打开新窗口。",
     "help": "帮助",
     "paste": "粘贴",
     "copy": "复制",

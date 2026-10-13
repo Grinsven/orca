@@ -237,6 +237,8 @@
     "openWorktreePalette": "Abrir paleta de worktrees",
     "window": "Ventana",
     "newOrcaWindow": "Nueva ventana",
+    "newOrcaWindowHostTooOld": "Actualiza la ventana principal de Orca para abrir una ventana nueva desde aquí.",
+    "newOrcaWindowFailed": "No se pudo abrir una ventana nueva.",
     "help": "Ayuda",
     "paste": "Pegar",
     "copy": "Copiar",

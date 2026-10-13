@@ -237,6 +237,8 @@
     "openWorktreePalette": "워크트리 팔레트 열기",
     "window": "창",
     "newOrcaWindow": "새 창",
+    "newOrcaWindowHostTooOld": "여기에서 새 창을 열려면 기본 Orca 창을 업데이트하세요.",
+    "newOrcaWindowFailed": "새 창을 열 수 없습니다.",
     "help": "도움말",
     "paste": "붙여넣기",
     "copy": "복사",

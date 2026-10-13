@@ -449,6 +449,8 @@
     "openWorktreePalette": "Open Worktree Palette",
     "window": "Window",
     "newOrcaWindow": "New Window",
+    "newOrcaWindowHostTooOld": "Update the main Orca window to open a new window from here.",
+    "newOrcaWindowFailed": "Could not open a new window.",
     "help": "Help",
     "paste": "Paste",
     "copy": "Copy",

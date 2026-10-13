@@ -1,9 +1,18 @@
 import '../runtime/rpc/unused-default-rpc-methods.test-fixture'
-import { afterEach, describe, expect, it } from 'vitest'
+import { join } from 'node:path'
+import { tmpdir } from 'node:os'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { RpcDispatcher } from '../runtime/rpc/dispatcher'
 import type { RpcDispatchStreamingOptions } from '../runtime/rpc/dispatcher-stream-options'
 import { OrcaRuntimeService } from '../runtime/orca-runtime'
 import { JOSE_WINDOW_METHODS } from './window-ownership-rpc-methods'
+
+const { openSecondWindowMock } = vi.hoisted(() => ({
+  openSecondWindowMock: vi.fn(async (): Promise<'spawned' | 'recorded'> => 'recorded')
+}))
+vi.mock('../fork/second-window/open-second-window', () => ({
+  openSecondWindow: openSecondWindowMock
+}))
 
 const runtime = new OrcaRuntimeService()
 const rpc = new RpcDispatcher({ runtime, methods: JOSE_WINDOW_METHODS })
@@ -111,5 +120,35 @@ describe('joseWindow RPC methods', () => {
 
   it('gives the orca CLI no window', async () => {
     expect(await call('joseWindow.claim', { worktreeId: 'wt-a' })).toMatchObject({ ok: false })
+  })
+})
+
+describe('joseWindow.openWindow', () => {
+  afterEach(() => {
+    openSecondWindowMock.mockClear()
+    vi.unstubAllEnvs()
+  })
+
+  it('opens the next window on the host when window 2 asks', async () => {
+    vi.stubEnv('ORCA_USER_DATA_PATH', join(tmpdir(), 'orca'))
+    expect({
+      response: await call('joseWindow.openWindow', {}, WINDOW_2),
+      opened: openSecondWindowMock.mock.calls.length
+    }).toMatchObject({ response: { ok: true, result: { outcome: 'recorded' } }, opened: 1 })
+  })
+
+  it('opens nothing for the orca CLI, which is not a window', async () => {
+    expect({
+      response: await call('joseWindow.openWindow', {}),
+      opened: openSecondWindowMock.mock.calls.length
+    }).toMatchObject({ response: { ok: false }, opened: 0 })
+  })
+
+  it('refuses inside a window that is itself a slot, so no window pairs to a window', async () => {
+    vi.stubEnv('ORCA_USER_DATA_PATH', join(tmpdir(), 'orca-window-2'))
+    expect({
+      response: await call('joseWindow.openWindow', {}, WINDOW_2),
+      opened: openSecondWindowMock.mock.calls.length
+    }).toMatchObject({ response: { ok: false }, opened: 0 })
   })
 })
