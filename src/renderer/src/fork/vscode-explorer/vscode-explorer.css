@@ -1,0 +1,34 @@
+/* Jose fork-local: VS Code look for the Explorer file tree. Not for upstream. */
+@import './seti-icon-glyphs.css';
+
+@font-face {
+  font-family: 'seti';
+  src: url('./seti.woff') format('woff');
+  font-weight: normal;
+  font-style: normal;
+  /* Why block: a fallback font would paint the private-use glyphs as tofu boxes. */
+  font-display: block;
+}
+
+.explorer-icon {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 1rem;
+  height: 1rem;
+}
+
+[data-seti-icon]::before {
+  font-family: 'seti';
+  /* Matches the theme's own `size: 150%`. */
+  font-size: 150%;
+  line-height: 1;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Why: at the 10px letter size the folder dot shrinks to a speck; VS Code's reads like a letter. */
+[data-explorer-status-badge='folder'] {
+  font-size: 1rem;
+  line-height: 0;
+}

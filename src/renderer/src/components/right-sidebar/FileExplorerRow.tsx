@@ -1,16 +1,7 @@
 import React from 'react'
-import {
-  ChevronRight,
-  CircleAlert,
-  CircleSlash,
-  Folder,
-  FolderOpen,
-  Link,
-  Loader2
-} from 'lucide-react'
+import { ChevronRight, CircleAlert, CircleSlash, Link, Loader2 } from 'lucide-react'
 import { ContextMenu, ContextMenuTrigger } from '@/components/ui/context-menu'
 import { cn } from '@/lib/utils'
-import { getFileTypeIcon } from '@/lib/file-type-icons'
 import {
   encodeWorkspaceFilePaths,
   WORKSPACE_FILE_PATH_MIME,
@@ -19,7 +10,8 @@ import {
   type WorkspaceFileDragSource
 } from '@/lib/workspace-file-drag'
 import type { GitFileStatus } from '../../../../shared/git-status-types'
-import { STATUS_LABELS } from './status-display'
+import { ExplorerEntryIcon } from '@/fork/vscode-explorer/ExplorerEntryIcon'
+import { getExplorerStatusBadge } from '@/fork/vscode-explorer/explorer-git-decoration'
 import { RENAME_HOTSPOT_ATTR } from './file-explorer-dir-toggle-timing'
 import type { TreeNode } from './file-explorer-types'
 import { useFileExplorerRowDrag } from './useFileExplorerRowDrag'
@@ -43,6 +35,7 @@ export type FileExplorerRowProps = {
   selectedPaths: Set<string>
   nodeStatus: GitFileStatus | null
   statusColor: string | null
+  isConflicted?: boolean
   isIgnored: boolean
   deleteShortcutLabel: string
   connectionId?: string | null
@@ -92,6 +85,7 @@ export function FileExplorerRow({
   selectedPaths,
   nodeStatus,
   statusColor,
+  isConflicted = false,
   isIgnored,
   deleteShortcutLabel,
   connectionId,
@@ -125,7 +119,6 @@ export function FileExplorerRow({
   onNativeDragTargetChange,
   onNativeDragExpandDir
 }: FileExplorerRowProps): React.JSX.Element {
-  const FileIcon = getFileTypeIcon(node.relativePath || node.name)
   const showLoadError = node.isDirectory && isExpanded && !isLoading && loadError !== null
   const rowDropDir = node.isDirectory ? node.path : targetDir
   const { setRowDragNode, handleDragOver, handleDragEnter, handleDragLeave, handleDrop } =
@@ -218,10 +211,8 @@ export function FileExplorerRow({
                 <Loader2 className="size-3 shrink-0 animate-spin text-muted-foreground" />
               ) : showLoadError ? (
                 <CircleAlert className="size-3 shrink-0 text-destructive" />
-              ) : isExpanded ? (
-                <FolderOpen className="size-3 shrink-0 text-muted-foreground" />
               ) : (
-                <Folder className="size-3 shrink-0 text-muted-foreground" />
+                <ExplorerEntryIcon name={node.name} isDirectory isExpanded={isExpanded} />
               )}
             </>
           ) : (
@@ -230,9 +221,7 @@ export function FileExplorerRow({
               {node.isSymlink ? (
                 <Link className="size-3 shrink-0 text-muted-foreground" />
               ) : (
-                React.createElement(FileIcon, {
-                  className: 'size-3 shrink-0 text-muted-foreground'
-                })
+                <ExplorerEntryIcon name={node.name} isDirectory={false} isExpanded={false} />
               )}
             </>
           )}
@@ -271,10 +260,11 @@ export function FileExplorerRow({
           ) : null}
           {nodeStatus ? (
             <span
+              data-explorer-status-badge={node.isDirectory ? 'folder' : 'file'}
               className="ml-auto shrink-0 text-[10px] font-semibold tracking-wide mr-2"
               style={{ color: statusColor ?? undefined }}
             >
-              {STATUS_LABELS[nodeStatus]}
+              {getExplorerStatusBadge(nodeStatus, node.isDirectory, isConflicted)}
             </span>
           ) : isIgnored ? (
             <CircleSlash

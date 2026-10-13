@@ -9,6 +9,7 @@ import type { Repo } from '../../../../shared/repo-types'
 import type { FileExplorerRowProjection } from './file-explorer-row-projection'
 import type { TreeNode } from './file-explorer-types'
 import { buildFolderStatusMap, buildStatusMap } from './status-display'
+import { buildConflictedPathSet } from '@/fork/vscode-explorer/explorer-git-decoration'
 import { useFileDeletion } from './useFileDeletion'
 import { useFileExplorerDragDrop } from './useFileExplorerDragDrop'
 import { useFileExplorerHandlers } from './useFileExplorerHandlers'
@@ -51,6 +52,7 @@ type UseFileExplorerTreePaneStateResult = {
   canOpenWorkspaceFileBrowserForPath: ReturnType<typeof useWorkspaceFileBrowserActionPredicate>
   statusByRelativePath: ReturnType<typeof buildStatusMap>
   folderStatusByRelativePath: ReturnType<typeof buildFolderStatusMap>
+  conflictedRelativePaths: ReadonlySet<string>
   deletion: ReturnType<typeof useFileDeletion>
   dragDrop: ReturnType<typeof useFileExplorerDragDrop>
   inlineInputState: ReturnType<typeof useFileExplorerInlineInput>
@@ -157,6 +159,7 @@ export function useFileExplorerTreePaneState({
   )
   const statusByRelativePath = useMemo(() => buildStatusMap(entries), [entries])
   const folderStatusByRelativePath = useMemo(() => buildFolderStatusMap(entries), [entries])
+  const conflictedRelativePaths = useMemo(() => buildConflictedPathSet(entries), [entries])
 
   const deletion = useFileDeletion({
     activeWorktreeId,
@@ -289,6 +292,7 @@ export function useFileExplorerTreePaneState({
     canOpenWorkspaceFileBrowserForPath,
     statusByRelativePath,
     folderStatusByRelativePath,
+    conflictedRelativePaths,
     deletion,
     dragDrop,
     inlineInputState,

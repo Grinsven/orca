@@ -5,7 +5,8 @@ import { cn } from '@/lib/utils'
 import type { GitFileStatus } from '../../../../shared/git-status-types'
 import { FileExplorerRow } from './FileExplorerRow'
 import { InlineInputRow, type InlineInput } from './file-explorer-inline-input-row'
-import { shouldShowIgnoredDecoration, STATUS_COLORS } from './status-display'
+import { shouldShowIgnoredDecoration } from './status-display'
+import { getExplorerStatusColor } from '@/fork/vscode-explorer/explorer-git-decoration'
 import type { DirCache, FileExplorerOperationOwner, TreeNode } from './file-explorer-types'
 import type { FileExplorerRowProjection } from './file-explorer-row-projection'
 import type { RuntimeFileOperationArgs } from '@/runtime/runtime-file-client-types'
@@ -22,6 +23,7 @@ type FileExplorerVirtualRowsProps = {
   dismissInlineInput: () => void
   folderStatusByRelativePath: Map<string, GitFileStatus | null>
   statusByRelativePath: Map<string, GitFileStatus>
+  conflictedRelativePaths?: ReadonlySet<string>
   ignoredByRelativePath: Set<string>
   expanded: Set<string>
   canCollapseFolderSubtree?: boolean
@@ -118,6 +120,7 @@ export function FileExplorerVirtualRows(props: FileExplorerVirtualRowsProps): Re
     dismissInlineInput,
     folderStatusByRelativePath,
     statusByRelativePath,
+    conflictedRelativePaths,
     ignoredByRelativePath,
     expanded,
     canCollapseFolderSubtree = true,
@@ -206,6 +209,7 @@ export function FileExplorerVirtualRows(props: FileExplorerVirtualRowsProps): Re
         const nodeStatus = n.isDirectory
           ? (folderStatusByRelativePath.get(normalizedRelativePath) ?? null)
           : (statusByRelativePath.get(normalizedRelativePath) ?? null)
+        const isConflicted = conflictedRelativePaths?.has(normalizedRelativePath) ?? false
         const isIgnored = shouldShowIgnoredDecoration(
           nodeStatus,
           ignoredByRelativePath,
@@ -237,7 +241,8 @@ export function FileExplorerVirtualRows(props: FileExplorerVirtualRowsProps): Re
               selectedPaths={selectedPaths}
               isFlashing={flashingPath === n.path}
               nodeStatus={nodeStatus}
-              statusColor={nodeStatus ? STATUS_COLORS[nodeStatus] : null}
+              statusColor={getExplorerStatusColor(nodeStatus, isConflicted)}
+              isConflicted={isConflicted}
               isIgnored={isIgnored}
               deleteShortcutLabel={deleteShortcutLabel}
               connectionId={connectionId}

@@ -72,6 +72,7 @@ export function FileExplorerFilesTreePane({
     canOpenWorkspaceFileBrowserForPath,
     statusByRelativePath,
     folderStatusByRelativePath,
+    conflictedRelativePaths,
     deletion,
     dragDrop,
     inlineInputState,
@@ -199,6 +200,7 @@ export function FileExplorerFilesTreePane({
           dismissInlineInput={dismissInlineInput}
           folderStatusByRelativePath={folderStatusByRelativePath}
           statusByRelativePath={statusByRelativePath}
+          conflictedRelativePaths={conflictedRelativePaths}
           ignoredByRelativePath={ignoredByRelativePath}
           expanded={rowExpandedPaths}
           canCollapseFolderSubtree={!hasNameFilter}
