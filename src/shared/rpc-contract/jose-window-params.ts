@@ -14,7 +14,12 @@ export type JoseWindowWorktreeRef = z.infer<typeof JoseWindowWorktreeRef>
  *  ownership host's; each window maps them to its own. */
 export const JoseWindowNavigationIntent = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('workspace') }),
-  z.object({ kind: z.literal('file'), filePath: z.string().min(1), relativePath: z.string() }),
+  z.object({
+    kind: z.literal('file'),
+    filePath: z.string().min(1),
+    relativePath: z.string(),
+    preview: z.boolean().optional()
+  }),
   z.object({
     kind: z.literal('diff'),
     filePath: z.string().min(1),

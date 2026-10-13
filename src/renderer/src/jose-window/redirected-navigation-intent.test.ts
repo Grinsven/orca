@@ -74,6 +74,25 @@ describe('a request for a worktree another window owns', () => {
     })
   })
 
+  it('hands a preview open to the owner as a preview, without rendering it here', () => {
+    listeners.openFile?.({
+      worktreeId: OWNED,
+      filePath: '/repo/owned/page.html',
+      relativePath: 'page.html',
+      preview: true
+    })
+
+    expect({ intent: sentIntent(), active: useAppStore.getState().activeWorktreeId }).toEqual({
+      intent: {
+        kind: 'file',
+        filePath: '/repo/owned/page.html',
+        relativePath: 'page.html',
+        preview: true
+      },
+      active: 'repo::here'
+    })
+  })
+
   it('hands the diff open to the owner', () => {
     listeners.openDiff?.({
       worktreeId: OWNED,
@@ -104,6 +123,15 @@ describe('a request for a worktree another window owns', () => {
 })
 
 describe('uiEventForIntent', () => {
+  it('keeps a preview open a preview on the owner', () => {
+    expect(
+      uiEventForIntent({
+        worktreeId: OWNED,
+        intent: { kind: 'file', filePath: '/p.html', relativePath: 'p.html', preview: true }
+      })?.payload
+    ).toMatchObject({ preview: true })
+  })
+
   it('replays each request on the UI event it first arrived on', () => {
     const channels = (
       [

@@ -1,5 +1,7 @@
 import { toast } from 'sonner'
 import { openWorkspaceFilePreview } from '@/lib/workspace-file-preview-open'
+import { redirectIfOwnedElsewhere } from '@/jose-window/ownership-guard'
+import type { JoseWindowNavigationIntent } from '../../../../shared/rpc-contract/jose-window-params'
 import {
   navigationTargetsHost,
   type RuntimeNavigationTarget
@@ -12,10 +14,16 @@ import {
 export function openRuntimeFilePreview(payload: {
   worktreeId: string
   filePath: string
+  relativePath: string
   navigation?: RuntimeNavigationTarget
 }): boolean {
   // Why: same rule as editor opens; no target (older callers) keeps the original switch.
   const focus = payload.navigation === undefined || navigationTargetsHost(payload.navigation)
+  const { worktreeId, filePath, relativePath } = payload
+  const intent: JoseWindowNavigationIntent = { kind: 'file', filePath, relativePath, preview: true }
+  if (focus && redirectIfOwnedElsewhere(worktreeId, { intent })) {
+    return true
+  }
   const result = openWorkspaceFilePreview({
     filePath: payload.filePath,
     worktreeId: payload.worktreeId,

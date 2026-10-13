@@ -28,7 +28,8 @@ export function uiEventForIntent(
           worktreeId,
           filePath: intent.filePath,
           relativePath: intent.relativePath,
-          runtimeEnvironmentId
+          runtimeEnvironmentId,
+          ...(intent.preview ? { preview: true } : {})
         }
       }
     case 'diff':

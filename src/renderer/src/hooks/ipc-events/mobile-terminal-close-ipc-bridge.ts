@@ -61,7 +61,7 @@ export function registerMobileAndTerminalCloseIpcBridge(
         preview
       }) => {
         // Why: an unsupported preview falls through to the source tab this bridge always opened.
-        if (preview && openRuntimeFilePreview({ worktreeId, filePath, navigation })) {
+        if (preview && openRuntimeFilePreview({ worktreeId, filePath, relativePath, navigation })) {
           return
         }
         const basename = relativePath.split(/[\\/]/).pop() || relativePath
