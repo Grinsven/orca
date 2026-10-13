@@ -20,6 +20,16 @@ export type OwnershipTargetOptions = { executionHostId?: ExecutionHostId | null 
 
 let link: WindowOwnershipLink | null = null
 let ownedElsewhere: ReadonlySet<string> = new Set()
+let redirectEpoch = 0
+
+function selectionStamp(): string {
+  const state = useAppStore.getState()
+  return [
+    state.activeView,
+    state.activeWorkspaceExecutionHostId ?? '',
+    state.activeWorktreeId ?? ''
+  ].join('|')
+}
 
 /** Written by the ownership session from the host's snapshot; null when not connected. */
 export function setWindowOwnershipView(
@@ -79,10 +89,13 @@ export function redirectIfOwnedElsewhere(
   if (!current || !ref) {
     return false
   }
+  // Why: the fallback acts for this navigation only. A later click or selection, or a newer link,
+  // makes it obsolete, and only a confirmed "no owner" (not a timeout) justifies opening here.
+  const epoch = ++redirectEpoch
+  const expectedSelection = selectionStamp()
+  const isStillCurrent = (): boolean =>
+    link === current && epoch === redirectEpoch && selectionStamp() === expectedSelection
   const fallBack = (): void => {
-    if (link !== current) {
-      return
-    }
     const key = ownershipKey(ref)
     ownedElsewhere = new Set([...ownedElsewhere].filter((owned) => owned !== key))
     current.activateHere?.(ref)
@@ -90,13 +103,12 @@ export function redirectIfOwnedElsewhere(
   restoreSidebarActiveRow()
   void current.reveal(ref).then(
     (revealed) => {
-      if (!revealed) {
+      if (!revealed && isStillCurrent()) {
         fallBack()
       }
     },
     (error: unknown) => {
-      console.warn('[jose-window] reveal failed', error)
-      fallBack()
+      console.warn('[jose-window] reveal unverifiable; not opening the worktree here', error)
     }
   )
   return true

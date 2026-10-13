@@ -130,6 +130,65 @@ describe('window ownership activation guard', () => {
     expect(redirectIfOwnedElsewhere('repo-1::a')).toBe(false)
   })
 
+  it('drops the fallback once the user has selected something else', async () => {
+    seed()
+    const activateHere = vi.fn()
+    let answer: (revealed: boolean) => void = () => {}
+    const reveal = vi.fn(
+      () =>
+        new Promise<boolean>((resolve) => {
+          answer = resolve
+        })
+    )
+    setWindowOwnershipView({
+      link: hostLink(reveal, activateHere),
+      ownedElsewhere: [local('repo-1::a')]
+    })
+
+    redirectIfOwnedElsewhere('repo-1::a')
+    useAppStore.setState({ activeWorktreeId: 'repo-1::c' })
+    answer(false)
+    await flush()
+
+    expect(activateHere).not.toHaveBeenCalled()
+  })
+
+  it('drops the fallback of an earlier redirect when a newer one starts', async () => {
+    seed()
+    const activateHere = vi.fn()
+    const answers: ((revealed: boolean) => void)[] = []
+    const reveal = vi.fn(() => new Promise<boolean>((resolve) => answers.push(resolve)))
+    setWindowOwnershipView({
+      link: hostLink(reveal, activateHere),
+      ownedElsewhere: [local('repo-1::a'), local('repo-1::b')]
+    })
+
+    redirectIfOwnedElsewhere('repo-1::a')
+    redirectIfOwnedElsewhere('repo-1::b')
+    answers[0]?.(false)
+    await flush()
+
+    expect(activateHere).not.toHaveBeenCalled()
+  })
+
+  it('does not open the worktree here when the reveal could not be verified', async () => {
+    seed()
+    vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const activateHere = vi.fn()
+    setWindowOwnershipView({
+      link: hostLink(async () => {
+        throw new Error('timeout')
+      }, activateHere),
+      ownedElsewhere: [local('repo-1::a')]
+    })
+
+    redirectIfOwnedElsewhere('repo-1::a')
+    await flush()
+
+    expect(activateHere).not.toHaveBeenCalled()
+    vi.restoreAllMocks()
+  })
+
   it('opens a same-id workspace from another host here instead of raising the owner', () => {
     const { setActiveWorktree } = seed()
     useAppStore.setState({
