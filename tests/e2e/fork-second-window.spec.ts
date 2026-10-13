@@ -164,6 +164,42 @@ test('New Window inside window 2 asks the hub, which opens the next window', asy
   }
 })
 
+test('window 2 keeps its host when window 1 is closed but Orca keeps running', async ({
+  electronApp,
+  orcaPage: hub
+}, testInfo) => {
+  test.skip(process.platform !== 'darwin', 'Only macOS keeps the app running with no window open')
+  test.setTimeout(300_000)
+  const hubUserData = await hubUserDataPath(electronApp)
+  const [worktree] = await hubWorktrees(hub)
+  let window2: SecondWindow | null = null
+  try {
+    window2 = await launchSecondWindow(await clickNewWindow(electronApp), testInfo)
+    const environmentId = (await activeEnvironmentId(window2.page))!
+    await electronApp.evaluate(({ BrowserWindow }) => {
+      for (const window of BrowserWindow.getAllWindows()) {
+        window.close()
+      }
+    })
+    await expect
+      .poll(() => electronApp.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().length))
+      .toBe(0)
+    const reachable = await window2.page.evaluate(
+      (id) => window.__store!.getState().refreshRuntimeEnvironmentStatus(id),
+      environmentId
+    )
+    expect(reachable).toBe(true)
+    await rowLocator(window2.page, worktree!.id).click()
+    await expect.poll(() => activeWorktreeId(window2!.page), { timeout: 30_000 }).toBe(worktree!.id)
+    await attachScreenshot(window2.page, 'window-2-with-window-1-closed', testInfo)
+  } finally {
+    if (window2) {
+      await quitSecondWindow(window2)
+    }
+    removeSlotProfiles(hubUserData)
+  }
+})
+
 test('a worktree lives in one window: clicking it in the other raises its owner', async ({
   electronApp,
   orcaPage: hub
