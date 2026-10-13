@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { JoseWindowOwnershipFrame } from '../../../shared/rpc-contract/jose-window-params'
+import type { Worktree } from '../../../shared/worktree/types'
 import { useAppStore } from '@/store'
 import { isOwnedByAnotherWindow } from './ownership-guard'
 import type { OwnershipSubscriptionCallbacks } from './window-ownership-client'
@@ -13,6 +14,28 @@ import {
 const initialAppStoreState = useAppStore.getState()
 const LOCAL = { kind: 'local' } as const
 const flush = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0))
+
+function worktree(id: string, repoId: string): Worktree {
+  return {
+    id,
+    repoId,
+    path: `/workspace/${id}`,
+    head: 'abc123',
+    branch: `refs/heads/${id}`,
+    isBare: false,
+    isMainWorktree: false,
+    displayName: id,
+    comment: '',
+    linkedIssue: null,
+    linkedPR: null,
+    linkedLinearIssue: null,
+    isArchived: false,
+    isUnread: false,
+    isPinned: false,
+    sortOrder: 0,
+    lastActivityAt: 0
+  }
+}
 
 function seedStore(activeWorktreeId: string | null): ReturnType<typeof vi.fn> {
   const setActiveWorktree = vi.fn((id: string | null) => {
@@ -32,13 +55,8 @@ function seedStore(activeWorktreeId: string | null): ReturnType<typeof vi.fn> {
       }
     ],
     worktreesByRepo: {
-      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: ownership reads only id and repoId.
-      repo: [
-        { id: 'repo::a', repoId: 'repo' },
-        { id: 'repo::b', repoId: 'repo' }
-      ] as never,
-      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: ownership reads only id and repoId.
-      'remote-repo': [{ id: 'remote-repo::z', repoId: 'remote-repo' }] as never
+      repo: [worktree('repo::a', 'repo'), worktree('repo::b', 'repo')],
+      'remote-repo': [worktree('remote-repo::z', 'remote-repo')]
     },
     activeWorktreeId,
     setActiveWorktree

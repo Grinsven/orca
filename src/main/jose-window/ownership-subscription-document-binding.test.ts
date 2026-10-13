@@ -15,9 +15,7 @@ vi.mock('electron', () => ({
   app: { getPath: getPathMock },
   ipcMain: {
     handle: handleMock,
-    on: vi.fn(),
-    removeHandler: vi.fn(),
-    removeAllListeners: vi.fn()
+    on: vi.fn()
   }
 }))
 
@@ -43,8 +41,9 @@ vi.mock('../ipc/runtime-environment-request-connections', async () => {
   })
 })
 
+import { addEnvironmentFromPairingCode } from '../../shared/runtime-environment-store'
 import { resetRuntimeEnvironmentStatusOwners } from '../ipc/runtime-environment-request-connections'
-import { registerRuntimeEnvironmentHandlers } from '../ipc/runtime-environments'
+import { registerRuntimeEnvironmentSubscriptionHandlers } from '../ipc/runtime-environment-subscription-handlers'
 import { channelHandlerLookup, pairingCode } from '../ipc/runtime-environments-ipc-test-harness'
 
 const handler = channelHandlerLookup(handleMock)
@@ -61,20 +60,17 @@ class FakeSender extends EventEmitter {
 describe('window 2 ownership stream lifetime', () => {
   let userDataPath: string
 
-  beforeEach(async () => {
+  beforeEach(() => {
     userDataPath = mkdtempSync(join(tmpdir(), 'orca-jose-window-binding-'))
     getPathMock.mockReturnValue(userDataPath)
     handleMock.mockReset()
     subscribeRemoteRuntimeRequestMock.mockReset()
-    const settings = { activeRuntimeEnvironmentId: null }
-    registerRuntimeEnvironmentHandlers({
-      getSettings: () => settings,
-      updateSettings: vi.fn()
-      // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: these handlers read only getSettings/updateSettings from the store.
-    } as never)
-    await handler<{ name: string; pairingCode: string }, unknown>(
-      'runtimeEnvironments:addFromPairingCode'
-    )(null, { name: 'main', pairingCode: pairingCode() })
+    addEnvironmentFromPairingCode(userDataPath, { name: 'main', pairingCode: pairingCode() })
+    registerRuntimeEnvironmentSubscriptionHandlers({
+      getUserDataPath: () => userDataPath,
+      remoteRuntimeSubscriptions: new Map(),
+      pendingSubscriptions: new Map()
+    })
   })
 
   afterEach(() => {

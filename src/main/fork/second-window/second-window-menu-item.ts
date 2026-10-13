@@ -4,7 +4,7 @@ import { isSecondWindowSlotProfile } from './second-window-slots'
 
 export const NEW_ORCA_WINDOW_MENU_ITEM_ID = 'fork-new-orca-window'
 
-function openSecondWindowFromMenu(): void {
+export function openSecondWindowFromMenu(): void {
   // Why lazy: the opener pulls in runtime and persistence modules the menu must not load at startup.
   void import('./open-second-window')
     .then(({ openSecondWindow }) => openSecondWindow())

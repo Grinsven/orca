@@ -10,19 +10,26 @@ vi.mock('./open-second-window', () => ({ openSecondWindow: openSecondWindowMock 
 
 import {
   createSecondWindowMenuItems,
-  NEW_ORCA_WINDOW_MENU_ITEM_ID
+  NEW_ORCA_WINDOW_MENU_ITEM_ID,
+  openSecondWindowFromMenu
 } from './second-window-menu-item'
 
 const hostProfile = join(tmpdir(), 'orca')
 
 describe('createSecondWindowMenuItems', () => {
-  it('adds New Window above a separator for the desktop app', async () => {
+  it('adds New Window above a separator for the desktop app', () => {
     const items = createSecondWindowMenuItems(['/Orca', '--inspect'], hostProfile)
     expect(items).toHaveLength(2)
-    expect(items[0]).toMatchObject({ id: NEW_ORCA_WINDOW_MENU_ITEM_ID, label: 'New Window' })
+    expect(items[0]).toMatchObject({
+      id: NEW_ORCA_WINDOW_MENU_ITEM_ID,
+      label: 'New Window',
+      click: openSecondWindowFromMenu
+    })
     expect(items[1]).toEqual({ type: 'separator' })
+  })
 
-    items[0]?.click?.({} as never, undefined, {} as never)
+  it('opens a second window when clicked', async () => {
+    openSecondWindowFromMenu()
     await vi.waitFor(() => expect(openSecondWindowMock).toHaveBeenCalledTimes(1))
   })
 
