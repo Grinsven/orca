@@ -6,6 +6,7 @@ import type { RuntimeRpcResponse } from '../../shared/runtime-rpc-envelope'
 import { isRuntimeEnvironmentManuallyDisconnected } from './runtime-environment-connectivity-handlers'
 import { getRuntimeEnvironmentTransportGeneration } from './runtime-environment-transport-generation'
 import { subscribeRuntimeEnvironment } from './runtime-environment-transport-routing'
+import { bindOwnershipSubscriptionToDocument } from '../jose-window/ownership-subscription-document-binding'
 
 export type RetainedRemoteRuntimeSubscription = RemoteRuntimeSubscription & {
   setupController: AbortController
@@ -82,12 +83,14 @@ export function registerRuntimeEnvironmentSubscriptionHandlers(args: {
       let senderDestroyed = sender.isDestroyed()
       let subscription: RemoteRuntimeSubscription | null = null
       let destroyedListenerAttached = false
+      let unbindDocument = (): void => {}
       const removeDestroyedListener = (): void => {
         if (!destroyedListenerAttached) {
           return
         }
         destroyedListenerAttached = false
         sender.removeListener('destroyed', closeSubscription)
+        unbindDocument()
       }
       const closeSubscription = (): void => {
         senderDestroyed = true
@@ -127,6 +130,7 @@ export function registerRuntimeEnvironmentSubscriptionHandlers(args: {
       }
       pendingSubscriptions.set(subscriptionId, pending)
       sender.once('destroyed', closeSubscription)
+      unbindDocument = bindOwnershipSubscriptionToDocument(args.method, sender, closeSubscription)
       destroyedListenerAttached = true
       try {
         subscription = await subscribeRuntimeEnvironment(
