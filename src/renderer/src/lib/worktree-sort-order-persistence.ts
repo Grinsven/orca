@@ -1,7 +1,7 @@
 import { callRuntimeRpc } from '@/runtime/runtime-rpc-client'
 import { parseExecutionHostId } from '../../../shared/execution-host'
 import type { WorktreeRuntimeOwnerState } from './worktree-runtime-owner-state'
-import { splitWorktreeSortOrderByHost } from './worktree-sort-order-host-split'
+import { splitWorktreeSortOrderForThisWindow } from '@/jose-window/second-window-sort-order'
 
 function ignoreSortOrderPersistenceFailure(promise: Promise<unknown>): void {
   void promise.catch(() => {
@@ -14,7 +14,7 @@ export function persistWorktreeSortOrderByHost(
   state: WorktreeRuntimeOwnerState,
   orderedIds: readonly string[]
 ): void {
-  for (const group of splitWorktreeSortOrderByHost(state, orderedIds)) {
+  for (const group of splitWorktreeSortOrderForThisWindow(state, orderedIds)) {
     const parsed = parseExecutionHostId(group.hostId)
     if (parsed?.kind === 'runtime') {
       ignoreSortOrderPersistenceFailure(

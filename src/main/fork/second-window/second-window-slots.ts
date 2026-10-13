@@ -4,11 +4,11 @@ import { isProcessAlive } from '../../daemon/daemon-process-inspection'
 import { ORCAD_LOCK_FILE_NAME, readOrcadInstanceLockRecord } from '../../orcad/orcad-instance-lock'
 import { orcadProcessStartTimeMatches } from '../../orcad/orcad-process-start-time'
 import { writeSecureJsonFile } from '../../../shared/secure-file'
+import { isSecondWindowSlotUserDataPath } from '../../../shared/second-window-slot-profile'
 
 export const FIRST_SECOND_WINDOW_NUMBER = 2
 export const LAST_SECOND_WINDOW_NUMBER = 5
 const SECOND_WINDOW_RECORDS_FILE = 'fork-second-windows.json'
-const SLOT_SUFFIX_PATTERN = /-window-\d+$/
 
 export type SecondWindowSlotRecord = { deviceId: string; environmentId: string }
 export type SecondWindowRecords = Record<string, SecondWindowSlotRecord>
@@ -30,7 +30,7 @@ export function getSecondWindowSlotDir(hostUserDataPath: string, windowNumber: n
 
 /** A slot instance pairs to its own empty runtime, so it must not open further windows. */
 export function isSecondWindowSlotProfile(userDataPath: string): boolean {
-  return SLOT_SUFFIX_PATTERN.test(basename(userDataPath))
+  return isSecondWindowSlotUserDataPath(userDataPath)
 }
 
 /** Running means the slot's desktop lock names a live pid that started when the lock says. */

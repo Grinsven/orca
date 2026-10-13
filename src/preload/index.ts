@@ -84,6 +84,7 @@ import { mobileApi } from './api/mobile-bridge'
 import { agentStatusApi } from './api/agent-status-bridge'
 import { claudeStatuslineApi } from './api/claude-statusline-bridge'
 import { speechApi } from './api/speech-bridge'
+import { exposeJoseWindowApi } from './jose-window-bridge'
 
 installBrowserFindListener()
 
@@ -196,3 +197,4 @@ if (process.contextIsolated) {
 } else {
   window.api = api
 }
+exposeJoseWindowApi()
