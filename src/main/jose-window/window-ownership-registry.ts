@@ -1,4 +1,9 @@
-import type { JoseWindowOwnershipFrame } from '../../shared/rpc-contract/jose-window-params'
+import type {
+  JoseWindowOwnershipFrame,
+  JoseWindowWorktreeRef
+} from '../../shared/rpc-contract/jose-window-params'
+import { composeWorktreeHostIdentity } from '../../shared/worktree/host-qualified-identity'
+import { parseExecutionHostId } from '../../shared/execution-host'
 import type { RpcCallerIdentity } from '../runtime/rpc/rpc-caller-identity'
 
 type Subscriber = { windowKey: string; emit: (frame: JoseWindowOwnershipFrame) => void }
@@ -15,13 +20,25 @@ export function windowKeyForCaller(caller: RpcCallerIdentity | undefined): strin
   return null
 }
 
+/** A bare id from an older window is one of this host's own checkouts. */
+export function toWorktreeRef(worktreeId: string, executionHostId?: string): JoseWindowWorktreeRef {
+  return {
+    worktreeId,
+    executionHostId: parseExecutionHostId(executionHostId)?.id ?? 'local'
+  }
+}
+
+function refKey(ref: JoseWindowWorktreeRef): string {
+  return composeWorktreeHostIdentity(parseExecutionHostId(ref.executionHostId)?.id, ref.worktreeId)
+}
+
 /**
  * A worktree is owned by the window that has it active. Only a window with a live subscription
  * owns anything: a crashed or disconnected window cannot be raised, so its claim must not lock
  * the worktree away from the others.
  */
 export class WindowOwnershipRegistry {
-  private readonly activeByWindow = new Map<string, string>()
+  private readonly activeByWindow = new Map<string, JoseWindowWorktreeRef>()
   private readonly subscribers = new Map<number, Subscriber>()
   private nextSubscriberId = 1
 
@@ -44,11 +61,12 @@ export class WindowOwnershipRegistry {
 
   /** Compare-and-set: succeeds unless another live window has the worktree active. A refused
    *  claim still releases the caller's previous worktree, which it has already left. */
-  claim(windowKey: string, worktreeId: string | null): { claimed: boolean } {
-    const owner = worktreeId === null ? null : this.liveOwnerOf(worktreeId)
+  claim(windowKey: string, ref: JoseWindowWorktreeRef | null): { claimed: boolean } {
+    const owner = ref === null ? null : this.liveOwnerOf(ref)
     const claimed = owner === null || owner === windowKey
-    const next = claimed ? worktreeId : null
-    if (this.activeByWindow.get(windowKey) === (next ?? undefined)) {
+    const next = claimed ? ref : null
+    const current = this.activeByWindow.get(windowKey)
+    if ((current ? refKey(current) : null) === (next ? refKey(next) : null)) {
       return { claimed }
     }
     if (next === null) {
@@ -56,7 +74,7 @@ export class WindowOwnershipRegistry {
     } else {
       // Why: a stale claim from a window that is not live yet must not resurface when it subscribes.
       for (const [other, active] of this.activeByWindow) {
-        if (active === next && other !== windowKey) {
+        if (other !== windowKey && refKey(active) === refKey(next)) {
           this.activeByWindow.delete(other)
         }
       }
@@ -67,22 +85,23 @@ export class WindowOwnershipRegistry {
   }
 
   /** Asks the owning window, and only that window, to come forward on its worktree. */
-  reveal(callerKey: string, worktreeId: string): { revealed: boolean } {
-    const owner = this.liveOwnerOf(worktreeId)
+  reveal(callerKey: string, ref: JoseWindowWorktreeRef): { revealed: boolean } {
+    const owner = this.liveOwnerOf(ref)
     if (owner === null || owner === callerKey) {
       return { revealed: false }
     }
     for (const subscriber of this.subscribers.values()) {
       if (subscriber.windowKey === owner) {
-        subscriber.emit({ type: 'reveal', worktreeId })
+        subscriber.emit({ type: 'reveal', ...ref })
       }
     }
     return { revealed: true }
   }
 
-  liveOwnerOf(worktreeId: string): string | null {
+  liveOwnerOf(ref: JoseWindowWorktreeRef): string | null {
+    const key = refKey(ref)
     for (const [windowKey, active] of this.activeByWindow) {
-      if (active === worktreeId && this.isLive(windowKey)) {
+      if (refKey(active) === key && this.isLive(windowKey)) {
         return windowKey
       }
     }
@@ -99,16 +118,19 @@ export class WindowOwnershipRegistry {
   }
 
   private snapshotFor(windowKey: string): JoseWindowOwnershipFrame {
-    const ownedElsewhere: string[] = []
-    for (const [owner, worktreeId] of this.activeByWindow) {
+    const ownedElsewhereRefs: JoseWindowWorktreeRef[] = []
+    for (const [owner, ref] of this.activeByWindow) {
       if (owner !== windowKey && this.isLive(owner)) {
-        ownedElsewhere.push(worktreeId)
+        ownedElsewhereRefs.push(ref)
       }
     }
+    const ownedHereRef = this.activeByWindow.get(windowKey) ?? null
     return {
       type: 'snapshot',
-      ownedElsewhere,
-      ownedHere: this.activeByWindow.get(windowKey) ?? null
+      ownedElsewhere: ownedElsewhereRefs.map((ref) => ref.worktreeId),
+      ownedHere: ownedHereRef?.worktreeId ?? null,
+      ownedElsewhereRefs,
+      ownedHereRef
     }
   }
 

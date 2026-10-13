@@ -1,6 +1,9 @@
 import type { GlobalSettings } from '../../../shared/global-settings-types'
 import type { RuntimeRpcResponse } from '../../../shared/runtime-rpc-envelope'
-import type { JoseWindowOwnershipFrame } from '../../../shared/rpc-contract/jose-window-params'
+import type {
+  JoseWindowOwnershipFrame,
+  JoseWindowWorktreeRef
+} from '../../../shared/rpc-contract/jose-window-params'
 import { hasRuntimeRpcErrorCode } from '../../../shared/runtime-rpc-error-code'
 import { callRuntimeRpc, type RuntimeClientTarget } from '@/runtime/runtime-rpc-client'
 import { getRuntimeEnvironmentRevision } from '@/runtime/runtime-environment-revision'
@@ -61,12 +64,12 @@ export async function subscribeOwnership(
 
 export async function claimWorktree(
   target: RuntimeClientTarget,
-  worktreeId: string | null
+  ref: JoseWindowWorktreeRef | null
 ): Promise<boolean> {
   const result = await callRuntimeRpc<{ claimed: boolean }>(
     target,
     'joseWindow.claim',
-    { worktreeId },
+    ref ?? { worktreeId: null },
     { timeoutMs: 10_000 }
   )
   return result.claimed
@@ -74,13 +77,10 @@ export async function claimWorktree(
 
 export async function revealWorktreeOwner(
   target: RuntimeClientTarget,
-  worktreeId: string
+  ref: JoseWindowWorktreeRef
 ): Promise<boolean> {
-  const result = await callRuntimeRpc<{ revealed: boolean }>(
-    target,
-    'joseWindow.reveal',
-    { worktreeId },
-    { timeoutMs: 10_000 }
-  )
+  const result = await callRuntimeRpc<{ revealed: boolean }>(target, 'joseWindow.reveal', ref, {
+    timeoutMs: 10_000
+  })
   return result.revealed
 }

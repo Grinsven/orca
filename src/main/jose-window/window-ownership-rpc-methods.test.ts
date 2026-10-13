@@ -54,7 +54,11 @@ describe('joseWindow RPC methods', () => {
       ok: true,
       result: { revealed: true }
     })
-    expect(hostFrames).toContainEqual({ type: 'reveal', worktreeId: 'wt-a' })
+    expect(hostFrames).toContainEqual({
+      type: 'reveal',
+      worktreeId: 'wt-a',
+      executionHostId: 'local'
+    })
   })
 
   it('releases a window claim when its connection closes', async () => {

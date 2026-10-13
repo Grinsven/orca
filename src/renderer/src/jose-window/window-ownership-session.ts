@@ -1,9 +1,17 @@
-import type { JoseWindowOwnershipFrame } from '../../../shared/rpc-contract/jose-window-params'
-import { isFloatingWorkspaceId } from '../../../shared/floating-workspace-worktree'
+import type {
+  JoseWindowOwnershipFrame,
+  JoseWindowWorktreeRef
+} from '../../../shared/rpc-contract/jose-window-params'
+import type { ExecutionHostId } from '../../../shared/execution-host'
 import type { RuntimeClientTarget } from '@/runtime/runtime-rpc-client'
-import { getRuntimeEnvironmentIdForWorktree } from '@/lib/worktree-runtime-owner'
 import type { AppState } from '@/store/types'
 import { setWindowOwnershipView } from './ownership-guard'
+import {
+  activeOwnershipRef,
+  ownershipKey,
+  resolveOwnershipRef,
+  viewExecutionHostId
+} from './ownership-ref'
 import type { OwnershipSubscriptionCallbacks } from './window-ownership-client'
 
 type OwnershipStore = {
@@ -17,10 +25,10 @@ export type WindowOwnershipDeps = {
     target: RuntimeClientTarget,
     callbacks: OwnershipSubscriptionCallbacks
   ) => Promise<{ unsubscribe: () => void }>
-  claim: (target: RuntimeClientTarget, worktreeId: string | null) => Promise<boolean>
-  reveal: (target: RuntimeClientTarget, worktreeId: string) => Promise<boolean>
+  claim: (target: RuntimeClientTarget, ref: JoseWindowWorktreeRef | null) => Promise<boolean>
+  reveal: (target: RuntimeClientTarget, ref: JoseWindowWorktreeRef) => Promise<boolean>
   raise: () => void
-  activateHere: (worktreeId: string) => void
+  activateHere: (worktreeId: string, executionHostId: ExecutionHostId | undefined) => void
   isMissingMethod: (error: unknown) => boolean
   /** Returns a canceller. */
   setTimer?: (callback: () => void, ms: number) => () => void
@@ -30,15 +38,26 @@ const RETRY_MIN_MS = 1_000
 const RETRY_MAX_MS = 30_000
 let loggedUnsupported = false
 
-/** Only worktrees served by the ownership host are shared between windows. */
-export function claimableWorktreeId(state: AppState, target: RuntimeClientTarget): string | null {
-  const worktreeId = state.activeWorktreeId
-  if (!worktreeId || isFloatingWorkspaceId(worktreeId)) {
-    return null
+const keyOf = (ref: JoseWindowWorktreeRef | null): string | null => (ref ? ownershipKey(ref) : null)
+
+/** Snapshot refs, reading an older host's bare ids as its own checkouts. */
+function snapshotRefs(frame: Extract<JoseWindowOwnershipFrame, { type: 'snapshot' }>): {
+  elsewhere: JoseWindowWorktreeRef[]
+  here: JoseWindowWorktreeRef | null
+} {
+  const local = (worktreeId: string): JoseWindowWorktreeRef => ({
+    worktreeId,
+    executionHostId: 'local'
+  })
+  return {
+    elsewhere: frame.ownedElsewhereRefs ?? frame.ownedElsewhere.map(local),
+    here:
+      frame.ownedHereRef !== undefined
+        ? frame.ownedHereRef
+        : frame.ownedHere
+          ? local(frame.ownedHere)
+          : null
   }
-  const owner = getRuntimeEnvironmentIdForWorktree(state, worktreeId)
-  const host = target.kind === 'environment' ? target.environmentId : null
-  return owner === host ? worktreeId : null
 }
 
 /**
@@ -57,8 +76,11 @@ export function startWindowOwnership(
       return () => clearTimeout(handle)
     })
   const link = {
-    reveal: (worktreeId: string) => deps.reveal(target, worktreeId),
-    activateHere: deps.activateHere
+    resolve: (worktreeId: string, executionHostId?: ExecutionHostId | null) =>
+      resolveOwnershipRef(deps.store.getState(), target, worktreeId, executionHostId),
+    reveal: (ref: JoseWindowWorktreeRef) => deps.reveal(target, ref),
+    activateHere: (ref: JoseWindowWorktreeRef) =>
+      deps.activateHere(ref.worktreeId, viewExecutionHostId(ref, target))
   }
   let stopped = false
   let unsupported = false
@@ -66,7 +88,7 @@ export function startWindowOwnership(
   let handle: { unsubscribe: () => void } | null = null
   let cancelRetry: (() => void) | null = null
   let retryMs = RETRY_MIN_MS
-  // The host's record of our claim; undefined until a snapshot arrives on the current stream.
+  // The host's record of our claim (an ownership key); undefined until a snapshot arrives on the current stream.
   let ownedHere: string | null | undefined
   let claiming = false
   let claimAgain = false
@@ -88,8 +110,9 @@ export function startWindowOwnership(
       claimAgain = true
       return
     }
-    const worktreeId = claimableWorktreeId(deps.store.getState(), target)
-    if (worktreeId === ownedHere) {
+    const ref = activeOwnershipRef(deps.store.getState(), target)
+    const key = keyOf(ref)
+    if (key === ownedHere) {
       return
     }
     claiming = true
@@ -98,14 +121,14 @@ export function startWindowOwnership(
     const claimGeneration = generation
     let stale = false
     try {
-      const claimed = await deps.claim(target, worktreeId)
+      const claimed = await deps.claim(target, ref)
       stale = claimGeneration !== generation
       if (stopped || stale) {
         return
       }
-      ownedHere = claimed ? worktreeId : null
+      ownedHere = claimed ? key : null
       const state = deps.store.getState()
-      if (!claimed && worktreeId !== null && state.activeWorktreeId === worktreeId) {
+      if (!claimed && key !== null && keyOf(activeOwnershipRef(state, target)) === key) {
         state.setActiveWorktree(null)
       }
     } catch (error) {
@@ -138,8 +161,9 @@ export function startWindowOwnership(
       return
     }
     retryMs = RETRY_MIN_MS
-    ownedHere = frame.ownedHere
-    setWindowOwnershipView({ link, ownedElsewhere: frame.ownedElsewhere })
+    const refs = snapshotRefs(frame)
+    ownedHere = keyOf(refs.here)
+    setWindowOwnershipView({ link, ownedElsewhere: refs.elsewhere })
     void syncClaim()
   }
 
@@ -198,7 +222,10 @@ export function startWindowOwnership(
   const stopStore = deps.store.subscribe((state, previous) => {
     if (
       state.activeWorktreeId !== previous.activeWorktreeId ||
+      state.activeWorkspaceExecutionHostId !== previous.activeWorkspaceExecutionHostId ||
       state.worktreesByRepo !== previous.worktreesByRepo ||
+      state.detectedWorktreesByRepo !== previous.detectedWorktreesByRepo ||
+      state.repos !== previous.repos ||
       state.folderWorkspaces !== previous.folderWorkspaces
     ) {
       void syncClaim()

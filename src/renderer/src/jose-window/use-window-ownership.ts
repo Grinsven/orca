@@ -33,7 +33,8 @@ export function useWindowOwnership(): void {
             console.warn('[jose-window] raise failed', error)
           })
         },
-        activateHere: (worktreeId) => void activateAndRevealWorkspace(worktreeId),
+        activateHere: (worktreeId, executionHostId) =>
+          void activateAndRevealWorkspace(worktreeId, executionHostId ? { executionHostId } : {}),
         isMissingMethod: isMissingOwnershipMethod
       }
     )

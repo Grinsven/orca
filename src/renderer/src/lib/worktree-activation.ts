@@ -79,7 +79,7 @@ export function activateAndRevealFolderWorkspace(
   const folderWorkspace = state.folderWorkspaces.find(
     (workspace) => workspace === folderWorkspaceOwner
   )
-  if (!folderWorkspace || redirectIfOwnedElsewhere(folderWorkspaceKey(folderWorkspaceId))) {
+  if (!folderWorkspace || redirectIfOwnedElsewhere(folderWorkspaceKey(folderWorkspaceId), opts)) {
     return folderWorkspace ? { primaryTabId: null } : false
   }
   const runtimeEnvironmentId =
@@ -179,7 +179,7 @@ export function activateAndRevealWorktree(
     return { primaryTabId: null }
   }
   const wt = state.getKnownWorktreeById(worktreeId, opts?.executionHostId)
-  if (!wt || redirectIfOwnedElsewhere(worktreeId)) {
+  if (!wt || redirectIfOwnedElsewhere(worktreeId, opts)) {
     return wt ? { primaryTabId: null } : false
   }
   const hasActivationWork = Boolean(

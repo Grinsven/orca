@@ -5,7 +5,11 @@ import {
   type JoseWindowClaimResult,
   type JoseWindowRevealResult
 } from '../../shared/rpc-contract/jose-window-params'
-import { windowKeyForCaller, windowOwnershipRegistry } from './window-ownership-registry'
+import {
+  toWorktreeRef,
+  windowKeyForCaller,
+  windowOwnershipRegistry
+} from './window-ownership-registry'
 
 let subscriptionSeq = 0
 
@@ -55,13 +59,19 @@ export const JOSE_WINDOW_METHODS = [
     permission: 'workspace',
     params: JoseWindowClaimParams,
     handler: async (params, ctx): Promise<JoseWindowClaimResult> =>
-      windowOwnershipRegistry.claim(requireWindowKey(ctx), params.worktreeId)
+      windowOwnershipRegistry.claim(
+        requireWindowKey(ctx),
+        params.worktreeId === null ? null : toWorktreeRef(params.worktreeId, params.executionHostId)
+      )
   }),
   defineMethod({
     name: 'joseWindow.reveal',
     permission: 'workspace',
     params: JoseWindowRevealParams,
     handler: async (params, ctx): Promise<JoseWindowRevealResult> =>
-      windowOwnershipRegistry.reveal(requireWindowKey(ctx), params.worktreeId)
+      windowOwnershipRegistry.reveal(
+        requireWindowKey(ctx),
+        toWorktreeRef(params.worktreeId, params.executionHostId)
+      )
   })
 ]

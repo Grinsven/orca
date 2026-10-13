@@ -1,11 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import type { JoseWindowOwnershipFrame } from '../../../shared/rpc-contract/jose-window-params'
+import type {
+  JoseWindowOwnershipFrame,
+  JoseWindowWorktreeRef
+} from '../../../shared/rpc-contract/jose-window-params'
 import type { Worktree } from '../../../shared/worktree/types'
 import { useAppStore } from '@/store'
 import { isOwnedByAnotherWindow } from './ownership-guard'
 import type { OwnershipSubscriptionCallbacks } from './window-ownership-client'
 import {
-  claimableWorktreeId,
   resetWindowOwnershipLogForTests,
   startWindowOwnership,
   type WindowOwnershipDeps
@@ -13,6 +15,10 @@ import {
 
 const initialAppStoreState = useAppStore.getState()
 const LOCAL = { kind: 'local' } as const
+const local = (worktreeId: string): JoseWindowWorktreeRef => ({
+  worktreeId,
+  executionHostId: 'local'
+})
 const flush = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0))
 
 function worktree(id: string, repoId: string): Worktree {
@@ -65,7 +71,7 @@ function seedStore(activeWorktreeId: string | null): ReturnType<typeof vi.fn> {
 }
 
 function harness(
-  claimResult: (worktreeId: string | null) => boolean | Promise<boolean> = () => true
+  claimResult: (ref: JoseWindowWorktreeRef | null) => boolean | Promise<boolean> = () => true
 ) {
   let callbacks: OwnershipSubscriptionCallbacks | null = null
   const unsubscribe = vi.fn()
@@ -76,10 +82,10 @@ function harness(
       callbacks = next
       return { unsubscribe }
     }),
-    claim: vi.fn(async (_target, worktreeId: string | null) => claimResult(worktreeId)),
+    claim: vi.fn(async (_target, ref: JoseWindowWorktreeRef | null) => claimResult(ref)),
     reveal: vi.fn(async () => true),
     raise: vi.fn(),
-    activateHere: vi.fn(),
+    activateHere: vi.fn<(worktreeId: string, executionHostId: string | undefined) => void>(),
     isMissingMethod: (error: unknown) => error === 'method_not_found',
     setTimer: (callback: () => void) => {
       timers.push(callback)
@@ -93,21 +99,6 @@ function harness(
 beforeEach(() => resetWindowOwnershipLogForTests())
 afterEach(() => useAppStore.setState(initialAppStoreState, true))
 
-describe('claimableWorktreeId', () => {
-  it('claims only worktrees served by the ownership host', () => {
-    seedStore('repo::a')
-    expect(claimableWorktreeId(useAppStore.getState(), LOCAL)).toBe('repo::a')
-    useAppStore.setState({ activeWorktreeId: 'remote-repo::z' })
-    expect(claimableWorktreeId(useAppStore.getState(), LOCAL)).toBeNull()
-    expect(
-      claimableWorktreeId(useAppStore.getState(), {
-        kind: 'environment',
-        environmentId: 'other-env'
-      })
-    ).toBe('remote-repo::z')
-  })
-})
-
 describe('startWindowOwnership', () => {
   it('claims the active worktree once the host snapshot arrives and on every change', async () => {
     seedStore('repo::a')
@@ -118,17 +109,17 @@ describe('startWindowOwnership', () => {
 
     h.frame({ type: 'snapshot', ownedElsewhere: [], ownedHere: null })
     await flush()
-    expect(h.deps.claim).toHaveBeenLastCalledWith(LOCAL, 'repo::a')
+    expect(h.deps.claim).toHaveBeenLastCalledWith(LOCAL, local('repo::a'))
 
     useAppStore.setState({ activeWorktreeId: 'repo::b' })
     await flush()
-    expect(h.deps.claim).toHaveBeenLastCalledWith(LOCAL, 'repo::b')
+    expect(h.deps.claim).toHaveBeenLastCalledWith(LOCAL, local('repo::b'))
     stop()
   })
 
   it('deselects when the host refuses the claim', async () => {
     const setActiveWorktree = seedStore('repo::a')
-    const h = harness((worktreeId) => worktreeId !== 'repo::a')
+    const h = harness((ref) => ref?.worktreeId !== 'repo::a')
     const stop = startWindowOwnership(LOCAL, h.deps)
     await flush()
     h.frame({ type: 'snapshot', ownedElsewhere: ['repo::a'], ownedHere: null })
@@ -163,6 +154,21 @@ describe('startWindowOwnership', () => {
     stop()
   })
 
+  it('releases the claim when the selection moves to the same id on another host', async () => {
+    seedStore('repo::a')
+    const h = harness()
+    const stop = startWindowOwnership(LOCAL, h.deps)
+    await flush()
+    h.frame({ type: 'snapshot', ownedElsewhere: [], ownedHere: null })
+    await flush()
+
+    useAppStore.setState({ activeWorkspaceExecutionHostId: 'runtime:other-env' })
+    await flush()
+
+    expect(h.deps.claim.mock.calls.map(([, ref]) => ref)).toEqual([local('repo::a'), null])
+    stop()
+  })
+
   it('drops a claim reply that crossed a reconnect and re-claims on the new stream', async () => {
     seedStore('repo::a')
     let resolveFirstClaim: (claimed: boolean) => void = () => {}
@@ -187,7 +193,7 @@ describe('startWindowOwnership', () => {
     resolveFirstClaim(true)
     await flush()
 
-    expect(h.deps.claim.mock.calls.map(([, worktreeId]) => worktreeId)).toEqual([
+    expect(h.deps.claim.mock.calls.map(([, ref]) => ref?.worktreeId)).toEqual([
       'repo::a',
       'repo::a'
     ])
