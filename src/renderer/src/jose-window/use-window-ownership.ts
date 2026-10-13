@@ -33,6 +33,11 @@ export function useWindowOwnership(): void {
             console.warn('[jose-window] raise failed', error)
           })
         },
+        applyIntent: (request) => {
+          window.joseWindow?.applyIntent?.(request).catch((error: unknown) => {
+            console.warn('[jose-window] applying a redirected request failed', error)
+          })
+        },
         activateHere: (worktreeId, executionHostId) =>
           void activateAndRevealWorkspace(worktreeId, executionHostId ? { executionHostId } : {}),
         isMissingMethod: isMissingOwnershipMethod

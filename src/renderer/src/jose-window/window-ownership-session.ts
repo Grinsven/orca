@@ -1,7 +1,9 @@
-import type {
-  JoseWindowOwnershipFrame,
-  JoseWindowWorktreeRef
+import {
+  JoseWindowNavigationIntent,
+  type JoseWindowOwnershipFrame,
+  type JoseWindowWorktreeRef
 } from '../../../shared/rpc-contract/jose-window-params'
+import type { JoseWindowIntentRequest } from '../../../shared/jose-window-intent'
 import type { ExecutionHostId } from '../../../shared/execution-host'
 import type { RuntimeClientTarget } from '@/runtime/runtime-rpc-client'
 import type { AppState } from '@/store/types'
@@ -13,6 +15,7 @@ import {
   viewExecutionHostId
 } from './ownership-ref'
 import type { OwnershipSubscriptionCallbacks } from './window-ownership-client'
+import { intentRequest, toHostIntent, toViewIntent } from './navigation-intent'
 
 type OwnershipStore = {
   getState: () => AppState
@@ -26,8 +29,14 @@ export type WindowOwnershipDeps = {
     callbacks: OwnershipSubscriptionCallbacks
   ) => Promise<{ unsubscribe: () => void }>
   claim: (target: RuntimeClientTarget, ref: JoseWindowWorktreeRef | null) => Promise<boolean>
-  reveal: (target: RuntimeClientTarget, ref: JoseWindowWorktreeRef) => Promise<boolean>
+  reveal: (
+    target: RuntimeClientTarget,
+    ref: JoseWindowWorktreeRef,
+    intent?: JoseWindowNavigationIntent
+  ) => Promise<boolean>
   raise: () => void
+  /** Delivers a redirected request to this window's own UI event bridge. */
+  applyIntent: (request: JoseWindowIntentRequest) => void
   activateHere: (worktreeId: string, executionHostId: ExecutionHostId | undefined) => void
   isMissingMethod: (error: unknown) => boolean
   /** Returns a canceller. */
@@ -78,9 +87,15 @@ export function startWindowOwnership(
   const link = {
     resolve: (worktreeId: string, executionHostId?: ExecutionHostId | null) =>
       resolveOwnershipRef(deps.store.getState(), target, worktreeId, executionHostId),
-    reveal: (ref: JoseWindowWorktreeRef) => deps.reveal(target, ref),
-    activateHere: (ref: JoseWindowWorktreeRef) =>
+    reveal: (ref: JoseWindowWorktreeRef, intent?: JoseWindowNavigationIntent) =>
+      deps.reveal(target, ref, intent && toHostIntent(intent, target, ref.worktreeId)),
+    activateHere: (ref: JoseWindowWorktreeRef, intent?: JoseWindowNavigationIntent) => {
+      if (intent && intent.kind !== 'workspace') {
+        deps.applyIntent(intentRequest(ref.worktreeId, intent, target))
+        return
+      }
       deps.activateHere(ref.worktreeId, viewExecutionHostId(ref, target))
+    }
   }
   let stopped = false
   let unsupported = false
@@ -149,14 +164,21 @@ export function startWindowOwnership(
 
   // Why: a reveal is only worth raising for while this window still shows that workspace; one that
   // crossed a newer selection here must not raise (or switch to) the old one.
-  const revealHere = (ref: JoseWindowWorktreeRef): void => {
+  const revealHere = (ref: JoseWindowWorktreeRef, rawIntent: unknown): void => {
     const state = deps.store.getState()
     if (keyOf(activeOwnershipRef(state, target)) !== ownershipKey(ref)) {
       console.info(`[jose-window] obsolete reveal for ${ref.worktreeId} ignored`)
       return
     }
-    // Tasks or Settings keep the active worktree; the reveal asks for its workspace surface.
-    if (state.activeView !== 'terminal') {
+    const parsed = JoseWindowNavigationIntent.safeParse(rawIntent)
+    const intent = parsed.success ? parsed.data : null
+    if (intent && intent.kind !== 'workspace') {
+      // The bridge handler switches to the terminal surface itself.
+      deps.applyIntent(
+        intentRequest(ref.worktreeId, toViewIntent(intent, target, ref.worktreeId), target)
+      )
+    } else if (state.activeView !== 'terminal') {
+      // Tasks or Settings keep the active worktree; the reveal asks for its workspace surface.
       state.setActiveView('terminal')
     }
     deps.raise()
@@ -171,10 +193,10 @@ export function startWindowOwnership(
       return
     }
     if (frame.type === 'reveal') {
-      revealHere({
-        worktreeId: frame.worktreeId,
-        executionHostId: frame.executionHostId ?? 'local'
-      })
+      revealHere(
+        { worktreeId: frame.worktreeId, executionHostId: frame.executionHostId ?? 'local' },
+        frame.intent
+      )
       return
     }
     retryMs = RETRY_MIN_MS

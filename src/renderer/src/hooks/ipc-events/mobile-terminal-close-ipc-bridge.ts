@@ -17,6 +17,7 @@ import {
   type RuntimeNavigationTarget
 } from '../../../../shared/runtime-navigation'
 import { redirectIfOwnedElsewhere } from '@/jose-window/ownership-guard'
+import type { JoseWindowNavigationIntent } from '../../../../shared/rpc-contract/jose-window-params'
 
 // Why: a caller that names a non-host target (CLI without --focus) must not change anything on screen;
 // the tab is selected only inside a worktree the user is not viewing, without counting as a visit.
@@ -24,6 +25,7 @@ import { redirectIfOwnedElsewhere } from '@/jose-window/ownership-guard'
 function openRuntimeEditorTab(
   worktreeId: string,
   navigation: RuntimeNavigationTarget | undefined,
+  intent: JoseWindowNavigationIntent,
   open: (store: AppState, selection: EditorTabSelection) => void
 ): void {
   const store = useAppStore.getState()
@@ -34,7 +36,7 @@ function openRuntimeEditorTab(
     open(store, isViewed ? 'none' : 'background')
     return
   }
-  if (redirectIfOwnedElsewhere(worktreeId)) {
+  if (redirectIfOwnedElsewhere(worktreeId, { intent })) {
     return
   }
   revealWorkspaceSurface(store, worktreeId)
@@ -63,7 +65,8 @@ export function registerMobileAndTerminalCloseIpcBridge(
           return
         }
         const basename = relativePath.split(/[\\/]/).pop() || relativePath
-        openRuntimeEditorTab(worktreeId, navigation, (store, selection) => {
+        const intent = { kind: 'file', filePath, relativePath } satisfies JoseWindowNavigationIntent
+        openRuntimeEditorTab(worktreeId, navigation, intent, (store, selection) => {
           // Why: renderer owns tab creation so grouped order and markdown bridges share the desktop File Explorer's store path.
           const fileId = store.openFile(
             {
@@ -85,7 +88,13 @@ export function registerMobileAndTerminalCloseIpcBridge(
   unsubs.push(
     window.api.ui.onOpenDiffFromMobile(
       ({ worktreeId, filePath, relativePath, staged, runtimeEnvironmentId, navigation }) => {
-        openRuntimeEditorTab(worktreeId, navigation, (store, selection) =>
+        const intent = {
+          kind: 'diff',
+          filePath,
+          relativePath,
+          staged
+        } satisfies JoseWindowNavigationIntent
+        openRuntimeEditorTab(worktreeId, navigation, intent, (store, selection) =>
           // Why: mobile renders diffs from metadata; the editor-local Changes shortcut would send plain markdown back to mobile.
           store.openDiff(worktreeId, filePath, relativePath, detectLanguage(relativePath), staged, {
             runtimeEnvironmentId,

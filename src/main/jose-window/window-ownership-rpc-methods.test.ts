@@ -33,6 +33,10 @@ function subscribe(options: RpcDispatchStreamingOptions): unknown[] {
   return frames
 }
 
+function isRevealFrame(frame: unknown): boolean {
+  return typeof frame === 'object' && frame !== null && 'type' in frame && frame.type === 'reveal'
+}
+
 async function call(method: string, params: unknown, options?: RpcDispatchStreamingOptions) {
   return rpc.dispatch({ id: 'c', authToken: 't', method, params }, options)
 }
@@ -58,6 +62,23 @@ describe('joseWindow RPC methods', () => {
       type: 'reveal',
       worktreeId: 'wt-a',
       executionHostId: 'local'
+    })
+  })
+
+  it('hands the redirected file request to the owning window only', async () => {
+    const hostFrames = subscribe(HOST)
+    const window2Frames = subscribe(WINDOW_2)
+    await call('joseWindow.claim', { worktreeId: 'wt-a' }, WINDOW_2)
+    const intent = { kind: 'file', filePath: '/repo/a.ts', relativePath: 'a.ts' }
+
+    await call('joseWindow.reveal', { worktreeId: 'wt-a', intent }, HOST)
+
+    expect({
+      owner: window2Frames.filter(isRevealFrame),
+      caller: hostFrames.filter(isRevealFrame)
+    }).toEqual({
+      owner: [{ type: 'reveal', worktreeId: 'wt-a', executionHostId: 'local', intent }],
+      caller: []
     })
   })
 

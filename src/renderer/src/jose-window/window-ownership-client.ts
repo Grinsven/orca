@@ -1,6 +1,7 @@
 import type { GlobalSettings } from '../../../shared/global-settings-types'
 import type { RuntimeRpcResponse } from '../../../shared/runtime-rpc-envelope'
 import type {
+  JoseWindowNavigationIntent,
   JoseWindowOwnershipFrame,
   JoseWindowWorktreeRef
 } from '../../../shared/rpc-contract/jose-window-params'
@@ -77,10 +78,14 @@ export async function claimWorktree(
 
 export async function revealWorktreeOwner(
   target: RuntimeClientTarget,
-  ref: JoseWindowWorktreeRef
+  ref: JoseWindowWorktreeRef,
+  intent?: JoseWindowNavigationIntent
 ): Promise<boolean> {
-  const result = await callRuntimeRpc<{ revealed: boolean }>(target, 'joseWindow.reveal', ref, {
-    timeoutMs: 10_000
-  })
+  const result = await callRuntimeRpc<{ revealed: boolean }>(
+    target,
+    'joseWindow.reveal',
+    { ...ref, ...(intent ? { intent } : {}) },
+    { timeoutMs: 10_000 }
+  )
   return result.revealed
 }

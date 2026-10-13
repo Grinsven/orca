@@ -1,4 +1,7 @@
-import type { JoseWindowWorktreeRef } from '../../../shared/rpc-contract/jose-window-params'
+import type {
+  JoseWindowNavigationIntent,
+  JoseWindowWorktreeRef
+} from '../../../shared/rpc-contract/jose-window-params'
 import type { ExecutionHostId } from '../../../shared/execution-host'
 import { useAppStore } from '@/store'
 import { markSidebarWorktreeActiveImmediately } from '@/components/sidebar/worktree-list/rows/option-dom'
@@ -11,12 +14,16 @@ export type WindowOwnershipLink = {
     executionHostId?: ExecutionHostId | null
   ) => JoseWindowWorktreeRef | null
   /** Resolves false when the host found no other window to raise. */
-  reveal: (ref: JoseWindowWorktreeRef) => Promise<boolean>
-  /** Opens the worktree here after all, when its owner turned out to be gone. */
-  activateHere?: (ref: JoseWindowWorktreeRef) => void
+  reveal: (ref: JoseWindowWorktreeRef, intent?: JoseWindowNavigationIntent) => Promise<boolean>
+  /** Carries the request out here after all, when its owner turned out to be gone. */
+  activateHere?: (ref: JoseWindowWorktreeRef, intent?: JoseWindowNavigationIntent) => void
 }
 
-export type OwnershipTargetOptions = { executionHostId?: ExecutionHostId | null }
+export type OwnershipTargetOptions = {
+  executionHostId?: ExecutionHostId | null
+  /** The redirected request in this window's terms; a plain workspace reveal when absent. */
+  intent?: JoseWindowNavigationIntent
+}
 
 let link: WindowOwnershipLink | null = null
 let ownedElsewhere: ReadonlySet<string> = new Set()
@@ -98,10 +105,15 @@ export function redirectIfOwnedElsewhere(
   const fallBack = (): void => {
     const key = ownershipKey(ref)
     ownedElsewhere = new Set([...ownedElsewhere].filter((owned) => owned !== key))
-    current.activateHere?.(ref)
+    if (opts?.intent) {
+      current.activateHere?.(ref, opts.intent)
+    } else {
+      current.activateHere?.(ref)
+    }
   }
   restoreSidebarActiveRow()
-  void current.reveal(ref).then(
+  const revealed = opts?.intent ? current.reveal(ref, opts.intent) : current.reveal(ref)
+  void revealed.then(
     (revealed) => {
       if (!revealed && isStillCurrent()) {
         fallBack()

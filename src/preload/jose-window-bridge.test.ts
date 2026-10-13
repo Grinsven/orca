@@ -7,6 +7,7 @@ vi.mock('electron', () => ({
 }))
 
 import { createJoseWindowApi, exposeJoseWindowApi } from './jose-window-bridge'
+import type { JoseWindowIntentRequest } from '../shared/jose-window-intent'
 
 afterEach(() => {
   exposeInMainWorld.mockReset()
@@ -28,8 +29,18 @@ describe('jose window preload bridge', () => {
     expect(invoke).toHaveBeenCalledWith('joseWindow:raise')
   })
 
+  it('applyIntent hands a redirected request to this process', async () => {
+    const invoke = vi.fn(async () => true)
+    const request: JoseWindowIntentRequest = {
+      worktreeId: 'repo::a',
+      intent: { kind: 'workspace' }
+    }
+    await expect(createJoseWindowApi({}, invoke).applyIntent(request)).resolves.toBe(true)
+    expect(invoke).toHaveBeenCalledWith('joseWindow:applyIntent', request)
+  })
+
   it('exposes the api as window.joseWindow through the context bridge', () => {
-    const api = { isSecondWindow: true, raise: vi.fn() }
+    const api = { isSecondWindow: true, raise: vi.fn(), applyIntent: vi.fn() }
     Object.defineProperty(process, 'contextIsolated', { value: true, configurable: true })
     try {
       exposeJoseWindowApi(api)
@@ -42,7 +53,7 @@ describe('jose window preload bridge', () => {
   it('assigns window.joseWindow directly when context isolation is off', () => {
     const fakeWindow: { joseWindow?: unknown } = {}
     vi.stubGlobal('window', fakeWindow)
-    const api = { isSecondWindow: false, raise: vi.fn() }
+    const api = { isSecondWindow: false, raise: vi.fn(), applyIntent: vi.fn() }
     exposeJoseWindowApi(api)
     expect(fakeWindow.joseWindow).toBe(api)
     expect(exposeInMainWorld).not.toHaveBeenCalled()

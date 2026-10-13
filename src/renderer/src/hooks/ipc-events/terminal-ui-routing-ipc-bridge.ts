@@ -13,6 +13,7 @@ import { resolveWindowTabIdForHostTab } from './host-session-tab-target'
 import { revealWorkspaceSurface } from '@/lib/workspace-surface-reveal'
 import { focusTerminalInitiatedTab } from './terminal-command-state'
 import { redirectIfOwnedElsewhere } from '@/jose-window/ownership-guard'
+import type { JoseWindowNavigationIntent } from '../../../../shared/rpc-contract/jose-window-params'
 
 type RuntimeTerminalSplitRequest = SplitTerminalPaneDetail & { worktreeId?: string }
 
@@ -127,7 +128,14 @@ export function registerTerminalUiRoutingIpcBridge(unsubs: (() => void)[]): void
         flashFocusedPane,
         scrollToBottomIfOutputSinceLastView
       }) => {
-        if (redirectIfOwnedElsewhere(worktreeId)) {
+        const intent = {
+          kind: 'terminal',
+          tabId,
+          leafId,
+          flashFocusedPane,
+          scrollToBottomIfOutputSinceLastView
+        } satisfies JoseWindowNavigationIntent
+        if (redirectIfOwnedElsewhere(worktreeId, { intent })) {
           return
         }
         const store = useAppStore.getState()
@@ -167,7 +175,7 @@ export function registerTerminalUiRoutingIpcBridge(unsubs: (() => void)[]): void
       ) {
         return
       }
-      if (redirectIfOwnedElsewhere(worktreeId)) {
+      if (redirectIfOwnedElsewhere(worktreeId, { intent: { kind: 'tab', tabId, userInitiated } })) {
         return
       }
       if (!tab) {

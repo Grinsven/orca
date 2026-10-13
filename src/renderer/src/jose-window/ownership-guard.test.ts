@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { JoseWindowWorktreeRef } from '../../../shared/rpc-contract/jose-window-params'
+import type { JoseWindowNavigationIntent } from '../../../shared/rpc-contract/jose-window-params'
 import type { ExecutionHostId } from '../../../shared/execution-host'
 import type { Worktree } from '../../../shared/worktree/types'
 import { useAppStore } from '@/store'
@@ -128,6 +129,25 @@ describe('window ownership activation guard', () => {
 
     expect(activateHere).toHaveBeenCalledWith(local('repo-1::a'))
     expect(redirectIfOwnedElsewhere('repo-1::a')).toBe(false)
+  })
+
+  it('carries the redirected request out here when the owner is confirmed gone', async () => {
+    seed()
+    const activateHere = vi.fn()
+    setWindowOwnershipView({
+      link: hostLink(async () => false, activateHere),
+      ownedElsewhere: [local('repo-1::a')]
+    })
+    const intent: JoseWindowNavigationIntent = {
+      kind: 'file',
+      filePath: '/workspace/a/x.ts',
+      relativePath: 'x.ts'
+    }
+
+    redirectIfOwnedElsewhere('repo-1::a', { intent })
+    await flush()
+
+    expect(activateHere).toHaveBeenCalledWith(local('repo-1::a'), intent)
   })
 
   it('drops the fallback once the user has selected something else', async () => {

@@ -4,6 +4,11 @@ import {
   JOSE_WINDOW_RAISE_CHANNEL,
   type RaiseOwnWindowResult
 } from '../../shared/jose-window-raise'
+import {
+  JOSE_WINDOW_APPLY_INTENT_CHANNEL,
+  JoseWindowIntentRequest,
+  uiEventForIntent
+} from '../../shared/jose-window-intent'
 import { raiseOwnWindow } from './raise-own-window'
 
 /** Only the main renderer's current document may drive this window: auxiliary renderers share the
@@ -26,5 +31,17 @@ export function registerJoseWindowIpc(): void {
     const result = raiseOwnWindow(BrowserWindow.fromWebContents(event.sender))
     console.info(`[jose-window] raise: ${result}`)
     return result
+  })
+  ipcMain.removeHandler(JOSE_WINDOW_APPLY_INTENT_CHANNEL)
+  ipcMain.handle(JOSE_WINDOW_APPLY_INTENT_CHANNEL, (event, request: unknown): boolean => {
+    assertTrustedMainFrame(event)
+    const parsed = JoseWindowIntentRequest.safeParse(request)
+    const uiEvent = parsed.success ? uiEventForIntent(parsed.data) : null
+    if (!uiEvent) {
+      return false
+    }
+    // Same event main sends for a CLI or mobile request, so the renderer bridge applies it.
+    event.sender.send(uiEvent.channel, uiEvent.payload)
+    return true
   })
 }

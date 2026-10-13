@@ -1,4 +1,5 @@
 import type {
+  JoseWindowNavigationIntent,
   JoseWindowOwnershipFrame,
   JoseWindowWorktreeRef
 } from '../../shared/rpc-contract/jose-window-params'
@@ -84,15 +85,20 @@ export class WindowOwnershipRegistry {
     return { claimed }
   }
 
-  /** Asks the owning window, and only that window, to come forward on its worktree. */
-  reveal(callerKey: string, ref: JoseWindowWorktreeRef): { revealed: boolean } {
+  /** Asks the owning window, and only that window, to come forward on its worktree and carry out
+   *  the request that was redirected to it. */
+  reveal(
+    callerKey: string,
+    ref: JoseWindowWorktreeRef,
+    intent?: JoseWindowNavigationIntent
+  ): { revealed: boolean } {
     const owner = this.liveOwnerOf(ref)
     if (owner === null || owner === callerKey) {
       return { revealed: false }
     }
     for (const subscriber of this.subscribers.values()) {
       if (subscriber.windowKey === owner) {
-        subscriber.emit({ type: 'reveal', ...ref })
+        subscriber.emit({ type: 'reveal', ...ref, ...(intent ? { intent } : {}) })
       }
     }
     return { revealed: true }

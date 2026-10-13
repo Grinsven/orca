@@ -1,10 +1,15 @@
 import type { RaiseOwnWindowResult } from '../../../shared/jose-window-raise'
+import type { JoseWindowIntentRequest } from '../../../shared/jose-window-intent'
 
 declare global {
   // oxlint-disable-next-line typescript-eslint/consistent-type-definitions -- declaration merging requires interface
   interface Window {
     /** Fork preload bridge (src/preload/jose-window-bridge.ts); absent in the web client. */
-    joseWindow?: { isSecondWindow?: boolean; raise?: () => Promise<RaiseOwnWindowResult> }
+    joseWindow?: {
+      isSecondWindow?: boolean
+      raise?: () => Promise<RaiseOwnWindowResult>
+      applyIntent?: (request: JoseWindowIntentRequest) => Promise<boolean>
+    }
   }
 }
 

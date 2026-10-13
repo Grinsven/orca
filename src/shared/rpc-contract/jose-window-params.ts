@@ -10,7 +10,34 @@ export const JoseWindowWorktreeRef = z.object({
 })
 export type JoseWindowWorktreeRef = z.infer<typeof JoseWindowWorktreeRef>
 
-// Why optional executionHostId: an older window sends bare ids, which the host reads as `local`.
+/** What the redirected request asked for, so the owner can do it after raising. Tab ids are the
+ *  ownership host's; each window maps them to its own. */
+export const JoseWindowNavigationIntent = z.discriminatedUnion('kind', [
+  z.object({ kind: z.literal('workspace') }),
+  z.object({ kind: z.literal('file'), filePath: z.string().min(1), relativePath: z.string() }),
+  z.object({
+    kind: z.literal('diff'),
+    filePath: z.string().min(1),
+    relativePath: z.string(),
+    staged: z.boolean()
+  }),
+  z.object({
+    kind: z.literal('terminal'),
+    tabId: z.string().min(1),
+    leafId: z.string().nullable().optional(),
+    flashFocusedPane: z.boolean().optional(),
+    scrollToBottomIfOutputSinceLastView: z.boolean().optional()
+  }),
+  z.object({
+    kind: z.literal('tab'),
+    tabId: z.string().min(1),
+    userInitiated: z.boolean().optional()
+  })
+])
+export type JoseWindowNavigationIntent = z.infer<typeof JoseWindowNavigationIntent>
+
+// Why optional fields: an older window sends bare ids (read as `local`) and no intent; an older
+// host drops the intent, so its owner only raises.
 export const JoseWindowClaimParams = z.object({
   worktreeId: z.string().min(1).nullable(),
   executionHostId: z.string().min(1).optional()
@@ -18,7 +45,8 @@ export const JoseWindowClaimParams = z.object({
 
 export const JoseWindowRevealParams = z.object({
   worktreeId: z.string().min(1),
-  executionHostId: z.string().min(1).optional()
+  executionHostId: z.string().min(1).optional(),
+  intent: JoseWindowNavigationIntent.optional()
 })
 
 export type JoseWindowClaimResult = { claimed: boolean }
@@ -35,5 +63,10 @@ export type JoseWindowOwnershipFrame =
       ownedElsewhereRefs?: JoseWindowWorktreeRef[]
       ownedHereRef?: JoseWindowWorktreeRef | null
     }
-  | { type: 'reveal'; worktreeId: string; executionHostId?: string }
+  | {
+      type: 'reveal'
+      worktreeId: string
+      executionHostId?: string
+      intent?: JoseWindowNavigationIntent
+    }
   | { type: 'end' }

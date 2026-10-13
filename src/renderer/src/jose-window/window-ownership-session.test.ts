@@ -1,10 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type {
+  JoseWindowNavigationIntent,
   JoseWindowOwnershipFrame,
   JoseWindowWorktreeRef
 } from '../../../shared/rpc-contract/jose-window-params'
 import type { Worktree } from '../../../shared/worktree/types'
+import type { JoseWindowIntentRequest } from '../../../shared/jose-window-intent'
 import { useAppStore } from '@/store'
+import type { RuntimeClientTarget } from '@/runtime/runtime-rpc-client'
 import { isOwnedByAnotherWindow } from './ownership-guard'
 import type { OwnershipSubscriptionCallbacks } from './window-ownership-client'
 import {
@@ -85,6 +88,7 @@ function harness(
     claim: vi.fn(async (_target, ref: JoseWindowWorktreeRef | null) => claimResult(ref)),
     reveal: vi.fn(async () => true),
     raise: vi.fn(),
+    applyIntent: vi.fn<(request: JoseWindowIntentRequest) => void>(),
     activateHere: vi.fn<(worktreeId: string, executionHostId: string | undefined) => void>(),
     isMissingMethod: (error: unknown) => error === 'method_not_found',
     setTimer: (callback: () => void) => {
@@ -213,6 +217,54 @@ describe('startWindowOwnership', () => {
     h.frame({ type: 'reveal', worktreeId: 'repo::a', executionHostId: 'local' })
     stop()
     expect(viewsAtRaise).toEqual(['terminal'])
+  })
+
+  it('carries out a redirected file open after checking it still owns the worktree', async () => {
+    seedStore('remote-repo::z')
+    useAppStore.setState({ activeWorkspaceExecutionHostId: 'runtime:other-env' })
+    const target: RuntimeClientTarget = { kind: 'environment', environmentId: 'other-env' }
+    const h = harness()
+    const stop = startWindowOwnership(target, h.deps)
+    await flush()
+    h.frame({
+      type: 'reveal',
+      worktreeId: 'remote-repo::z',
+      executionHostId: 'local',
+      intent: { kind: 'file', filePath: '/x/z/a.ts', relativePath: 'a.ts' }
+    })
+    stop()
+
+    expect({
+      applied: h.deps.applyIntent.mock.calls,
+      raised: h.deps.raise.mock.calls.length
+    }).toEqual({
+      applied: [
+        [
+          {
+            worktreeId: 'remote-repo::z',
+            runtimeEnvironmentId: 'other-env',
+            intent: { kind: 'file', filePath: '/x/z/a.ts', relativePath: 'a.ts' }
+          }
+        ]
+      ],
+      raised: 1
+    })
+  })
+
+  it('focuses the requested terminal pane, not just the worktree', async () => {
+    seedStore('repo::a')
+    const h = harness()
+    const stop = startWindowOwnership(LOCAL, h.deps)
+    await flush()
+    const intent: JoseWindowNavigationIntent = {
+      kind: 'terminal',
+      tabId: 'tab-2',
+      leafId: 'leaf-3'
+    }
+    h.frame({ type: 'reveal', worktreeId: 'repo::a', executionHostId: 'local', intent })
+    stop()
+
+    expect(h.deps.applyIntent).toHaveBeenCalledWith({ worktreeId: 'repo::a', intent })
   })
 
   it('ignores a reveal for a worktree this window has since left', async () => {

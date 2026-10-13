@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import type { ExecutionHostId } from '../../../shared/execution-host'
+import type { RuntimeClientTarget } from '@/runtime/runtime-rpc-client'
 import { activeOwnershipRef, resolveOwnershipRef, viewExecutionHostId } from './ownership-ref'
 
-const HOST = { kind: 'local' } as const
-const WINDOW_2 = { kind: 'environment', environmentId: 'main-env' } as const
+const HOST: RuntimeClientTarget = { kind: 'local' }
+const WINDOW_2: RuntimeClientTarget = { kind: 'environment', environmentId: 'main-env' }
 
 function row(hostId: ExecutionHostId) {
   return { id: 'repo-1::a', repoId: 'repo-1', hostId }

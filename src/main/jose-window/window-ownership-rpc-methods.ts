@@ -71,7 +71,8 @@ export const JOSE_WINDOW_METHODS = [
     handler: async (params, ctx): Promise<JoseWindowRevealResult> =>
       windowOwnershipRegistry.reveal(
         requireWindowKey(ctx),
-        toWorktreeRef(params.worktreeId, params.executionHostId)
+        toWorktreeRef(params.worktreeId, params.executionHostId),
+        params.intent
       )
   })
 ]
