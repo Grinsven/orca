@@ -3,7 +3,10 @@ import { describe, expect, it, vi } from 'vitest'
 vi.mock('electron', () => ({ app: { focus: vi.fn(), isReady: vi.fn() } }))
 
 import type { BrowserWindow } from 'electron'
-import type { FocusExistingMainWindowOptions } from '../window/focus-existing-window'
+import type {
+  FocusExistingMainWindowOptions,
+  FocusExistingMainWindowResult
+} from '../window/focus-existing-window'
 import { raiseOwnWindow } from './raise-own-window'
 
 function fakeWindow(focused: boolean) {
@@ -20,7 +23,9 @@ function deps(backgroundLaunch: boolean) {
   return {
     app: { focus: vi.fn(), isReady: () => true },
     isBackgroundLaunch: () => backgroundLaunch,
-    focusExisting: vi.fn((_options: FocusExistingMainWindowOptions) => 'focused' as const)
+    focusExisting: vi.fn(
+      (_options: FocusExistingMainWindowOptions): FocusExistingMainWindowResult => 'focused'
+    )
   }
 }
 

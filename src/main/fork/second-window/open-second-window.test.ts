@@ -6,7 +6,7 @@ vi.mock('electron', () => ({ app: { getPath: vi.fn(), isPackaged: false, getAppP
 vi.mock('../../startup/main-process-state', () => ({ mainProcessState: {} }))
 
 import { createSecondWindowOpener, type SecondWindowOpenerDeps } from './open-second-window'
-import type { SecondWindowLaunch } from './second-window-spawn'
+import type { SecondWindowLaunch, SecondWindowLaunchOutcome } from './second-window-spawn'
 
 const hostProfile = join(tmpdir(), 'orca')
 
@@ -28,9 +28,9 @@ function harness() {
       envOverrides: {},
       slotDir
     }),
-    start: vi.fn((_launch: SecondWindowLaunch, onFailed: () => void) => {
+    start: vi.fn((_launch: SecondWindowLaunch, onFailed: () => void): SecondWindowLaunchOutcome => {
       failLaunch = onFailed
-      return 'spawned' as const
+      return 'spawned'
     }),
     setTimer: (callback: () => void) => {
       timers.push(callback)
