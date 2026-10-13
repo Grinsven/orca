@@ -16,6 +16,7 @@ import {
   navigationTargetsHost,
   type RuntimeNavigationTarget
 } from '../../../../shared/runtime-navigation'
+import { redirectIfOwnedElsewhere } from '@/jose-window/ownership-guard'
 
 // Why: a caller that names a non-host target (CLI without --focus) must not change anything on screen;
 // the tab is selected only inside a worktree the user is not viewing, without counting as a visit.
@@ -31,6 +32,9 @@ function openRuntimeEditorTab(
       worktreeId === store.activeWorktreeId ||
       (isFloatingWorkspaceId(worktreeId) && selectFloatingWorkspacePanelVisible(store))
     open(store, isViewed ? 'none' : 'background')
+    return
+  }
+  if (redirectIfOwnedElsewhere(worktreeId)) {
     return
   }
   revealWorkspaceSurface(store, worktreeId)

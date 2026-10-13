@@ -12,6 +12,7 @@ import { resolveBrowserSessionTabTarget } from './browser-session-tab-target'
 import { resolveWindowTabIdForHostTab } from './host-session-tab-target'
 import { revealWorkspaceSurface } from '@/lib/workspace-surface-reveal'
 import { focusTerminalInitiatedTab } from './terminal-command-state'
+import { redirectIfOwnedElsewhere } from '@/jose-window/ownership-guard'
 
 type RuntimeTerminalSplitRequest = SplitTerminalPaneDetail & { worktreeId?: string }
 
@@ -126,6 +127,9 @@ export function registerTerminalUiRoutingIpcBridge(unsubs: (() => void)[]): void
         flashFocusedPane,
         scrollToBottomIfOutputSinceLastView
       }) => {
+        if (redirectIfOwnedElsewhere(worktreeId)) {
+          return
+        }
         const store = useAppStore.getState()
         revealWorkspaceSurface(store, worktreeId)
         store.setActiveTab(tabId)
@@ -161,6 +165,9 @@ export function registerTerminalUiRoutingIpcBridge(unsubs: (() => void)[]): void
         tab?.contentType === 'agent-session' &&
         store.activeWorktreeId !== worktreeId
       ) {
+        return
+      }
+      if (redirectIfOwnedElsewhere(worktreeId)) {
         return
       }
       if (!tab) {

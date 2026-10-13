@@ -26,6 +26,7 @@ import { useCodexSharedSettingsNotice } from '../components/terminal-pane/codex-
 import { useVisibleReviewRefreshReporting } from './use-visible-review-refresh-reporting'
 import { useVisibleHostedReviewRefresh } from './use-visible-hosted-review-refresh'
 import { useProfileStateSaveDelayNotice } from './use-profile-state-save-delay-notice'
+import { useWindowOwnership } from '../jose-window/use-window-ownership'
 
 /**
  * App-level subscriptions that must outlive any individual surface. Each one is here because
@@ -47,6 +48,7 @@ export function useAppShellServices(): void {
   useHostModelCatalogSnapshotsSync()
   // Subscribe to IPC push events
   useIpcEvents()
+  useWindowOwnership()
   useProfileStateSaveDelayNotice()
   useRemoteRuntimeRecoveryTriggers()
   useVisibleReviewRefreshReporting()

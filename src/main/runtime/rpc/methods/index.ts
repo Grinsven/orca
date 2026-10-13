@@ -60,11 +60,13 @@ import { ARTIFACT_METHODS } from './artifacts'
 import { AGENT_HOOK_METHODS } from './agent-hooks'
 import { AGENT_LAUNCH_METHODS } from './agent-launch'
 import { WORKSPACE_LAYOUT_METHODS } from './workspace-layout'
+import { JOSE_WINDOW_METHODS } from '../../../jose-window/window-ownership-rpc-methods'
 
 // Why: a flat manifest keeps registration order explicit and provides one
 // grep-point for "what methods does the RPC server expose?" — useful when
 // auditing the security boundary or wiring new CLI commands.
 export const ALL_RPC_METHODS = [
+  ...JOSE_WINDOW_METHODS,
   ...STATUS_METHODS,
   ...ORCAD_TERMINAL_CENSUS_METHODS,
   ...ORCAD_MIGRATION_METHODS,
