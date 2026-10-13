@@ -188,6 +188,30 @@ describe('window ownership activation guard', () => {
     expect(activateHere).not.toHaveBeenCalled()
   })
 
+  it('drops the fallback after navigating away and back to the same workspace', async () => {
+    seed()
+    const activateHere = vi.fn()
+    let answer: (revealed: boolean) => void = () => {}
+    const reveal = vi.fn(
+      () =>
+        new Promise<boolean>((resolve) => {
+          answer = resolve
+        })
+    )
+    setWindowOwnershipView({
+      link: hostLink(reveal, activateHere),
+      ownedElsewhere: [local('repo-1::a')]
+    })
+
+    redirectIfOwnedElsewhere('repo-1::a')
+    useAppStore.setState({ activeWorktreeId: 'repo-1::c' })
+    useAppStore.setState({ activeWorktreeId: 'repo-1::b' })
+    answer(false)
+    await flush()
+
+    expect(activateHere).not.toHaveBeenCalled()
+  })
+
   it('drops the fallback of an earlier redirect when a newer one starts', async () => {
     seed()
     const activateHere = vi.fn()

@@ -28,14 +28,25 @@ export type OwnershipTargetOptions = {
 let link: WindowOwnershipLink | null = null
 let ownedElsewhere: ReadonlySet<string> = new Set()
 let redirectEpoch = 0
+let navigationRevision = 0
+let navigationTracked = false
 
-function selectionStamp(): string {
-  const state = useAppStore.getState()
-  return [
-    state.activeView,
-    state.activeWorkspaceExecutionHostId ?? '',
-    state.activeWorktreeId ?? ''
-  ].join('|')
+// Why a counter, not the selection value: B to C and back to B ends on the same selection, yet the
+// user has navigated since the redirect started.
+function trackNavigation(): void {
+  if (navigationTracked) {
+    return
+  }
+  navigationTracked = true
+  useAppStore.subscribe((state, previous) => {
+    if (
+      state.activeWorktreeId !== previous.activeWorktreeId ||
+      state.activeWorkspaceExecutionHostId !== previous.activeWorkspaceExecutionHostId ||
+      state.activeView !== previous.activeView
+    ) {
+      navigationRevision += 1
+    }
+  })
 }
 
 /** Written by the ownership session from the host's snapshot; null when not connected. */
@@ -89,10 +100,11 @@ function revealThroughLink(
   ref: JoseWindowWorktreeRef,
   intent: JoseWindowNavigationIntent | undefined
 ): void {
+  trackNavigation()
   const epoch = ++redirectEpoch
-  const expectedSelection = selectionStamp()
+  const revision = navigationRevision
   const isStillCurrent = (): boolean =>
-    link === current && epoch === redirectEpoch && selectionStamp() === expectedSelection
+    link === current && epoch === redirectEpoch && navigationRevision === revision
   const fallBack = (): void => {
     const key = ownershipKey(ref)
     ownedElsewhere = new Set([...ownedElsewhere].filter((owned) => owned !== key))
