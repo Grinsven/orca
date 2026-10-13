@@ -23,7 +23,7 @@ import { registerStatsHandlers } from '../stats'
 import { registerMemoryHandlers } from '../memory'
 import { registerRateLimitHandlers } from '../rate-limits'
 import { registerRuntimeHandlers } from '../runtime'
-import { registerRaiseOwnWindowIpc } from '../../jose-window/raise-own-window-ipc'
+import { registerJoseWindowIpc } from '../../jose-window/jose-window-ipc'
 import {
   invalidateRuntimeEnvironmentTransport,
   registerRuntimeEnvironmentHandlers
@@ -247,7 +247,7 @@ export function registerCoreHandlers(
   }
   registerFilesystemWatcherHandlers()
   registerRuntimeHandlers(runtime)
-  registerRaiseOwnWindowIpc()
+  registerJoseWindowIpc()
   registerRuntimeEnvironmentHandlers(store)
   registerWslHostHandlers({
     store,

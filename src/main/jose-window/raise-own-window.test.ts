@@ -1,9 +1,10 @@
 import { describe, expect, it, vi } from 'vitest'
 
-vi.mock('electron', () => ({ app: { focus: vi.fn() }, BrowserWindow: {}, ipcMain: {} }))
+vi.mock('electron', () => ({ app: { focus: vi.fn(), isReady: vi.fn() } }))
 
 import type { BrowserWindow } from 'electron'
-import { raiseOwnWindow } from './raise-own-window-ipc'
+import type { FocusExistingMainWindowOptions } from '../window/focus-existing-window'
+import { raiseOwnWindow } from './raise-own-window'
 
 function fakeWindow(focused: boolean) {
   const window = {
@@ -17,30 +18,28 @@ function fakeWindow(focused: boolean) {
 
 function deps(backgroundLaunch: boolean) {
   return {
-    app: { focus: vi.fn() },
+    app: { focus: vi.fn(), isReady: () => true },
     isBackgroundLaunch: () => backgroundLaunch,
-    reveal: vi.fn()
+    focusExisting: vi.fn((_options: FocusExistingMainWindowOptions) => 'focused' as const)
   }
 }
 
 describe('raiseOwnWindow', () => {
-  it('takes the foreground from the other Orca process and reveals this window', () => {
-    const { window, browserWindow } = fakeWindow(true)
+  it('raises through the shared second-instance focus path, never opening a window', () => {
+    const { browserWindow } = fakeWindow(true)
     const d = deps(false)
     expect(raiseOwnWindow(browserWindow, d)).toBe('raised')
-    expect(d.app.focus).toHaveBeenCalledWith({ steal: true })
-    expect(d.reveal).toHaveBeenCalledWith(browserWindow)
-    expect(window.moveTop).not.toHaveBeenCalled()
+    const options = d.focusExisting.mock.calls[0]?.[0]
+    expect({
+      window: options?.getWindow(),
+      canOpen: options?.canOpenWindow?.(),
+      app: options?.app
+    }).toEqual({ window: browserWindow, canOpen: false, app: d.app })
   })
 
   it('falls back to moveTop when macOS leaves the window unfocused', () => {
     const { window, browserWindow } = fakeWindow(false)
-    const d = deps(false)
-    d.app.focus.mockImplementationOnce(() => {
-      throw new Error('steal unsupported')
-    })
-    expect(raiseOwnWindow(browserWindow, d)).toBe('raised')
-    expect(d.app.focus).toHaveBeenLastCalledWith()
+    raiseOwnWindow(browserWindow, deps(false))
     expect(window.moveTop).toHaveBeenCalled()
   })
 
@@ -48,8 +47,7 @@ describe('raiseOwnWindow', () => {
     const { window, browserWindow } = fakeWindow(false)
     const d = deps(true)
     expect(raiseOwnWindow(browserWindow, d)).toBe('background-launch')
-    expect(d.app.focus).not.toHaveBeenCalled()
-    expect(d.reveal).not.toHaveBeenCalled()
+    expect(d.focusExisting).not.toHaveBeenCalled()
     expect(window.moveTop).not.toHaveBeenCalled()
   })
 
