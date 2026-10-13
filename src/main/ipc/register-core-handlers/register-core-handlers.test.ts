@@ -306,6 +306,8 @@ vi.mock('../runtime', () => ({
   registerRuntimeHandlers: registerRuntimeHandlersMock
 }))
 
+vi.mock('../../jose-window/jose-window-ipc', () => ({ registerJoseWindowIpc: vi.fn() }))
+
 vi.mock('../runtime-environments', () => ({
   invalidateRuntimeEnvironmentTransport: vi.fn(),
   registerRuntimeEnvironmentHandlers: registerRuntimeEnvironmentHandlersMock
