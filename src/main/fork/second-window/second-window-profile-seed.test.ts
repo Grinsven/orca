@@ -37,7 +37,7 @@ function hostSource() {
     activeClaudeManagedAccountId: 'claude-1',
     opencodeSessionCookie: 'secret-cookie',
     minimaxGroupId: 'group',
-    machineName: 'Jose MacBook',
+    machineName: 'Studio MacBook',
     activeRuntimeEnvironmentId: null,
     telemetry: { optedIn: true, installId: 'host-install-id', existedBeforeTelemetryRelease: true },
     notifications: { ...defaults.notifications, mutedNotificationSourceIds: ['ssh:box'] }

@@ -114,7 +114,7 @@ export function startWindowOwnership(
       ownedElsewhereKeys,
       activateHere: deps.activateHere
     })
-    // Why: startup restore is not a request to see the other window; Jose keeps the one he launched.
+    // Why: startup restore is not a request to see the other window; the user stays in the one they launched.
     if (hadSuccessfulClaim) {
       revealOwningWindow(refused)
     }
