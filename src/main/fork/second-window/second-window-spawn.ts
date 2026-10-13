@@ -52,7 +52,8 @@ export type SecondWindowLaunchOutcome = 'spawned' | 'recorded' | 'skipped-e2e'
 
 export function startSecondWindow(
   launch: SecondWindowLaunch,
-  env: NodeJS.ProcessEnv = process.env
+  env: NodeJS.ProcessEnv = process.env,
+  onFailed: () => void = () => {}
 ): SecondWindowLaunchOutcome {
   const recordPath = env[SECOND_WINDOW_LAUNCH_RECORD_ENV]
   if (recordPath) {
@@ -72,7 +73,10 @@ export function startSecondWindow(
     detached: true,
     stdio: 'ignore'
   })
-  child.once('error', (error) => console.error('[second-window] Launch failed:', error))
+  child.once('error', (error) => {
+    console.error('[second-window] Launch failed:', error)
+    onFailed()
+  })
   child.unref()
   return 'spawned'
 }
