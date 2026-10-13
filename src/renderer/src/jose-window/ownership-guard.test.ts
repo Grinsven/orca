@@ -1,6 +1,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import type { JoseWindowWorktreeRef } from '../../../shared/rpc-contract/jose-window-params'
-import type { JoseWindowNavigationIntent } from '../../../shared/rpc-contract/jose-window-params'
+import type {
+  JoseWindowNavigationIntent,
+  JoseWindowWorktreeRef
+} from '../../../shared/rpc-contract/jose-window-params'
 import type { ExecutionHostId } from '../../../shared/execution-host'
 import type { Worktree } from '../../../shared/worktree/types'
 import { useAppStore } from '@/store'
