@@ -82,6 +82,39 @@ function restoreSidebarActiveRow(): void {
     .forEach((surface) => surface.removeAttribute('data-worktree-card-active'))
 }
 
+// Why: the fallback acts for this navigation only. A later click or selection, or a newer link,
+// makes it obsolete, and only a confirmed "no owner" (not a timeout) justifies acting here.
+function revealThroughLink(
+  current: WindowOwnershipLink,
+  ref: JoseWindowWorktreeRef,
+  intent: JoseWindowNavigationIntent | undefined
+): void {
+  const epoch = ++redirectEpoch
+  const expectedSelection = selectionStamp()
+  const isStillCurrent = (): boolean =>
+    link === current && epoch === redirectEpoch && selectionStamp() === expectedSelection
+  const fallBack = (): void => {
+    const key = ownershipKey(ref)
+    ownedElsewhere = new Set([...ownedElsewhere].filter((owned) => owned !== key))
+    if (intent) {
+      current.activateHere?.(ref, intent)
+    } else {
+      current.activateHere?.(ref)
+    }
+  }
+  const revealed = intent ? current.reveal(ref, intent) : current.reveal(ref)
+  void revealed.then(
+    (wasRevealed) => {
+      if (!wasRevealed && isStillCurrent()) {
+        fallBack()
+      }
+    },
+    (error: unknown) => {
+      console.warn('[jose-window] reveal unverifiable; not opening the worktree here', error)
+    }
+  )
+}
+
 /**
  * Synchronous click guard: when another Orca window has this workspace (on this host) active, ask
  * the host to raise that window instead of opening it here. Back/forward history is guarded too,
@@ -96,32 +129,14 @@ export function redirectIfOwnedElsewhere(
   if (!current || !ref) {
     return false
   }
-  // Why: the fallback acts for this navigation only. A later click or selection, or a newer link,
-  // makes it obsolete, and only a confirmed "no owner" (not a timeout) justifies opening here.
-  const epoch = ++redirectEpoch
-  const expectedSelection = selectionStamp()
-  const isStillCurrent = (): boolean =>
-    link === current && epoch === redirectEpoch && selectionStamp() === expectedSelection
-  const fallBack = (): void => {
-    const key = ownershipKey(ref)
-    ownedElsewhere = new Set([...ownedElsewhere].filter((owned) => owned !== key))
-    if (opts?.intent) {
-      current.activateHere?.(ref, opts.intent)
-    } else {
-      current.activateHere?.(ref)
-    }
-  }
   restoreSidebarActiveRow()
-  const revealed = opts?.intent ? current.reveal(ref, opts.intent) : current.reveal(ref)
-  void revealed.then(
-    (revealed) => {
-      if (!revealed && isStillCurrent()) {
-        fallBack()
-      }
-    },
-    (error: unknown) => {
-      console.warn('[jose-window] reveal unverifiable; not opening the worktree here', error)
-    }
-  )
+  revealThroughLink(current, ref, opts?.intent)
   return true
+}
+
+/** Raises the window the host gave `ref` to, on the same path (and fallback rules) as a redirect. */
+export function revealOwningWindow(ref: JoseWindowWorktreeRef): void {
+  if (link) {
+    revealThroughLink(link, ref, undefined)
+  }
 }

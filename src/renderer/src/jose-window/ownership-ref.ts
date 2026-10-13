@@ -1,4 +1,7 @@
-import type { JoseWindowWorktreeRef } from '../../../shared/rpc-contract/jose-window-params'
+import type {
+  JoseWindowOwnershipFrame,
+  JoseWindowWorktreeRef
+} from '../../../shared/rpc-contract/jose-window-params'
 import {
   parseExecutionHostId,
   toRuntimeExecutionHostId,
@@ -91,4 +94,27 @@ export function viewExecutionHostId(
     return toRuntimeExecutionHostId(hostEnv)
   }
   return parsed?.id
+}
+
+export const keyOf = (ref: JoseWindowWorktreeRef | null): string | null =>
+  ref ? ownershipKey(ref) : null
+
+/** Snapshot refs, reading an older host's bare ids as its own checkouts. */
+export function snapshotRefs(frame: Extract<JoseWindowOwnershipFrame, { type: 'snapshot' }>): {
+  elsewhere: JoseWindowWorktreeRef[]
+  here: JoseWindowWorktreeRef | null
+} {
+  const local = (worktreeId: string): JoseWindowWorktreeRef => ({
+    worktreeId,
+    executionHostId: 'local'
+  })
+  return {
+    elsewhere: frame.ownedElsewhereRefs ?? frame.ownedElsewhere.map(local),
+    here:
+      frame.ownedHereRef !== undefined
+        ? frame.ownedHereRef
+        : frame.ownedHere
+          ? local(frame.ownedHere)
+          : null
+  }
 }

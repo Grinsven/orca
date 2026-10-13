@@ -9,6 +9,7 @@ import type { JoseWindowIntentRequest } from '../../../shared/jose-window-intent
 import { useAppStore } from '@/store'
 import type { RuntimeClientTarget } from '@/runtime/runtime-rpc-client'
 import { isOwnedByAnotherWindow } from './ownership-guard'
+import { afterOwnershipClaim } from './ownership-claim-gate'
 import type { OwnershipSubscriptionCallbacks } from './window-ownership-client'
 import {
   resetWindowOwnershipLogForTests,
@@ -89,7 +90,9 @@ function harness(
     reveal: vi.fn(async () => true),
     raise: vi.fn(),
     applyIntent: vi.fn<(request: JoseWindowIntentRequest) => void>(),
-    activateHere: vi.fn<(worktreeId: string, executionHostId: string | undefined) => void>(),
+    activateHere: vi.fn<(worktreeId: string, executionHostId: string | undefined) => boolean>(
+      () => true
+    ),
     isMissingMethod: (error: unknown) => error === 'method_not_found',
     setTimer: (callback: () => void) => {
       timers.push(callback)
@@ -121,19 +124,77 @@ describe('startWindowOwnership', () => {
     stop()
   })
 
-  it('deselects when the host refuses the claim', async () => {
+  it('lands on a recent valid workspace when startup restore is refused, without raising', async () => {
     const setActiveWorktree = seedStore('repo::a')
+    useAppStore.setState({ lastVisitedAtByWorktreeId: { 'repo::a': 3, 'repo::b': 2 } })
     const h = harness((ref) => ref?.worktreeId !== 'repo::a')
     const stop = startWindowOwnership(LOCAL, h.deps)
     await flush()
     h.frame({ type: 'snapshot', ownedElsewhere: ['repo::a'], ownedHere: null })
     await flush()
 
-    expect(setActiveWorktree).toHaveBeenCalledWith(null)
-    expect(useAppStore.getState().activeWorktreeId).toBeNull()
-    expect(isOwnedByAnotherWindow('repo::a')).toBe(true)
+    expect({
+      restored: h.deps.activateHere.mock.calls,
+      cleared: setActiveWorktree.mock.calls,
+      revealed: h.deps.reveal.mock.calls.length,
+      guarded: isOwnedByAnotherWindow('repo::a')
+    }).toEqual({ restored: [['repo::b', undefined]], cleared: [], revealed: 0, guarded: true })
     stop()
     expect(isOwnedByAnotherWindow('repo::a')).toBe(false)
+  })
+
+  it('goes back to the previous workspace and raises the winner when a click loses the race', async () => {
+    seedStore('repo::b')
+    const h = harness((ref) => ref?.worktreeId !== 'repo::a')
+    const stop = startWindowOwnership(LOCAL, h.deps)
+    await flush()
+    h.frame({ type: 'snapshot', ownedElsewhere: [], ownedHere: null })
+    await flush()
+    // Both windows clicked A before either saw the other's claim; the host gave A to the other.
+    h.frame({ type: 'snapshot', ownedElsewhere: ['repo::a'], ownedHere: 'repo::b' })
+    useAppStore.setState({ activeWorktreeId: 'repo::a' })
+    await flush()
+    stop()
+
+    expect({
+      restored: h.deps.activateHere.mock.calls,
+      revealed: h.deps.reveal.mock.calls
+    }).toEqual({
+      restored: [['repo::b', undefined]],
+      revealed: [[LOCAL, local('repo::a')]]
+    })
+  })
+
+  it('shows the deliberate empty state when nothing valid is left to go back to', async () => {
+    const setActiveWorktree = seedStore('repo::a')
+    const h = harness(() => false)
+    const stop = startWindowOwnership(LOCAL, h.deps)
+    await flush()
+    h.frame({ type: 'snapshot', ownedElsewhere: ['repo::a'], ownedHere: null })
+    await flush()
+    stop()
+
+    expect(setActiveWorktree).toHaveBeenCalledWith(null)
+  })
+
+  it('holds terminal seeding with no ownership evidence until the claim settles', async () => {
+    seedStore('repo::a')
+    const h = harness((ref) => ref?.worktreeId !== 'repo::a')
+    const stop = startWindowOwnership(LOCAL, h.deps)
+    await flush()
+    const seed = vi.fn(async () => 'empty')
+
+    const outcome = afterOwnershipClaim('repo::a', undefined, seed, 'blocked')
+    h.frame({ type: 'snapshot', ownedElsewhere: ['repo::a'], ownedHere: null })
+    await flush()
+
+    expect({ outcome: await outcome, seeded: seed.mock.calls.length }).toEqual({
+      outcome: 'blocked',
+      seeded: 0
+    })
+    await afterOwnershipClaim('repo::b', undefined, seed, 'blocked')
+    expect(seed).toHaveBeenCalledTimes(1)
+    stop()
   })
 
   it('re-claims after the host dropped the claim on a reconnect', async () => {

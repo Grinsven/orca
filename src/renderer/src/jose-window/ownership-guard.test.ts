@@ -4,6 +4,8 @@ import type { JoseWindowNavigationIntent } from '../../../shared/rpc-contract/jo
 import type { ExecutionHostId } from '../../../shared/execution-host'
 import type { Worktree } from '../../../shared/worktree/types'
 import { useAppStore } from '@/store'
+import type * as ActivationGate from '@/lib/worktree-agent-activation-gate'
+import type { WorktreeAgentActivationOutcome } from '@/lib/worktree-agent-activation-gate'
 import { activateAndRevealWorktree } from '@/lib/worktree-activation'
 import {
   redirectIfOwnedElsewhere,
@@ -11,11 +13,24 @@ import {
   type WindowOwnershipLink
 } from './ownership-guard'
 import { resolveOwnershipRef } from './ownership-ref'
+import { setOwnershipClaimGate } from './ownership-claim-gate'
+
+const { gateWorktreeAgentActivationMock } = vi.hoisted(() => ({
+  gateWorktreeAgentActivationMock: vi.fn(
+    async (): Promise<WorktreeAgentActivationOutcome> => 'blocked'
+  )
+}))
+vi.mock('@/lib/worktree-agent-activation-gate', async (importOriginal) => ({
+  ...(await importOriginal<typeof ActivationGate>()),
+  gateWorktreeAgentActivation: gateWorktreeAgentActivationMock
+}))
 
 const initialAppStoreState = useAppStore.getState()
 
 afterEach(() => {
+  gateWorktreeAgentActivationMock.mockClear()
   setWindowOwnershipView(null)
+  setOwnershipClaimGate(null)
   useAppStore.setState(initialAppStoreState, true)
 })
 
@@ -225,5 +240,30 @@ describe('window ownership activation guard', () => {
       reveal: 0,
       activated: [['repo-1::a', 'runtime:hub-b']]
     })
+  })
+
+  it('selects but does not seed a terminal until a claim without evidence is accepted', async () => {
+    const { setActiveWorktree } = seed()
+    vi.stubGlobal('window', {
+      api: { runtime: { call: vi.fn() }, pty: { listSessions: vi.fn(async () => []) } }
+    })
+    const settle: ((claimed: boolean) => void)[] = []
+    setOwnershipClaimGate({
+      resolve: (worktreeId) => ({ worktreeId, executionHostId: 'local' }),
+      waitForClaim: () => new Promise<boolean>((resolve) => settle.push(resolve))
+    })
+
+    activateAndRevealWorktree('repo-1::a')
+    await flush()
+    const startedBeforeClaim = gateWorktreeAgentActivationMock.mock.calls.length
+    settle.forEach((resolve) => resolve(true))
+    await flush()
+
+    expect({
+      selected: setActiveWorktree.mock.calls.length,
+      startedBeforeClaim,
+      startedAfterClaim: gateWorktreeAgentActivationMock.mock.calls.length
+    }).toEqual({ selected: 1, startedBeforeClaim: 0, startedAfterClaim: 1 })
+    vi.unstubAllGlobals()
   })
 })

@@ -15,6 +15,7 @@ import { toast } from 'sonner'
 import { shouldAutoCreateInitialTerminal } from '@/components/terminal/initial-terminal'
 import { runtimeEnvironmentSupportsCapability } from '@/runtime/runtime-rpc-client'
 import { SESSION_TABS_EMPTY_WORKTREE_ANSWER_RUNTIME_CAPABILITY } from '../../../shared/session-tabs-runtime-capabilities'
+import { deferredUntilOwnershipClaim } from '@/jose-window/ownership-claim-gate'
 
 export function ensureWebRuntimeWorktreeTerminalAfterWake(
   worktreeId: string,
@@ -27,6 +28,10 @@ export function ensureWebRuntimeWorktreeTerminalAfterWake(
     unknownHostCountIsEmpty?: boolean
   }
 ): void {
+  const retry = (): void => ensureWebRuntimeWorktreeTerminalAfterWake(worktreeId, opts)
+  if (deferredUntilOwnershipClaim(worktreeId, retry)) {
+    return
+  }
   const state = useAppStore.getState()
   const worktree = state.getKnownWorktreeById(worktreeId)
   if (!worktree) {

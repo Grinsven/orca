@@ -15,6 +15,7 @@ import {
   isEmptyWorkspaceDefaultSurfacePending,
   releaseEmptyWorkspaceDefaultSurface
 } from './empty-workspace-default-surface-claims'
+import { afterOwnershipClaim } from '@/jose-window/ownership-claim-gate'
 
 const latestReseedIntentByGate = new WeakMap<
   Promise<WorktreeAgentActivationOutcome>,
@@ -25,7 +26,12 @@ export function gateAndReseedEmptyWorkspace(
   workspaceKey: string,
   intent: GatedEmptyWorkspaceReseedIntent
 ): void {
-  const gate = gateWorktreeAgentActivation(workspaceKey)
+  const gate = afterOwnershipClaim(
+    workspaceKey,
+    intent.executionHostId,
+    () => gateWorktreeAgentActivation(workspaceKey),
+    'blocked'
+  )
   latestReseedIntentByGate.set(gate, intent)
   void gate.then((outcome) => {
     if (latestReseedIntentByGate.get(gate) !== intent) {

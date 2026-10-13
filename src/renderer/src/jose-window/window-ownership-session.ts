@@ -7,11 +7,15 @@ import type { JoseWindowIntentRequest } from '../../../shared/jose-window-intent
 import type { ExecutionHostId } from '../../../shared/execution-host'
 import type { RuntimeClientTarget } from '@/runtime/runtime-rpc-client'
 import type { AppState } from '@/store/types'
-import { setWindowOwnershipView } from './ownership-guard'
+import { revealOwningWindow, setWindowOwnershipView } from './ownership-guard'
+import { ClaimWaiters, setOwnershipClaimGate } from './ownership-claim-gate'
+import { restoreSelectionAfterRefusal, type WorkspaceSelection } from './refused-claim-restore'
 import {
   activeOwnershipRef,
+  keyOf,
   ownershipKey,
   resolveOwnershipRef,
+  snapshotRefs,
   viewExecutionHostId
 } from './ownership-ref'
 import type { OwnershipSubscriptionCallbacks } from './window-ownership-client'
@@ -37,7 +41,8 @@ export type WindowOwnershipDeps = {
   raise: () => void
   /** Delivers a redirected request to this window's own UI event bridge. */
   applyIntent: (request: JoseWindowIntentRequest) => void
-  activateHere: (worktreeId: string, executionHostId: ExecutionHostId | undefined) => void
+  /** False when the workspace no longer exists here. */
+  activateHere: (worktreeId: string, executionHostId: ExecutionHostId | undefined) => boolean
   isMissingMethod: (error: unknown) => boolean
   /** Returns a canceller. */
   setTimer?: (callback: () => void, ms: number) => () => void
@@ -47,32 +52,11 @@ const RETRY_MIN_MS = 1_000
 const RETRY_MAX_MS = 30_000
 let loggedUnsupported = false
 
-const keyOf = (ref: JoseWindowWorktreeRef | null): string | null => (ref ? ownershipKey(ref) : null)
-
-/** Snapshot refs, reading an older host's bare ids as its own checkouts. */
-function snapshotRefs(frame: Extract<JoseWindowOwnershipFrame, { type: 'snapshot' }>): {
-  elsewhere: JoseWindowWorktreeRef[]
-  here: JoseWindowWorktreeRef | null
-} {
-  const local = (worktreeId: string): JoseWindowWorktreeRef => ({
-    worktreeId,
-    executionHostId: 'local'
-  })
-  return {
-    elsewhere: frame.ownedElsewhereRefs ?? frame.ownedElsewhere.map(local),
-    here:
-      frame.ownedHereRef !== undefined
-        ? frame.ownedHereRef
-        : frame.ownedHere
-          ? local(frame.ownedHere)
-          : null
-  }
-}
-
 /**
  * Keeps this window's active worktree claimed on the host and the other windows' claims cached
- * for the click guard. A refused claim deselects, which covers every path that skips the guard
- * (CLI focus, file open --focus, notification clicks, startup restore).
+ * for the click guard. A refused claim covers every path that skips the guard (CLI focus, file
+ * open --focus, notification clicks, startup restore): the window goes back to a valid selection,
+ * and for a user navigation the accepted owner is raised.
  */
 export function startWindowOwnership(
   target: RuntimeClientTarget,
@@ -88,7 +72,9 @@ export function startWindowOwnership(
     resolve: (worktreeId: string, executionHostId?: ExecutionHostId | null) =>
       resolveOwnershipRef(deps.store.getState(), target, worktreeId, executionHostId),
     reveal: (ref: JoseWindowWorktreeRef, intent?: JoseWindowNavigationIntent) =>
-      deps.reveal(target, ref, intent && toHostIntent(intent, target, ref.worktreeId)),
+      intent
+        ? deps.reveal(target, ref, toHostIntent(intent, target, ref.worktreeId))
+        : deps.reveal(target, ref),
     activateHere: (ref: JoseWindowWorktreeRef, intent?: JoseWindowNavigationIntent) => {
       if (intent && intent.kind !== 'workspace') {
         deps.applyIntent(intentRequest(ref.worktreeId, intent, target))
@@ -97,6 +83,8 @@ export function startWindowOwnership(
       deps.activateHere(ref.worktreeId, viewExecutionHostId(ref, target))
     }
   }
+  const claimWaiters = new ClaimWaiters()
+  const claimGate = { resolve: link.resolve, waitForClaim: (key: string) => claimWaiters.wait(key) }
   let stopped = false
   let unsupported = false
   let generation = 0
@@ -107,6 +95,11 @@ export function startWindowOwnership(
   let ownedHere: string | null | undefined
   let claiming = false
   let claimAgain = false
+  let ownedElsewhereKeys = new Set<string>()
+  // The last selection the host accepted (or that it does not serve), for a refused claim to return to.
+  let lastValidSelection: WorkspaceSelection | null = null
+  // Until a claim has succeeded, a refusal comes from startup restore, not from the user.
+  let hadSuccessfulClaim = false
 
   const markUnsupported = (): void => {
     unsupported = true
@@ -115,6 +108,22 @@ export function startWindowOwnership(
       console.info('[jose-window] host has no window ownership methods; windows stay independent')
     }
     teardownStream()
+    claimWaiters.settleAll(true)
+  }
+
+  const restoreAfterRefusal = (refused: JoseWindowWorktreeRef): void => {
+    restoreSelectionAfterRefusal({
+      state: deps.store.getState(),
+      target,
+      refused,
+      previous: lastValidSelection,
+      ownedElsewhereKeys,
+      activateHere: deps.activateHere
+    })
+    // Why: startup restore is not a request to see the other window; Jose keeps the one he launched.
+    if (hadSuccessfulClaim) {
+      revealOwningWindow(refused)
+    }
   }
 
   const syncClaim = async (): Promise<void> => {
@@ -125,9 +134,21 @@ export function startWindowOwnership(
       claimAgain = true
       return
     }
-    const ref = activeOwnershipRef(deps.store.getState(), target)
+    const state = deps.store.getState()
+    const ref = activeOwnershipRef(state, target)
     const key = keyOf(ref)
+    const selection: WorkspaceSelection | null = state.activeWorktreeId
+      ? {
+          worktreeId: state.activeWorktreeId,
+          executionHostId: state.activeWorkspaceExecutionHostId ?? undefined
+        }
+      : null
+    claimWaiters.refuseAllBut(key)
     if (key === ownedHere) {
+      if (key !== null) {
+        claimWaiters.settle(key, true)
+      }
+      lastValidSelection = selection ?? lastValidSelection
       return
     }
     claiming = true
@@ -142,9 +163,14 @@ export function startWindowOwnership(
         return
       }
       ownedHere = claimed ? key : null
-      const state = deps.store.getState()
-      if (!claimed && key !== null && keyOf(activeOwnershipRef(state, target)) === key) {
-        state.setActiveWorktree(null)
+      if (key !== null) {
+        claimWaiters.settle(key, claimed)
+      }
+      if (claimed) {
+        lastValidSelection = selection ?? lastValidSelection
+        hadSuccessfulClaim ||= key !== null
+      } else if (ref && keyOf(activeOwnershipRef(deps.store.getState(), target)) === key) {
+        restoreAfterRefusal(ref)
       }
     } catch (error) {
       stale = claimGeneration !== generation
@@ -202,7 +228,9 @@ export function startWindowOwnership(
     retryMs = RETRY_MIN_MS
     const refs = snapshotRefs(frame)
     ownedHere = keyOf(refs.here)
+    ownedElsewhereKeys = new Set(refs.elsewhere.map(ownershipKey))
     setWindowOwnershipView({ link, ownedElsewhere: refs.elsewhere })
+    setOwnershipClaimGate(null)
     void syncClaim()
   }
 
@@ -221,7 +249,10 @@ export function startWindowOwnership(
   function teardownStream(): void {
     generation += 1
     ownedHere = undefined
+    ownedElsewhereKeys = new Set()
     setWindowOwnershipView(null)
+    // Why: with no snapshot the guard has no evidence, so activation defers seeding to the claim.
+    setOwnershipClaimGate(stopped || unsupported ? null : claimGate)
     handle?.unsubscribe()
     handle = null
   }
@@ -270,6 +301,7 @@ export function startWindowOwnership(
       void syncClaim()
     }
   })
+  setOwnershipClaimGate(claimGate)
   void open()
 
   return () => {
@@ -277,6 +309,7 @@ export function startWindowOwnership(
     stopStore()
     cancelRetry?.()
     teardownStream()
+    claimWaiters.settleAll(true)
   }
 }
 

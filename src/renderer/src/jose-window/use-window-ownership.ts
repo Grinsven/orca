@@ -39,7 +39,8 @@ export function useWindowOwnership(): void {
           })
         },
         activateHere: (worktreeId, executionHostId) =>
-          void activateAndRevealWorkspace(worktreeId, executionHostId ? { executionHostId } : {}),
+          activateAndRevealWorkspace(worktreeId, executionHostId ? { executionHostId } : {}) !==
+          false,
         isMissingMethod: isMissingOwnershipMethod
       }
     )
