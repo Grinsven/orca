@@ -147,6 +147,21 @@ export function startWindowOwnership(
     }
   }
 
+  // Why: a reveal is only worth raising for while this window still shows that workspace; one that
+  // crossed a newer selection here must not raise (or switch to) the old one.
+  const revealHere = (ref: JoseWindowWorktreeRef): void => {
+    const state = deps.store.getState()
+    if (keyOf(activeOwnershipRef(state, target)) !== ownershipKey(ref)) {
+      console.info(`[jose-window] obsolete reveal for ${ref.worktreeId} ignored`)
+      return
+    }
+    // Tasks or Settings keep the active worktree; the reveal asks for its workspace surface.
+    if (state.activeView !== 'terminal') {
+      state.setActiveView('terminal')
+    }
+    deps.raise()
+  }
+
   const onFrame = (frameGeneration: number, frame: JoseWindowOwnershipFrame): void => {
     if (stopped || frameGeneration !== generation) {
       return
@@ -156,8 +171,10 @@ export function startWindowOwnership(
       return
     }
     if (frame.type === 'reveal') {
-      console.info(`[jose-window] reveal received for ${frame.worktreeId}`)
-      deps.raise()
+      revealHere({
+        worktreeId: frame.worktreeId,
+        executionHostId: frame.executionHostId ?? 'local'
+      })
       return
     }
     retryMs = RETRY_MIN_MS

@@ -200,14 +200,36 @@ describe('startWindowOwnership', () => {
     stop()
   })
 
-  it('raises this window when the host forwards a reveal', async () => {
+  it('shows the workspace surface before raising, when the reveal is for its worktree', async () => {
     seedStore('repo::a')
+    useAppStore.setState({ activeView: 'settings' })
+    const h = harness()
+    const viewsAtRaise: string[] = []
+    h.deps.raise.mockImplementation(() => {
+      viewsAtRaise.push(useAppStore.getState().activeView)
+    })
+    const stop = startWindowOwnership(LOCAL, h.deps)
+    await flush()
+    h.frame({ type: 'reveal', worktreeId: 'repo::a', executionHostId: 'local' })
+    stop()
+    expect(viewsAtRaise).toEqual(['terminal'])
+  })
+
+  it('ignores a reveal for a worktree this window has since left', async () => {
+    seedStore('repo::b')
+    useAppStore.setState({ activeView: 'tasks' })
+    vi.spyOn(console, 'info').mockImplementation(() => {})
     const h = harness()
     const stop = startWindowOwnership(LOCAL, h.deps)
     await flush()
-    h.frame({ type: 'reveal', worktreeId: 'repo::a' })
-    expect(h.deps.raise).toHaveBeenCalledTimes(1)
+    h.frame({ type: 'reveal', worktreeId: 'repo::a', executionHostId: 'local' })
     stop()
+    vi.restoreAllMocks()
+    expect({
+      raised: h.deps.raise.mock.calls.length,
+      view: useAppStore.getState().activeView,
+      active: useAppStore.getState().activeWorktreeId
+    }).toEqual({ raised: 0, view: 'tasks', active: 'repo::b' })
   })
 
   it('treats a host without the methods as no ownership and logs once', async () => {
