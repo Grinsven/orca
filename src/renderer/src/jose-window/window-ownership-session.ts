@@ -9,6 +9,7 @@ import type { RuntimeClientTarget } from '@/runtime/runtime-rpc-client'
 import type { AppState } from '@/store/types'
 import { revealOwningWindow, setWindowOwnershipView } from './ownership-guard'
 import { ClaimWaiters, setOwnershipClaimGate } from './ownership-claim-gate'
+import { createClaimRetry } from './ownership-claim-retry'
 import { restoreSelectionAfterRefusal, type WorkspaceSelection } from './refused-claim-restore'
 import {
   activeOwnershipRef,
@@ -83,7 +84,7 @@ export function startWindowOwnership(
       deps.activateHere(ref.worktreeId, viewExecutionHostId(ref, target))
     }
   }
-  const claimWaiters = new ClaimWaiters()
+  const claimWaiters = new ClaimWaiters(setTimer)
   const claimGate = { resolve: link.resolve, waitForClaim: (key: string) => claimWaiters.wait(key) }
   let stopped = false
   let unsupported = false
@@ -100,6 +101,11 @@ export function startWindowOwnership(
   let lastValidSelection: WorkspaceSelection | null = null
   // Until a claim has succeeded, a refusal comes from startup restore, not from the user.
   let hadSuccessfulClaim = false
+  const claimRetry = createClaimRetry({
+    setTimer,
+    retry: () => void syncClaim(),
+    giveUp: (key) => claimWaiters.settle(key, false)
+  })
 
   const markUnsupported = (): void => {
     unsupported = true
@@ -162,6 +168,7 @@ export function startWindowOwnership(
       if (stopped || stale) {
         return
       }
+      claimRetry.succeeded()
       ownedHere = claimed ? key : null
       if (key !== null) {
         claimWaiters.settle(key, claimed)
@@ -178,6 +185,9 @@ export function startWindowOwnership(
         markUnsupported()
       } else {
         console.warn('[jose-window] claim failed', error)
+        if (!stale) {
+          claimRetry.failed(key)
+        }
       }
     } finally {
       claiming = false
@@ -248,6 +258,7 @@ export function startWindowOwnership(
 
   function teardownStream(): void {
     generation += 1
+    claimRetry.cancel()
     ownedHere = undefined
     ownedElsewhereKeys = new Set()
     setWindowOwnershipView(null)

@@ -9,7 +9,8 @@ import type { JoseWindowIntentRequest } from '../../../shared/jose-window-intent
 import { useAppStore } from '@/store'
 import type { RuntimeClientTarget } from '@/runtime/runtime-rpc-client'
 import { isOwnedByAnotherWindow } from './ownership-guard'
-import { afterOwnershipClaim } from './ownership-claim-gate'
+import { afterOwnershipClaim, CLAIM_WAIT_DEADLINE_MS } from './ownership-claim-gate'
+import { CLAIM_RETRY_LIMIT } from './ownership-claim-retry'
 import type { OwnershipSubscriptionCallbacks } from './window-ownership-client'
 import {
   resetWindowOwnershipLogForTests,
@@ -195,6 +196,106 @@ describe('startWindowOwnership', () => {
     await afterOwnershipClaim('repo::b', undefined, seed, 'blocked')
     expect(seed).toHaveBeenCalledTimes(1)
     stop()
+  })
+
+  describe('a claim that fails in transport while the stream stays up', () => {
+    function timedHarness() {
+      const h = harness()
+      const pending: { callback: () => void; ms: number }[] = []
+      const deps: WindowOwnershipDeps = {
+        ...h.deps,
+        setTimer: (callback, ms) => {
+          const entry = { callback, ms }
+          pending.push(entry)
+          return () => {
+            const index = pending.indexOf(entry)
+            if (index !== -1) {
+              pending.splice(index, 1)
+            }
+          }
+        }
+      }
+      const fire = async (match: (ms: number) => boolean): Promise<void> => {
+        for (let entry = pending.find((p) => match(p.ms)); entry;) {
+          pending.splice(pending.indexOf(entry), 1)
+          entry.callback()
+          await flush()
+          entry = pending.find((p) => match(p.ms))
+        }
+      }
+      return { ...h, deps, fire }
+    }
+
+    function seedingOutcome(): {
+      outcome: () => string | undefined
+      seed: ReturnType<typeof vi.fn>
+    } {
+      const seed = vi.fn(async () => 'seeded')
+      let outcome: string | undefined
+      void afterOwnershipClaim('repo::a', undefined, seed, 'blocked').then((value) => {
+        outcome = value
+      })
+      return { outcome: () => outcome, seed }
+    }
+
+    beforeEach(() => {
+      vi.spyOn(console, 'warn').mockImplementation(() => {})
+    })
+    afterEach(() => vi.restoreAllMocks())
+
+    it('retries, then refuses seeding instead of leaving the workspace waiting', async () => {
+      seedStore('repo::a')
+      const h = timedHarness()
+      h.deps.claim = vi.fn(async () => {
+        throw new Error('control connection lost')
+      })
+      const stop = startWindowOwnership(LOCAL, h.deps)
+      await flush()
+      const seeding = seedingOutcome()
+      h.frame({ type: 'snapshot', ownedElsewhere: [], ownedHere: null })
+      await flush()
+      await h.fire((ms) => ms < CLAIM_WAIT_DEADLINE_MS)
+
+      expect({
+        claims: vi.mocked(h.deps.claim).mock.calls.length,
+        outcome: seeding.outcome(),
+        seeded: seeding.seed.mock.calls.length
+      }).toEqual({ claims: 1 + CLAIM_RETRY_LIMIT, outcome: 'blocked', seeded: 0 })
+      stop()
+    })
+
+    it('seeds once a retried claim is accepted', async () => {
+      seedStore('repo::a')
+      const h = timedHarness()
+      h.deps.claim = vi
+        .fn<WindowOwnershipDeps['claim']>()
+        .mockRejectedValueOnce(new Error('control connection lost'))
+        .mockResolvedValue(true)
+      const stop = startWindowOwnership(LOCAL, h.deps)
+      await flush()
+      const seeding = seedingOutcome()
+      h.frame({ type: 'snapshot', ownedElsewhere: [], ownedHere: null })
+      await flush()
+      await h.fire((ms) => ms < CLAIM_WAIT_DEADLINE_MS)
+
+      expect(seeding.outcome()).toBe('seeded')
+      stop()
+    })
+
+    it('refuses seeding at the deadline when no snapshot ever arrives', async () => {
+      seedStore('repo::a')
+      const h = timedHarness()
+      const stop = startWindowOwnership(LOCAL, h.deps)
+      await flush()
+      const seeding = seedingOutcome()
+      await h.fire((ms) => ms === CLAIM_WAIT_DEADLINE_MS)
+
+      expect({ outcome: seeding.outcome(), claims: vi.mocked(h.deps.claim).mock.calls }).toEqual({
+        outcome: 'blocked',
+        claims: []
+      })
+      stop()
+    })
   })
 
   it('re-claims after the host dropped the claim on a reconnect', async () => {

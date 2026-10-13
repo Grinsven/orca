@@ -56,20 +56,36 @@ export function deferredUntilOwnershipClaim(workspaceKey: string, run: () => voi
   return true
 }
 
-/** Pending waits on this window's own claims, settled by the ownership session. */
+type CancelTimer = () => void
+type Waiter = { resolve: (claimed: boolean) => void; cancelDeadline: CancelTimer }
+
+/** How long a seeding step waits for ownership evidence before giving up on it. */
+export const CLAIM_WAIT_DEADLINE_MS = 60_000
+
+/** Pending waits on this window's own claims, settled by the ownership session. A wait that
+ *  outlives the deadline settles false: an uncertain claim never authorises seeding. */
 export class ClaimWaiters {
-  private readonly byKey = new Map<string, ((claimed: boolean) => void)[]>()
+  private readonly byKey = new Map<string, Waiter[]>()
+
+  constructor(private readonly setTimer: (callback: () => void, ms: number) => CancelTimer) {}
 
   wait(key: string): Promise<boolean> {
     return new Promise((resolve) => {
-      this.byKey.set(key, [...(this.byKey.get(key) ?? []), resolve])
+      const waiter: Waiter = {
+        resolve,
+        cancelDeadline: this.setTimer(() => this.expire(key, waiter), CLAIM_WAIT_DEADLINE_MS)
+      }
+      this.byKey.set(key, [...(this.byKey.get(key) ?? []), waiter])
     })
   }
 
   settle(key: string, claimed: boolean): void {
     const waiters = this.byKey.get(key) ?? []
     this.byKey.delete(key)
-    waiters.forEach((resolve) => resolve(claimed))
+    waiters.forEach((waiter) => {
+      waiter.cancelDeadline()
+      waiter.resolve(claimed)
+    })
   }
 
   /** A claim for any other key means these will never be claimed by this activation. */
@@ -85,5 +101,15 @@ export class ClaimWaiters {
     for (const pendingKey of this.byKey.keys()) {
       this.settle(pendingKey, claimed)
     }
+  }
+
+  private expire(key: string, waiter: Waiter): void {
+    const remaining = (this.byKey.get(key) ?? []).filter((pending) => pending !== waiter)
+    if (remaining.length > 0) {
+      this.byKey.set(key, remaining)
+    } else {
+      this.byKey.delete(key)
+    }
+    waiter.resolve(false)
   }
 }
