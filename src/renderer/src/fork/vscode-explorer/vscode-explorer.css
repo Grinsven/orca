@@ -1,5 +1,6 @@
 /* Jose fork-local: VS Code look for the Explorer file tree. Not for upstream. */
 @import './seti-icon-glyphs.css';
+@import './material-folder-icons.css';
 
 @font-face {
   font-family: 'seti';
@@ -10,13 +11,10 @@
   font-display: block;
 }
 
-.explorer-icon {
-  display: inline-flex;
-  flex-shrink: 0;
-  align-items: center;
-  justify-content: center;
-  width: 1rem;
-  height: 1rem;
+[data-material-folder-icon] {
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
 }
 
 [data-seti-icon]::before {

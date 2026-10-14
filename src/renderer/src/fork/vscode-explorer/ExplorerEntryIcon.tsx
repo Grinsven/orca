@@ -1,5 +1,5 @@
 import React from 'react'
-import { Folder, FolderOpen } from 'lucide-react'
+import { getMaterialFolderIconId } from './material-folder-icon'
 import { getSetiFileIconId } from './seti-file-icon'
 import './vscode-explorer.css'
 
@@ -9,19 +9,27 @@ type ExplorerEntryIconProps = {
   isExpanded: boolean
 }
 
-/** Seti file-type glyph for files; Seti ships no folder glyphs, so folders keep lucide's. */
+/** Seti file-type glyph for files; Seti ships no folder icons, so folders use Material's. */
 export function ExplorerEntryIcon({
   name,
   isDirectory,
   isExpanded
 }: ExplorerEntryIconProps): React.JSX.Element {
   if (isDirectory) {
-    const FolderIcon = isExpanded ? FolderOpen : Folder
     return (
-      <span data-explorer-folder-icon={isExpanded ? 'open' : 'closed'} className="explorer-icon">
-        <FolderIcon className="size-3.5 text-muted-foreground" />
-      </span>
+      <span
+        aria-hidden
+        data-explorer-folder-icon={isExpanded ? 'open' : 'closed'}
+        data-material-folder-icon={getMaterialFolderIconId(name, isExpanded)}
+        className="inline-flex size-4 shrink-0 items-center justify-center"
+      />
     )
   }
-  return <span aria-hidden data-seti-icon={getSetiFileIconId(name)} className="explorer-icon" />
+  return (
+    <span
+      aria-hidden
+      data-seti-icon={getSetiFileIconId(name)}
+      className="inline-flex size-4 shrink-0 items-center justify-center"
+    />
+  )
 }
