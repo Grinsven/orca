@@ -20,6 +20,7 @@ import type {
   FeedbackSubmitArgs,
   FeedbackSubmitResult
 } from '../../shared/feedback-submit-contract'
+import { blocksStockOrcaContact, FEEDBACK_OFF_MESSAGE } from '../fork/no-phone-home/no-phone-home'
 
 export type {
   FeedbackDiagnosticBundleAttachment,
@@ -199,6 +200,9 @@ async function submitFeedbackWithDiagnosticBundle(
 export async function submitFeedback(
   args: InternalFeedbackSubmitArgs
 ): Promise<FeedbackSubmitResult> {
+  if (blocksStockOrcaContact()) {
+    return { ok: false, status: null, error: FEEDBACK_OFF_MESSAGE }
+  }
   // Why: buildSubmitBody drops images on the crash lane, so validating them
   // there would abort a crash report over attachments it never meant to send.
   if (args.submissionType !== 'crash' && args.images !== undefined) {

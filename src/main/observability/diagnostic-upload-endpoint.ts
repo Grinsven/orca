@@ -1,6 +1,8 @@
 // Build-time diagnostic upload routing. Kept outside ipc/diagnostics.ts so
 // crash reporting can attach logs through the same pinned endpoint rules.
 
+import { blocksStockOrcaContact } from '../fork/no-phone-home/no-phone-home'
+
 export function resolveDiagnosticBuildTokenEndpoint(): string | null {
   const endpoint =
     typeof ORCA_DIAGNOSTICS_TOKEN_URL !== 'undefined'
@@ -20,6 +22,9 @@ export function resolveDiagnosticBuildIdentity(): 'stable' | 'rc' | null {
 }
 
 export function resolveDiagnosticTokenEndpoint(): string | null {
+  if (blocksStockOrcaContact()) {
+    return null
+  }
   const buildEndpoint = resolveDiagnosticBuildTokenEndpoint()
   // Official builds must stay pinned to the CI-substituted endpoint; user env
   // cannot redirect uploads that the UI labels as going to Orca support.
