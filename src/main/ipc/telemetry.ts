@@ -16,6 +16,7 @@ import { getCohortAtEmit } from '../telemetry/cohort-classifier'
 import { getOnboardingCohortAtEmit } from '../telemetry/onboarding-cohort-classifier'
 import { resolveConsent, type ConsentState } from '../telemetry/consent'
 import type { Store } from '../persistence'
+import { blocksStockOrcaContact, keepTelemetryOptedOut } from '../fork/no-phone-home/no-phone-home'
 import { isCohortExtendedEvent, isOnboardingEvent } from '../../shared/telemetry-events'
 import type { EventName, EventProps, OptInVia } from '../../shared/telemetry-events'
 
@@ -61,6 +62,7 @@ function deriveOptInVia(store: Store, incomingOptedIn: boolean): OptInVia {
 
 export function registerTelemetryHandlers(store: Store): void {
   storeRef = store
+  keepTelemetryOptedOut(store)
 
   ipcMain.handle('telemetry:track', (_event, name: unknown, props: unknown): void => {
     // Drop non-string names at the boundary so a flood of bogus payloads never reaches the Zod validator.
@@ -91,6 +93,10 @@ export function registerTelemetryHandlers(store: Store): void {
   ipcMain.handle('telemetry:setOptIn', (_event, optedIn: unknown): Promise<void> | void => {
     // Strict input typing — renderer can pass anything over IPC.
     if (typeof optedIn !== 'boolean') {
+      return
+    }
+    // Why: this fork never sends usage data, so the Privacy toggle cannot turn on.
+    if (optedIn && blocksStockOrcaContact()) {
       return
     }
     // Check storeRef before consuming a token — burning one on a no-op would eventually block legitimate mutations this session.
