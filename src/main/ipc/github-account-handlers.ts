@@ -12,10 +12,14 @@ import type { Store } from '../persistence'
 import { getCohortAtEmit } from '../telemetry/cohort-classifier'
 import { track } from '../telemetry/client'
 import { assertRegisteredGitHubRepo, getGitHubLocalGitOptionArgs } from './github-repo-routing'
+import { blocksStockOrcaContact } from '../fork/no-phone-home/no-phone-home'
 
 export function registerGitHubAccountHandlers(store: Store): void {
   ipcMain.handle('gh:viewer', () => getAuthenticatedViewer())
-  ipcMain.handle('gh:checkOrcaStarred', () => checkOrcaStarred())
+  // Why: null is the renderer's "cannot tell" state, so it never claims a star nobody checked.
+  ipcMain.handle('gh:checkOrcaStarred', () =>
+    blocksStockOrcaContact() ? null : checkOrcaStarred()
+  )
   ipcMain.handle('gh:starOrca', async (_event, source: unknown) => {
     const sourceParse = appStarSourceSchema.safeParse(source)
     const starred = await starOrca()
