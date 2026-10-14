@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto'
 import { performance } from 'node:perf_hooks'
 import { is } from '@electron-toolkit/utils'
 import { StarNagService } from '../star-nag/service'
+import { turnOffStarNag } from '../fork/star-nag-off/star-nag-off'
 import { AgentBrowserBridge } from '../browser/agent-browser-bridge'
 import { EmulatorBridge } from '../emulator/emulator-bridge'
 import { RpcDispatcher } from '../runtime/rpc/dispatcher'
@@ -50,6 +51,7 @@ export async function initializeReadyRuntimeServices(): Promise<void> {
   initializeMainProcessAutomations()
   configureRuntimeServices(runtime)
   await initializeMainProcessPlugins(runtime)
+  turnOffStarNag(store)
   state.starNag = new StarNagService(store, state.stats!)
   state.starNag.start()
   state.starNag.registerIpcHandlers()

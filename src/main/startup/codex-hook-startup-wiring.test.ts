@@ -33,6 +33,7 @@ vi.mock('./main-process-runtime-service', () => ({
   configureRuntimeServices: vi.fn()
 }))
 vi.mock('../star-nag/service')
+vi.mock('../fork/star-nag-off/star-nag-off')
 vi.mock('../browser/agent-browser-bridge')
 vi.mock('../emulator/emulator-bridge')
 vi.mock('../runtime/rpc/dispatcher')
