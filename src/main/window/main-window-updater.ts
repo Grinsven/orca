@@ -6,6 +6,10 @@ import { isTrustedUIRenderer } from '../ipc/ui'
 import type { Store } from '../persistence'
 import { logStartupMilestone } from '../startup/startup-diagnostics'
 import {
+  blocksStockOrcaContact,
+  RELEASE_BUILDS_OFF_MESSAGE
+} from '../fork/no-phone-home/no-phone-home'
+import {
   checkForUpdatesFromMenu,
   dismissAvailableUpdate,
   dismissNudge,
@@ -166,6 +170,9 @@ export function registerUpdaterHandlers(_store: Store): void {
       channel: ReleaseChannel,
       options?: { force?: boolean }
     ): Promise<ReleaseBuildListResult> => {
+      if (blocksStockOrcaContact()) {
+        return { ok: false, channel, message: RELEASE_BUILDS_OFF_MESSAGE }
+      }
       if (!RELEASE_CHANNELS.includes(channel)) {
         return { ok: false, channel, message: `Unknown release channel "${channel}".` }
       }
