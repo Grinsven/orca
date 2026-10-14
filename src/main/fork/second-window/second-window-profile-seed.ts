@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto'
-import { existsSync, mkdirSync, renameSync, writeFileSync } from 'node:fs'
+import { mkdirSync, renameSync, rmSync, writeFileSync } from 'node:fs'
 import { createServer } from 'node:net'
 import { toRuntimeExecutionHostId } from '../../../shared/execution-host'
 import type { GlobalSettings } from '../../../shared/global-settings-types'
@@ -7,8 +7,11 @@ import { ONBOARDING_FINAL_STEP, ONBOARDING_FLOW_VERSION } from '../../../shared/
 import type { PersistedState } from '../../../shared/persisted-state-types'
 import {
   getOrcaProfilesDirectory,
+  LEGACY_BACKUP_COUNT,
+  legacyBackupPath,
   legacyDataFilePath
 } from '../../orca-profiles/profile-storage-paths'
+import { isSecondWindowSlotUserDataPath } from '../../../shared/second-window-slot-profile'
 import { readWsFallbackPort, writeWsFallbackPort } from '../../runtime/rpc/ws-fallback-port-store'
 
 type SeedSource = {
@@ -108,9 +111,19 @@ export function buildSecondWindowSeed(
   return { settings, ui, onboarding }
 }
 
-/** First launch only: a slot that already has a profile keeps the choices made in that window. */
-export function isSecondWindowSlotSeeded(slotDir: string): boolean {
-  return existsSync(legacyDataFilePath(slotDir)) || existsSync(getOrcaProfilesDirectory(slotDir))
+/** Every open starts from the main window's current look: drop the slot's saved profile so the
+ *  next start imports the fresh seed. Pairing, environments and the WS port live outside it. */
+export function resetSecondWindowSlotProfile(slotDir: string): void {
+  // Why the guard: this deletes folders, so it must only ever touch a New Window slot.
+  if (!isSecondWindowSlotUserDataPath(slotDir)) {
+    throw new Error(`Refusing to reset a profile that is not a New Window slot: ${slotDir}`)
+  }
+  rmSync(getOrcaProfilesDirectory(slotDir), { recursive: true, force: true })
+  const legacyData = legacyDataFilePath(slotDir)
+  rmSync(legacyData, { force: true })
+  for (let index = 0; index < LEGACY_BACKUP_COUNT; index += 1) {
+    rmSync(legacyBackupPath(slotDir, index), { force: true })
+  }
 }
 
 export function writeSecondWindowSeed(

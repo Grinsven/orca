@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -11,7 +11,7 @@ import {
   buildSecondWindowSeed,
   ensureSecondWindowWsPort,
   findFreeLoopbackPort,
-  isSecondWindowSlotSeeded,
+  resetSecondWindowSlotProfile,
   writeSecondWindowSeed
 } from './second-window-profile-seed'
 
@@ -139,18 +139,40 @@ describe('buildSecondWindowSeed', () => {
 })
 
 describe('slot profile files', () => {
-  it('writes the seed once and treats an existing profile as seeded', () => {
+  it('writes the seed atomically', () => {
     const slotDir = join(tempDir(), 'orca-window-2')
-    expect(isSecondWindowSlotSeeded(slotDir)).toBe(false)
     writeSecondWindowSeed(slotDir, buildSecondWindowSeed(hostSource(), 'env-1'))
     const written = JSON.parse(readFileSync(join(slotDir, 'orca-data.json'), 'utf8'))
     expect(written.settings.activeRuntimeEnvironmentId).toBe('env-1')
     expect(existsSync(join(slotDir, 'orca-data.json.tmp'))).toBe(false)
-    expect(isSecondWindowSlotSeeded(slotDir)).toBe(true)
+  })
 
-    const migrated = tempDir()
-    mkdirSync(join(migrated, 'profiles'))
-    expect(isSecondWindowSlotSeeded(migrated)).toBe(true)
+  it('drops the saved profile so the next start imports a fresh copy, keeping the pairing', () => {
+    const slotDir = join(tempDir(), 'orca-window-2')
+    mkdirSync(join(slotDir, 'profiles', 'local-default'), { recursive: true })
+    writeFileSync(
+      join(slotDir, 'profiles', 'local-default', 'profile-state.db'),
+      'old window state'
+    )
+    writeFileSync(join(slotDir, 'orca-data.json'), '{"ui":{"sortBy":"name"}}')
+    writeFileSync(join(slotDir, 'orca-data.json.bak.0'), 'old backup')
+    writeFileSync(join(slotDir, 'orca-environments.json'), '{"version":1,"environments":[]}')
+    writeFileSync(join(slotDir, 'mobile-ws-fallback-port.json'), '{"port":51999}')
+
+    resetSecondWindowSlotProfile(slotDir)
+
+    expect(existsSync(join(slotDir, 'profiles'))).toBe(false)
+    expect(existsSync(join(slotDir, 'orca-data.json'))).toBe(false)
+    expect(existsSync(join(slotDir, 'orca-data.json.bak.0'))).toBe(false)
+    expect(existsSync(join(slotDir, 'orca-environments.json'))).toBe(true)
+    expect(existsSync(join(slotDir, 'mobile-ws-fallback-port.json'))).toBe(true)
+  })
+
+  it('refuses to reset anything that is not a New Window slot', () => {
+    const hostProfile = join(tempDir(), 'orca')
+    mkdirSync(join(hostProfile, 'profiles'), { recursive: true })
+    expect(() => resetSecondWindowSlotProfile(hostProfile)).toThrow(/not a New Window slot/)
+    expect(existsSync(join(hostProfile, 'profiles'))).toBe(true)
   })
 
   it('seeds a WebSocket fallback port once', async () => {

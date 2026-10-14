@@ -116,8 +116,21 @@ test('New Window starts a second window already paired, and a relaunch keeps the
         .sort()
     ).toEqual(['Orca window 2', 'Orca window 3'])
 
+    // Window 2 picks its own sidebar order, then quits; the main window then changes its own.
+    await page.evaluate(() => {
+      const state = window.__store!.getState()
+      state.setSortBy('recent')
+      state.setGroupBy('none')
+    })
+    await page.waitForTimeout(1_500)
     await quitSecondWindow(window2)
     window2 = null
+    await hub.evaluate(() => {
+      const state = window.__store!.getState()
+      state.setSortBy('name')
+      state.setGroupBy('repo')
+    })
+    await hub.waitForTimeout(1_500)
 
     // Relaunch: slot 2 is free again, keeps its environment and its device; no new pairing.
     const relaunch = await clickNewWindow(electronApp)
@@ -129,6 +142,13 @@ test('New Window starts a second window already paired, and a relaunch keeps the
     window2 = await launchSecondWindow(relaunch, testInfo)
     expect(await activeEnvironmentId(window2.page)).toBe(environment.id)
     await waitForHostWorktree(window2.page, worktrees[0]!.id)
+    // Every New Window starts as a copy of the main window now, not as window 2 was left.
+    expect(
+      await window2.page.evaluate(() => {
+        const state = window.__store!.getState()
+        return { sortBy: state.sortBy, groupBy: state.groupBy }
+      })
+    ).toEqual({ sortBy: 'name', groupBy: 'repo' })
   } finally {
     if (window2) {
       await quitSecondWindow(window2)

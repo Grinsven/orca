@@ -4,7 +4,7 @@ import { ensureSecondWindowPairing, getSecondWindowPairingHost } from './second-
 import {
   buildSecondWindowSeed,
   ensureSecondWindowWsPort,
-  isSecondWindowSlotSeeded,
+  resetSecondWindowSlotProfile,
   writeSecondWindowSeed
 } from './second-window-profile-seed'
 import {
@@ -109,23 +109,23 @@ async function prepareSlot(slotDir: string, windowNumber: number): Promise<void>
     record: readSecondWindowRecords(hostUserDataPath)[String(windowNumber)] ?? null
   })
   writeSecondWindowRecord(hostUserDataPath, windowNumber, record)
-  if (!isSecondWindowSlotSeeded(slotDir)) {
-    const store = state.store
-    if (!store) {
-      throw new Error('Settings are not loaded yet.')
-    }
-    writeSecondWindowSeed(
-      slotDir,
-      buildSecondWindowSeed(
-        {
-          settings: store.getSettings(),
-          ui: store.getUI(),
-          onboarding: store.getOnboarding()
-        },
-        record.environmentId
-      )
-    )
+  const store = state.store
+  if (!store) {
+    throw new Error('Settings are not loaded yet.')
   }
+  // Why every open: a new window starts as a copy of the main window as it is now, not as it was left.
+  resetSecondWindowSlotProfile(slotDir)
+  writeSecondWindowSeed(
+    slotDir,
+    buildSecondWindowSeed(
+      {
+        settings: store.getSettings(),
+        ui: store.getUI(),
+        onboarding: store.getOnboarding()
+      },
+      record.environmentId
+    )
+  )
   await ensureSecondWindowWsPort(slotDir)
 }
 
