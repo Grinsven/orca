@@ -1,0 +1,10 @@
+[req]
+distinguished_name = dn
+x509_extensions = v3_code
+prompt = no
+[dn]
+CN = Orca Patched Signing
+[v3_code]
+keyUsage = critical,digitalSignature
+extendedKeyUsage = critical,codeSigning
+basicConstraints = critical,CA:false

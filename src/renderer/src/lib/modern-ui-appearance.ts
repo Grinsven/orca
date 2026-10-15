@@ -1,5 +1,6 @@
 // Jose fork-local: mirrors the Modern UI settings onto <html> so modern-ui*.css can key off them.
 import { parseModernUiSettings, type ModernUiSettings } from '../../../shared/modern-ui-settings'
+import { isJoseUiVariant } from '../../../shared/fork/jose-ui-variant'
 
 const MODERN_UI_CACHE_KEY = 'orca-modern-ui-settings'
 
@@ -23,6 +24,9 @@ export function applyModernUiAppearance(
   root: ModernUiRoot = document.documentElement
 ): void {
   const { dataset, style } = root
+  if (isJoseUiVariant(settings.joseUiVariant)) {
+    dataset.joseUi = settings.joseUiVariant
+  }
   // Why: every attribute is dropped when off so no Modern UI rule can match and the app looks stock.
   setFlag(dataset, 'modernUi', settings.modernUi)
   setFlag(dataset, 'modernUiGlass', settings.modernUi && settings.modernUiFrostedGlass)

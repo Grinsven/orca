@@ -1,0 +1,228 @@
+#!/bin/bash
+# orca-fork-update , keep Jose's Orca fork (jose/oled-ui) on the newest upstream release.
+#
+#   orca-fork-update auto     fetch newest release tag, replay fork commits onto it in an
+#                             isolated worktree, let Opus fix conflicts / red checks, then
+#                             build (Apple Silicon only), sign and install it (quits +
+#                             relaunches Orca Patched). Only inside the 07:00 hour: a release
+#                             that lands later waits for the next morning (Jose, 8 Oct 2026).
+#   orca-fork-update now      same as auto, right away, ignoring the 07:00 window
+#   orca-fork-update swap     install a staged build (quits Orca Patched first)
+#   orca-fork-update status   print base tag, newest tag, staged build
+#   orca-fork-update push     mirror the branch, backups and base tag to Grinsven/orca-patched now
+#
+# Pushes only to Jose's private mirror (remote "private"), never to stablyai/orca; never touches
+# stock /Applications/Orca.app.
+set -Eeuo pipefail
+export PATH="$HOME/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin"
+
+REPO="$HOME/Projects/orca"
+NODE_MAJOR="$(/usr/bin/plutil -extract engines.node raw -o - "$REPO/package.json")"
+[[ "$NODE_MAJOR" =~ ^[0-9]+$ ]] || { printf 'Unsupported package.json Node pin\n' >&2; exit 1; }
+export PATH="$HOME/.local/bin:/opt/homebrew/opt/node@$NODE_MAJOR/bin:$PATH"
+BRANCH="jose/oled-ui"
+BASEFILE="$REPO/.orca-fork-base"
+WT="$REPO/.worktrees/update"
+STAGE="$HOME/Applications/OrcaPatchedStaging"
+APP="/Applications/Orca Patched.app"
+SIGN_ID="Orca Patched Signing"
+BUNDLE_ID="com.stablyai.orca.patched"
+LOG="$HOME/Library/Logs/orca-fork-update.log"
+PROMPTS="$HOME/.local/share/orca-fork-update"
+MAX_FIX_ROUNDS=3
+MODE="${1:-auto}"
+
+mkdir -p "$(dirname "$LOG")" "$PROMPTS"
+log()    { printf '%s %s\n' "$(date '+%F %T')" "$*" | tee -a "$LOG"; }
+notify() { osascript -e "display notification \"$2\" with title \"Orca fork update\" subtitle \"$1\"" >/dev/null 2>&1 || true; }
+die()    { DIED=1; log "FAIL: $*"; notify "failed" "$*"; exit 1; }
+
+# Why: set -e used to end a run silently (7 Oct 07:00: the tag fetch failed on a half-awake Mac
+# and nothing was logged). Any unexpected exit now leaves a FAIL line and a notification.
+ERR_LINE=""
+trap 'ERR_LINE=$LINENO' ERR
+trap 'rc=$?; if [ "$rc" -ne 0 ] && [ -z "${DIED:-}" ]; then log "FAIL: unexpected exit $rc (line ${ERR_LINE:-?})"; notify "failed" "unexpected exit $rc, see ~/Library/Logs/orca-fork-update.log"; fi' EXIT
+
+newest_tag() {
+  git -C "$REPO" ls-remote --tags origin 'v1.4.*' 2>/dev/null \
+    | grep -v '\^{}' | grep -v -- '-rc' | sed 's|.*refs/tags/||' | sort -V | tail -1
+}
+
+cherry_pick_in_progress() { [ -e "$(git -C "$WT" rev-parse --git-path CHERRY_PICK_HEAD)" ]; }
+has_conflicts()           { git -C "$WT" diff --name-only --diff-filter=U | grep -q .; }
+
+# Bounded headless Opus pass inside the worktree. $1 = prompt file, $2 = round label.
+opus_fix() {
+  log "Opus fix round ($2) using $(basename "$1")"
+  ( cd "$WT" && claude -p "$(cat "$1")" --model opus --dangerously-skip-permissions --max-turns 80 \
+      >>"$LOG" 2>&1 ) || log "Opus exited non-zero (continuing to re-check)"
+}
+
+verify() {
+  ( cd "$WT" \
+    && pnpm run typecheck:web >>"$LOG" 2>&1 \
+    && pnpm run typecheck:node >>"$LOG" 2>&1 \
+    && npx vitest run --config config/vitest.config.ts \
+         src/shared/keybindings src/shared/claude-statusline-rate-limits.test.ts \
+         src/renderer/src/components/tab-bar src/renderer/src/components/status-bar \
+         src/renderer/src/components/right-sidebar/source-control \
+         src/renderer/src/components/sidebar/worktree-list-two-level-grouping.test.ts \
+         src/renderer/src/components/sidebar/worktree-list/grouping \
+         src/renderer/src/assets src/renderer/src/lib src/shared/modern-ui-settings.test.ts \
+         src/main/fork/second-window src/main/jose-window src/renderer/src/jose-window \
+         src/shared/second-window-slot-profile.test.ts src/preload >>"$LOG" 2>&1 \
+    && npx oxlint $(git diff --name-only "$1"..HEAD -- '*.ts' '*.tsx' | grep -v '\.test\.' | tr '\n' ' ') >>"$LOG" 2>&1 )
+}
+
+package_app() {  # $1 = destination .app path
+  rm -rf "$1"; cp -R "$REPO/dist/mac-arm64/Orca.app" "$1"
+  /usr/libexec/PlistBuddy -c "Set :CFBundleDisplayName 'Orca Patched'" "$1/Contents/Info.plist"
+  /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier $BUNDLE_ID" "$1/Contents/Info.plist"
+  codesign --force --deep -s "$SIGN_ID" "$1" >>"$LOG" 2>&1
+  rm -rf "$REPO"/dist/mac "$REPO"/dist/mac-arm64 "$REPO"/dist/*.dmg "$REPO"/dist/*.zip "$REPO"/dist/*.blockmap 2>/dev/null || true
+}
+
+# Mirror the fork to Jose's private GitHub repo (Grinsven/orca-patched, remote "private"). The
+# branch is rebuilt on every release, so it needs a force push; the lease refuses to overwrite a
+# version this machine has not seen. Backups never move, so GitHub keeps every version. Not fatal:
+# a failed push must not block the install.
+push_private() {
+  local token
+  token="$(gh auth token -u Grinsven 2>/dev/null || true)"
+  if [ -z "$token" ]; then log "WARN: no Grinsven GitHub token, skipped the push"; return 0; fi
+  if GH_TOKEN="$token" git -c credential.helper= -c 'credential.helper=!gh auth git-credential' \
+       push --force-with-lease private "$BRANCH" 'refs/heads/backup/*:refs/heads/backup/*' \
+       'refs/heads/stash/*:refs/heads/stash/*' "refs/tags/$(cat "$BASEFILE")" "$BRANCH:refs/heads/main" >>"$LOG" 2>&1; then
+    log "pushed $BRANCH, backups and $(cat "$BASEFILE") to github.com/Grinsven/orca-patched"
+  else
+    log "WARN: push to Grinsven/orca-patched failed, see the log; continuing"
+  fi
+}
+
+# Why anchored: the daemon's argv carries the app path (--spawner-exec-path), so an unanchored
+# match never sees the app as quit.
+orca_running() { pgrep -f '^/Applications/Orca Patched.app/Contents/MacOS/Orca( |$)' >/dev/null 2>&1; }
+orca_count() { pgrep -f '^/Applications/Orca Patched.app/Contents/MacOS/Orca( |$)' 2>/dev/null | wc -l | tr -d ' '; }
+
+# Why a loop: Window > New Window runs extra Orca Patched processes from the same bundle (own
+# --user-data-dir slot each), and one AppleScript quit reaches one process. Quit again as soon as
+# the count drops, so every window gets a clean quit before the bundle is replaced.
+quit_all_orca() {
+  local attempt=0 before
+  while orca_running && [ "$attempt" -lt 8 ]; do
+    before="$(orca_count)"
+    log "quitting Orca Patched for swap ($before running)"
+    osascript -e 'tell application "Orca Patched" to quit' >/dev/null 2>&1 || true
+    for _ in $(seq 1 40); do [ "$(orca_count)" -lt "$before" ] && break; sleep 0.5; done
+    attempt=$((attempt + 1))
+  done
+  orca_running && log "WARN: Orca Patched still running after $attempt quit attempts; swapping anyway"
+  return 0
+}
+
+do_swap() {
+  [ -d "$STAGE/Orca Patched.app" ] || die "no staged build at $STAGE"
+  quit_all_orca
+  local version
+  version="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$STAGE/Orca Patched.app/Contents/Info.plist" 2>/dev/null || echo unknown)"
+  rm -rf "$APP"; cp -R "$STAGE/Orca Patched.app" "$APP"; rm -rf "$STAGE"
+  # Why: the Orca daemon outlives the app and keeps running the OLD bundle's main-process code
+  # until it is respawned by an app launch; without this, main/relay fixes never take effect.
+  # tmux-wrapped sessions survive; native agent PTYs owned by the daemon restart.
+  pkill -f "Orca Patched.app/.*daemon-entry" 2>/dev/null || true
+  sleep 1
+  open "$APP"
+  # Why the bundle version: it carries the fork commit (1.4.x-local.<ts>.<hash>), the tag does not.
+  log "swapped in $version"; notify "installed" "Orca Patched now on $version"
+}
+
+case "$MODE" in
+  status)
+    echo "base:    $(cat "$BASEFILE" 2>/dev/null || echo unknown)"
+    echo "newest:  $(newest_tag)"
+    echo "staged:  $([ -d "$STAGE/Orca Patched.app" ] && echo yes || echo no)"
+    exit 0 ;;
+  swap) do_swap; exit 0 ;;
+  push) cd "$REPO"; push_private; exit 0 ;;
+  auto|now) ;;
+  *) echo "usage: orca-fork-update [auto|now|push|swap|status]"; exit 2 ;;
+esac
+
+if [ "$MODE" = auto ] && [ "$(date +%H)" != 07 ]; then
+  log "auto run at $(date +%H:%M) is outside the 07:00 window, skipping until tomorrow (orca-fork-update now updates right away)"
+  exit 0
+fi
+
+log "=== auto update start ($MODE) ==="
+cd "$REPO"
+[ -z "$(git status --porcelain)" ] || die "working tree not clean, refusing"
+[ "$(git rev-parse --abbrev-ref HEAD)" = "$BRANCH" ] || die "not on $BRANCH"
+BASE="$(cat "$BASEFILE")"
+# Why retry: at 07:00 the Mac is often only half awake and the network is not up yet.
+LATEST=""
+for attempt in 1 2 3 4 5 6 7 8 9 10; do
+  LATEST="$(newest_tag || true)"
+  [ -n "$LATEST" ] && break
+  log "could not read upstream tags (attempt $attempt/10), retrying in 30s"
+  sleep 30
+done
+[ -n "$LATEST" ] || die "could not read upstream tags after 10 attempts"
+if [ "$LATEST" = "$BASE" ]; then log "already on $BASE, nothing to do"; exit 0; fi
+log "updating $BASE -> $LATEST"
+
+# Why no --depth: the checkout is a full clone since 10 Oct 2026; a shallow fetch would re-add
+# a boundary and GitHub then rejects pushes with "did not receive expected object".
+git fetch origin "tag" "$LATEST" >>"$LOG" 2>&1
+git worktree remove --force "$WT" >/dev/null 2>&1 || true
+git branch -D "update/$LATEST" >/dev/null 2>&1 || true
+git worktree add -f "$WT" -b "update/$LATEST" "$LATEST" >>"$LOG" 2>&1
+git -C "$WT" config user.name  "$(git config user.name)"
+git -C "$WT" config user.email "$(git config user.email)"
+
+# Replay the fork stack. --empty=drop silently skips commits upstream already absorbed.
+log "cherry-picking $(git rev-list --count "$BASE".."$BRANCH") fork commits"
+if ! git -C "$WT" -c core.hooksPath=/dev/null cherry-pick -x --empty=drop "$BASE".."$BRANCH" >>"$LOG" 2>&1; then
+  round=0
+  while cherry_pick_in_progress || has_conflicts; do
+    round=$((round+1)); [ "$round" -le "$MAX_FIX_ROUNDS" ] || die "conflicts unresolved after $MAX_FIX_ROUNDS Opus rounds (worktree kept at $WT)"
+    opus_fix "$PROMPTS/fix-conflicts.md" "conflicts $round"
+  done
+fi
+log "fork stack applied: $(git -C "$WT" rev-list --count "$LATEST"..HEAD) commits on $LATEST"
+
+# Verify in the worktree with its own node_modules (pnpm hardlinks from the store, cheap on disk).
+( cd "$WT" && pnpm install --frozen-lockfile >>"$LOG" 2>&1 ) || die "pnpm install failed in worktree"
+round=0
+until verify "$LATEST"; do
+  round=$((round+1)); [ "$round" -le "$MAX_FIX_ROUNDS" ] || die "checks still red after $MAX_FIX_ROUNDS Opus rounds (worktree kept at $WT)"
+  opus_fix "$PROMPTS/fix-red-checks.md" "red checks $round"
+  ( cd "$WT" && git add -A && git -c core.hooksPath=/dev/null commit -q -m "jose: Opus fix after rebase onto $LATEST" ) >>"$LOG" 2>&1 || true
+done
+log "typecheck + tests + lint green on $LATEST"
+
+# Move the real branch only now. Backup ref first so this is always reversible.
+git branch -f "backup/oled-ui-$(date +%F)" "$BRANCH"
+git reset -q --hard "update/$LATEST"
+echo "$LATEST" > "$BASEFILE"
+git worktree remove --force "$WT"; git branch -D "update/$LATEST" >/dev/null 2>&1 || true
+log "branch $BRANCH now on $LATEST (backup: backup/oled-ui-$(date +%F))"
+push_private
+
+# Why: the verify step installed into the worktree only; the checkout's node_modules still match
+# the old base. install:release adds the x64 native variants build:mac packages next to arm64
+# (a plain install prunes them). mobile/ is its own pnpm project (upstream CI installs it
+# separately) and build:desktop bundles the mobile web app from it since v1.4.210.
+log "installing dependencies"
+pnpm run install:release >>"$LOG" 2>&1 || die "pnpm install failed"
+if [ -f mobile/package.json ]; then
+  ( cd mobile && pnpm install --frozen-lockfile ) >>"$LOG" 2>&1 || die "mobile pnpm install failed"
+fi
+
+log "building"
+# Apple Silicon only, unpacked .app (Jose, 8 Oct 2026): no x64 slice, no dmg/zip.
+pnpm run build:mac --arm64 --dir >>"$LOG" 2>&1 || die "build failed"
+mkdir -p "$STAGE"; package_app "$STAGE/Orca Patched.app"
+# Always install: do_swap quits a running Orca Patched first; the Orca daemon keeps terminal
+# sessions alive across the app restart, so only the window blinks.
+do_swap
+log "=== auto update done ==="

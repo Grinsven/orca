@@ -1,11 +1,13 @@
 // Jose fork-local: settings for the VS Code style "Modern UI" look (floating cards, refreshed
 // tabs, normal-case headers, frosted overlays). Not for upstream.
 import type { SourceControlHistorySettings } from './git-history-types'
+import { isJoseUiVariant, type JoseUiVariant } from './fork/jose-ui-variant'
 
 export type ModernUiTabStyle = 'connected' | 'pill'
 export type ModernUiDensity = 'default' | 'compact'
 
 export type ModernUiSettings = {
+  joseUiVariant?: JoseUiVariant
   modernUi: boolean
   modernUiTabStyle: ModernUiTabStyle
   modernUiDensity: ModernUiDensity
@@ -64,6 +66,7 @@ export function normalizeModernUiSettings(
 ): ModernUiSettings {
   const defaults = DEFAULT_MODERN_UI_SETTINGS
   return {
+    ...(isJoseUiVariant(source?.joseUiVariant) ? { joseUiVariant: source.joseUiVariant } : {}),
     modernUi: booleanOr(source?.modernUi, defaults.modernUi),
     modernUiTabStyle: source?.modernUiTabStyle === 'pill' ? 'pill' : 'connected',
     modernUiDensity: source?.modernUiDensity === 'compact' ? 'compact' : 'default',

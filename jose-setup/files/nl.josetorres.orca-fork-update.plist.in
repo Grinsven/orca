@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>nl.josetorres.orca-fork-update</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>@HOME@/.local/bin/orca-fork-update</string>
+    <string>auto</string>
+  </array>
+  <key>StartCalendarInterval</key>
+  <dict><key>Hour</key><integer>7</integer><key>Minute</key><integer>0</integer></dict>
+  <key>RunAtLoad</key><false/>
+  <key>StandardOutPath</key><string>@HOME@/Library/Logs/orca-fork-update.launchd.log</string>
+  <key>StandardErrorPath</key><string>@HOME@/Library/Logs/orca-fork-update.launchd.log</string>
+  <key>EnvironmentVariables</key>
+  <dict><key>PATH</key><string>@HOME@/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string><key>HOME</key><string>@HOME@</string></dict>
+</dict>
+</plist>

@@ -7,6 +7,7 @@ import { useAppStore } from '../store'
 
 export function useModernUiAppearance(): void {
   const settingsLoaded = useAppStore((s) => s.settings != null)
+  const joseUiVariant = useAppStore((s) => s.settings?.joseUiVariant)
   const modernUi = useAppStore((s) => s.settings?.modernUi)
   const modernUiTabStyle = useAppStore((s) => s.settings?.modernUiTabStyle)
   const modernUiDensity = useAppStore((s) => s.settings?.modernUiDensity)
@@ -20,6 +21,7 @@ export function useModernUiAppearance(): void {
       return
     }
     const settings = normalizeModernUiSettings({
+      joseUiVariant,
       modernUi,
       modernUiTabStyle,
       modernUiDensity,
@@ -31,6 +33,7 @@ export function useModernUiAppearance(): void {
     cacheModernUiSettings(settings)
   }, [
     settingsLoaded,
+    joseUiVariant,
     modernUi,
     modernUiTabStyle,
     modernUiDensity,
