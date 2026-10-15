@@ -23,10 +23,6 @@ vi.mock(
   '../ipc/local-worktree-runtime-options',
   async () => (await import('./orca-runtime-files-mock-registry')).localWorktreeRuntimeOptionsMock
 )
-vi.mock(
-  '../providers/ssh-filesystem-dispatch',
-  async () => (await import('./orca-runtime-files-mock-registry')).sshFilesystemDispatchMock
-)
 
 describe('RuntimeFileCommands.openMobileFile preview', () => {
   useRuntimeFileCommandsLifecycle()

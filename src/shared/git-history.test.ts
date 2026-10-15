@@ -10,6 +10,10 @@ import {
   parseGitHistoryLog
 } from './git-history'
 import { GIT_HISTORY_COMMIT_FORMAT } from './git-history-log-parser'
+import {
+  normalizeGitHistoryScope,
+  sanitizeSourceControlHistorySettingsUpdate
+} from './git-history-types'
 
 const HEAD_OID = 'a'.repeat(40)
 const REMOTE_OID = 'b'.repeat(40)
@@ -478,5 +482,25 @@ describe('normalizeGitHistoryPanelHeight', () => {
 
   it('falls back to the default for NaN', () => {
     expect(normalizeGitHistoryPanelHeight(Number.NaN)).toBe(GIT_HISTORY_PANEL_DEFAULT_HEIGHT)
+  })
+})
+
+describe('sanitizeSourceControlHistorySettingsUpdate', () => {
+  it('returns nothing for a write without history keys', () => {
+    expect(sanitizeSourceControlHistorySettingsUpdate({})).toEqual({})
+  })
+
+  it('normalizes each history key the write carries', () => {
+    expect(
+      sanitizeSourceControlHistorySettingsUpdate({
+        sourceControlHistoryScope: 'everything',
+        sourceControlHistoryExpanded: 1,
+        sourceControlHistoryPanelHeight: 99_999
+      })
+    ).toEqual({
+      sourceControlHistoryScope: normalizeGitHistoryScope('everything'),
+      sourceControlHistoryExpanded: true,
+      sourceControlHistoryPanelHeight: GIT_HISTORY_PANEL_MAX_HEIGHT
+    })
   })
 })

@@ -15,6 +15,7 @@ vi.mock('./use-status-bar-controller', () => ({
   })
 }))
 vi.mock('./CaffeinateStatusSegment', () => ({ CaffeinateStatusSegment: () => null }))
+vi.mock('./ClaudeContextStatusSegment', () => ({ ClaudeContextStatusSegment: () => null }))
 vi.mock('./RemoteServerUpdateStatusSegment', () => ({
   RemoteServerUpdateStatusSegment: () => null
 }))

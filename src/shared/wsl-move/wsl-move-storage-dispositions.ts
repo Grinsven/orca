@@ -91,6 +91,15 @@ export const LOCAL_STORAGE_MODULE_DISPOSITIONS: Record<string, WslMoveFieldDispo
       path,
       notApplicableDisposition(62, 'Global preference or web-client storage.')
     ])
+  ),
+  // Jose fork-local: the dark-surface variant and Modern UI paint cache are desktop-wide.
+  ...Object.fromEntries(
+    [
+      'src/renderer/src/lib/modern-ui-appearance.ts',
+      'src/renderer/src/main.tsx',
+      'src/renderer/src/popout.tsx',
+      'src/renderer/src/web/main.tsx'
+    ].map((path) => [path, notApplicableDisposition(62, 'Global appearance preference.')])
   )
 }
 

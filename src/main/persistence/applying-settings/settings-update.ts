@@ -16,10 +16,7 @@ import { normalizeTaskProviderSettings } from '../../../shared/task-providers'
 import { normalizeOpenInApplications } from '../../../shared/open-in-applications'
 import { normalizeTerminalShortcutPolicy } from '../../../shared/keybindings'
 import { normalizeSourceControlGroupOrder } from '../../../shared/source-control-group-order'
-import {
-  normalizeGitHistoryPanelHeight,
-  normalizeGitHistoryScope
-} from '../../../shared/git-history-types'
+import { sanitizeSourceControlHistorySettingsUpdate } from '../../../shared/git-history-types'
 import { normalizeAppIconId } from '../../../shared/app-icon'
 import { normalizeUiLanguage } from '../../../shared/ui-language'
 import { normalizeWorktreeVisibilityDefaults } from '../../../shared/external-worktree-visibility'
@@ -194,19 +191,7 @@ export function updateSettings(
       updates.sourceControlGroupOrder
     )
   }
-  if ('sourceControlHistoryScope' in updates) {
-    sanitizedUpdates.sourceControlHistoryScope = normalizeGitHistoryScope(
-      updates.sourceControlHistoryScope
-    )
-  }
-  if ('sourceControlHistoryExpanded' in updates) {
-    sanitizedUpdates.sourceControlHistoryExpanded = Boolean(updates.sourceControlHistoryExpanded)
-  }
-  if ('sourceControlHistoryPanelHeight' in updates) {
-    sanitizedUpdates.sourceControlHistoryPanelHeight = normalizeGitHistoryPanelHeight(
-      updates.sourceControlHistoryPanelHeight
-    )
-  }
+  Object.assign(sanitizedUpdates, sanitizeSourceControlHistorySettingsUpdate(updates))
   if ('appIcon' in updates) {
     sanitizedUpdates.appIcon = normalizeAppIconId(updates.appIcon)
   }

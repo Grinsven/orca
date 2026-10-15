@@ -5,7 +5,7 @@ import {
   resolveEnvironmentPairingOffer,
   updateEnvironmentFromPairingCode
 } from '../../../shared/runtime-environment-store'
-import type { DeviceEntry, DeviceRegistry } from '../../runtime/device-registry'
+import type { DeviceRegistry, TokenDeviceEntry } from '../../runtime/device-registry'
 import { resolveAdvertisedPairingEndpoint } from '../../runtime/pairing-endpoint'
 import type { SecondWindowSlotRecord } from './second-window-slots'
 
@@ -40,10 +40,11 @@ function ensureWindowDevice(
   host: SecondWindowPairingHost,
   windowNumber: number,
   record: SecondWindowSlotRecord | null
-): DeviceEntry {
+): TokenDeviceEntry {
   const existing = record ? host.registry.getDevice(record.deviceId) : null
-  if (existing?.scope === 'runtime') {
-    return existing
+  // Why: the offer needs a bearer token; a keyed row has none, so mint a fresh token row instead.
+  if (existing?.scope === 'runtime' && existing.token !== undefined) {
+    return { ...existing, token: existing.token }
   }
   // Why addDevice, not createPairingOffer: that reuses or rotates the pending link Settings hands out.
   const device = host.registry.addDevice(`Orca window ${windowNumber}`, 'runtime', 'this-computer')

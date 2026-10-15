@@ -88,6 +88,27 @@ export function normalizeGitHistoryScope(value: unknown): GitHistoryScope {
   return value === 'all' || value === 'branch' ? value : GIT_HISTORY_DEFAULT_SCOPE
 }
 
+/** Only the history keys present in a settings write, normalized so no stray value persists. */
+export function sanitizeSourceControlHistorySettingsUpdate(
+  updates: Partial<Record<keyof SourceControlHistorySettings, unknown>>
+): SourceControlHistorySettings {
+  const sanitized: SourceControlHistorySettings = {}
+  if ('sourceControlHistoryScope' in updates) {
+    sanitized.sourceControlHistoryScope = normalizeGitHistoryScope(
+      updates.sourceControlHistoryScope
+    )
+  }
+  if ('sourceControlHistoryExpanded' in updates) {
+    sanitized.sourceControlHistoryExpanded = Boolean(updates.sourceControlHistoryExpanded)
+  }
+  if ('sourceControlHistoryPanelHeight' in updates) {
+    sanitized.sourceControlHistoryPanelHeight = normalizeGitHistoryPanelHeight(
+      updates.sourceControlHistoryPanelHeight
+    )
+  }
+  return sanitized
+}
+
 export type GitHistoryOptions = {
   limit?: number
   baseRef?: string | null

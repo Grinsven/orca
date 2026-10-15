@@ -8,11 +8,11 @@ export function assertRuntimeFilePreviewPath(relativePath: string): void {
   }
 }
 
-/** Why: a plain or positioned open must call the host with exactly the arguments it always did; a rendered page has no cursor, so preview drops the position. */
+/** Why: a plain or positioned open must call the host with exactly the arguments it always did; a rendered page has no cursor, so preview drops the position. Optional tuple elements because TS 7 cannot spread a tuple union into fixed params. */
 export function runtimeFileOpenTrailingArgs(
   position: RuntimeFileOpenPosition | undefined,
   preview: boolean | undefined
-): [] | [RuntimeFileOpenPosition] | [undefined, true] {
+): [position?: RuntimeFileOpenPosition, preview?: true] {
   if (preview) {
     return [undefined, true]
   }

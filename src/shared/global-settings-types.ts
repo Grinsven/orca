@@ -45,7 +45,7 @@ import type {
 import type { SetupScriptLaunchMode } from './worktree/launch-types'
 import type { WorktreeVisibilityDefaults } from './repo-types'
 
-export type { WorktreeVisibilityDefaults } from './repo-types'
+export type { OrcaWorkspaceLayout, WorktreeVisibilityDefaults }
 
 /** MiniMax account region used to select the quota endpoint. */
 export type MiniMaxEndpoint = 'overseas' | 'cn'
@@ -547,4 +547,3 @@ export type GlobalSettings = NativeChatGlobalSettings & {
 // Re-exported so existing importers keep one entry point; the shape lives in its
 // own file because this one is at the max-lines ceiling.
 export type { GhosttyImportPreview } from './ghostty-import-preview'
-export type { OrcaWorkspaceLayout } from './orca-workspace-layout'

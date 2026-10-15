@@ -69,7 +69,8 @@ describe('window 2 ownership stream lifetime', () => {
     registerRuntimeEnvironmentSubscriptionHandlers({
       getUserDataPath: () => userDataPath,
       remoteRuntimeSubscriptions: new Map(),
-      pendingSubscriptions: new Map()
+      pendingSubscriptions: new Map(),
+      recordLayoutFrame: vi.fn()
     })
   })
 
