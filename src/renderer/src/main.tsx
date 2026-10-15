@@ -5,6 +5,7 @@
 import './lib/react-devtools-commit-hook-shim'
 import './lib/react-commit-cascade-observer'
 import './assets/main.css'
+import { installRendererMemoryRelease } from './fork/memory-release/renderer-memory-release'
 
 import { StrictMode } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -31,6 +32,8 @@ const disposeOsFileDropGuard = installOsFileDropCancellationGuard()
 import.meta.hot?.dispose(disposeOsFileDropGuard)
 recordRendererCrashBreadcrumb('renderer_bootstrap_started', { dev: import.meta.env.DEV })
 installRendererCrashDiagnostics()
+const disposeMemoryRelease = installRendererMemoryRelease()
+import.meta.hot?.dispose(disposeMemoryRelease)
 installTypingLatencyDiagnostic()
 installAutomationHostDiagnostic()
 

@@ -1,4 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
+import { exposeMemoryReleaseBridge } from '../renderer/src/fork/memory-release/memory-release-preload'
 import type { PreloadApi } from './api-types'
 import { installBrowserFindListener } from './preload-runtime-support'
 import { appApi } from './api/app-bridge'
@@ -198,3 +199,4 @@ if (process.contextIsolated) {
   window.api = api
 }
 exposeJoseWindowApi()
+exposeMemoryReleaseBridge()

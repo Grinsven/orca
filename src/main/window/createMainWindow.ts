@@ -1,4 +1,5 @@
 import { BrowserWindow, nativeTheme, powerMonitor, screen } from 'electron'
+import { installWindowMemoryRelease } from '../fork/memory-release/window-memory-release'
 import { is } from '@electron-toolkit/utils'
 import { join } from 'node:path'
 import { getAppIconPath } from '../app-icon'
@@ -142,6 +143,7 @@ export function createMainWindow(
     }
   })
   const rendererWebContentsId = mainWindow.webContents.id
+  installWindowMemoryRelease(mainWindow)
   installWindowsPathRegistryChangeListener(mainWindow)
   // Why: native paste fallback is privileged IPC; only the top-level renderer may request it.
   setTrustedUIRendererWebContentsId(rendererWebContentsId)

@@ -61,7 +61,10 @@ export function resetRendererMemorySampling(): void {
   rendererSurface = 'main'
 }
 
-export function recordRendererMemorySample(reason: string): void {
+export function recordRendererMemorySample(
+  reason: string,
+  currentFootprint?: (RendererProcessMemory & { source?: string }) | null
+): void {
   const memory = readHeapMetrics()
   if (!memory) {
     return
@@ -72,7 +75,7 @@ export function recordRendererMemorySample(reason: string): void {
   // background and annotate with the last answer instead — one sample interval
   // of staleness is irrelevant to a footprint trend, and the first sample of a
   // session simply carries no footprint.
-  const footprint = lastProcessFootprint
+  const footprint = currentFootprint === undefined ? lastProcessFootprint : currentFootprint
   refreshProcessFootprint()
 
   recordRendererCrashBreadcrumb(
@@ -80,6 +83,7 @@ export function recordRendererMemorySample(reason: string): void {
     compactBreadcrumbData({
       reason,
       rendererSurface,
+      footprintSource: currentFootprint?.source,
       usedHeapMB: toMegabytes(memory.usedJSHeapSize),
       totalHeapMB: toMegabytes(memory.totalJSHeapSize),
       heapLimitMB: toMegabytes(memory.jsHeapSizeLimit),

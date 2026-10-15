@@ -1,6 +1,10 @@
 import { vi } from 'vitest'
 import type { Mock } from 'vitest'
 
+vi.mock('../fork/memory-release/window-memory-release', () => ({
+  installWindowMemoryRelease: vi.fn()
+}))
+
 /** Loose spy signature: these stand in for electron APIs the suites only assert calls on. */
 export type MainWindowSpy = Mock<(...args: unknown[]) => unknown>
 
