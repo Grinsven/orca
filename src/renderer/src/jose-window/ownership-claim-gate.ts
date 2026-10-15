@@ -90,8 +90,12 @@ export class ClaimWaiters {
 
   /** A claim for any other key means these will never be claimed by this activation. */
   refuseAllBut(key: string | null): void {
+    this.refuseOutside(key === null ? new Set() : new Set([key]))
+  }
+
+  refuseOutside(keys: ReadonlySet<string>): void {
     for (const pendingKey of this.byKey.keys()) {
-      if (pendingKey !== key) {
+      if (!keys.has(pendingKey)) {
         this.settle(pendingKey, false)
       }
     }

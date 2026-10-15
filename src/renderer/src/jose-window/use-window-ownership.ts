@@ -3,6 +3,7 @@ import { useAppStore } from '@/store'
 import { activateAndRevealWorkspace } from '@/lib/worktree-activation'
 import {
   claimWorktree,
+  claimWorktreeSet,
   isMissingOwnershipMethod,
   resolveOwnershipTarget,
   revealWorktreeOwner,
@@ -28,6 +29,7 @@ export function useWindowOwnership(): void {
         store: useAppStore,
         subscribe: subscribeOwnership,
         claim: claimWorktree,
+        claimSet: claimWorktreeSet,
         reveal: revealWorktreeOwner,
         raise: () => {
           window.joseWindow?.raise?.().catch((error: unknown) => {

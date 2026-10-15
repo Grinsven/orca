@@ -1,6 +1,8 @@
 import { defineMethod, defineStreamingMethod, type RpcContext } from '../runtime/rpc/core'
 import {
   JoseWindowClaimParams,
+  JoseWindowClaimSetParams,
+  type JoseWindowClaimSetResult,
   JoseWindowRevealParams,
   type JoseWindowClaimResult,
   type JoseWindowOpenWindowResult,
@@ -35,6 +37,13 @@ async function openWindowOnThisHost(): Promise<JoseWindowOpenWindowResult> {
 }
 
 export const JOSE_WINDOW_METHODS = [
+  defineMethod({
+    name: 'joseWindow.claimSet',
+    permission: 'workspace',
+    params: JoseWindowClaimSetParams,
+    handler: async (params, ctx): Promise<JoseWindowClaimSetResult> =>
+      windowOwnershipRegistry.claimSet(requireWindowKey(ctx), params)
+  }),
   defineStreamingMethod({
     name: 'joseWindow.subscribe',
     permission: 'workspace',

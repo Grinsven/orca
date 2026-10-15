@@ -335,7 +335,11 @@ import {
 } from './jira-params'
 import { JiraQuickFilterStateParam } from './jira-quick-filter-params'
 import { JiraSavedFilterMutationParam } from './jira-saved-filter-params'
-import { JoseWindowClaimParams, JoseWindowRevealParams } from './jose-window-params'
+import {
+  JoseWindowClaimParams,
+  JoseWindowClaimSetParams,
+  JoseWindowRevealParams
+} from './jose-window-params'
 import {
   AgentIssueContext,
   AgentSearchIssues,
@@ -1013,6 +1017,7 @@ export const RPC_PARAMS_BY_METHOD = {
   'jira.testConnection': SiteSelection,
   'jira.updateIssue': IssueUpdate,
   'joseWindow.claim': JoseWindowClaimParams,
+  'joseWindow.claimSet': JoseWindowClaimSetParams,
   'joseWindow.openWindow': null,
   'joseWindow.reveal': JoseWindowRevealParams,
   'joseWindow.subscribe': null,

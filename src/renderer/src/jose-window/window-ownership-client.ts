@@ -2,6 +2,8 @@ import type { GlobalSettings } from '../../../shared/global-settings-types'
 import type { RuntimeRpcResponse } from '../../../shared/runtime-rpc-envelope'
 import type {
   JoseWindowNavigationIntent,
+  JoseWindowClaimSetParams,
+  JoseWindowClaimSetResult,
   JoseWindowOwnershipFrame,
   JoseWindowWorktreeRef
 } from '../../../shared/rpc-contract/jose-window-params'
@@ -75,6 +77,15 @@ export async function claimWorktree(
     { timeoutMs: 10_000 }
   )
   return result.claimed
+}
+
+export async function claimWorktreeSet(
+  target: RuntimeClientTarget,
+  params: JoseWindowClaimSetParams
+): Promise<JoseWindowClaimSetResult> {
+  return callRuntimeRpc<JoseWindowClaimSetResult>(target, 'joseWindow.claimSet', params, {
+    timeoutMs: 10_000
+  })
 }
 
 export async function revealWorktreeOwner(

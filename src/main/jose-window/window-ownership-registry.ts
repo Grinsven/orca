@@ -1,13 +1,23 @@
-import type {
-  JoseWindowNavigationIntent,
-  JoseWindowOwnershipFrame,
-  JoseWindowWorktreeRef
+import { randomUUID } from 'node:crypto'
+import {
+  JOSE_WINDOW_MAX_CLAIMS,
+  type JoseWindowClaimSetParams,
+  type JoseWindowClaimSetResult,
+  type JoseWindowNavigationIntent,
+  type JoseWindowOwnershipFrame,
+  type JoseWindowWorktreeRef
 } from '../../shared/rpc-contract/jose-window-params'
 import { composeWorktreeHostIdentity } from '../../shared/worktree/host-qualified-identity'
 import { parseExecutionHostId } from '../../shared/execution-host'
 import type { RpcCallerIdentity } from '../runtime/rpc/rpc-caller-identity'
 
 type Subscriber = { windowKey: string; emit: (frame: JoseWindowOwnershipFrame) => void }
+type ClaimSession = {
+  id: string
+  revision: number
+  requestKey?: string
+  result?: JoseWindowClaimSetResult
+}
 
 /** One window per caller identity: `desktop` is this host's own window, `paired-device:<id>` a
  *  second window paired over loopback. The CLI and unnamed transports own no window. */
@@ -39,11 +49,15 @@ function refKey(ref: JoseWindowWorktreeRef): string {
  * the worktree away from the others.
  */
 export class WindowOwnershipRegistry {
-  private readonly activeByWindow = new Map<string, JoseWindowWorktreeRef>()
+  private readonly activeByWindow = new Map<string, JoseWindowWorktreeRef[]>()
+  private readonly claimSessions = new Map<string, ClaimSession>()
   private readonly subscribers = new Map<number, Subscriber>()
   private nextSubscriberId = 1
 
   subscribe(windowKey: string, emit: Subscriber['emit']): () => void {
+    if (!this.isLive(windowKey)) {
+      this.claimSessions.set(windowKey, { id: randomUUID(), revision: 0 })
+    }
     const id = this.nextSubscriberId++
     this.subscribers.set(id, { windowKey, emit })
     emit(this.snapshotFor(windowKey))
@@ -55,6 +69,7 @@ export class WindowOwnershipRegistry {
       }
       if (!this.isLive(windowKey)) {
         this.activeByWindow.delete(windowKey)
+        this.claimSessions.delete(windowKey)
         this.broadcast()
       }
     }
@@ -67,22 +82,95 @@ export class WindowOwnershipRegistry {
     const claimed = owner === null || owner === windowKey
     const next = claimed ? ref : null
     const current = this.activeByWindow.get(windowKey)
-    if ((current ? refKey(current) : null) === (next ? refKey(next) : null)) {
+    if (
+      (current?.length === 1 ? refKey(current[0]!) : null) === (next ? refKey(next) : null) &&
+      (current?.length ?? 0) <= 1
+    ) {
       return { claimed }
     }
     if (next === null) {
       this.activeByWindow.delete(windowKey)
     } else {
       // Why: a stale claim from a window that is not live yet must not resurface when it subscribes.
-      for (const [other, active] of this.activeByWindow) {
-        if (other !== windowKey && refKey(active) === refKey(next)) {
-          this.activeByWindow.delete(other)
-        }
-      }
-      this.activeByWindow.set(windowKey, next)
+      this.replaceClaims(windowKey, [next])
     }
     this.broadcast()
     return { claimed }
+  }
+
+  /** Replaces the complete visible set only when every workspace is available. */
+  claimSet(windowKey: string, params: JoseWindowClaimSetParams): JoseWindowClaimSetResult {
+    const session = this.claimSessions.get(windowKey)
+    const current = (): JoseWindowWorktreeRef[] => this.activeByWindow.get(windowKey) ?? []
+    const refused = (reason: 'stale' | 'invalid'): JoseWindowClaimSetResult => ({
+      claimed: false,
+      reason,
+      revision: session?.revision ?? 0,
+      ownedRefs: current(),
+      blockedRefs: []
+    })
+    if (!session || session.id !== params.sessionId || !this.isLive(windowKey)) {
+      return refused('stale')
+    }
+    const keys = params.worktrees.map(refKey)
+    if (
+      keys.length > JOSE_WINDOW_MAX_CLAIMS ||
+      new Set(keys).size !== keys.length ||
+      params.worktrees.some((ref) => !parseExecutionHostId(ref.executionHostId)) ||
+      !Number.isSafeInteger(params.revision) ||
+      params.revision <= 0
+    ) {
+      return refused('invalid')
+    }
+    const requestKey = JSON.stringify(keys)
+    if (
+      params.revision === session.revision &&
+      requestKey === session.requestKey &&
+      session.result
+    ) {
+      return session.result
+    }
+    if (params.revision <= session.revision) {
+      return refused('stale')
+    }
+    const blockedRefs = params.worktrees.filter((ref) => {
+      const owner = this.liveOwnerOf(ref)
+      return owner !== null && owner !== windowKey
+    })
+    const claimed = blockedRefs.length === 0
+    if (claimed) {
+      this.replaceClaims(windowKey, params.worktrees)
+    }
+    const result: JoseWindowClaimSetResult = {
+      claimed,
+      ...(claimed ? {} : { reason: 'conflict' }),
+      revision: params.revision,
+      ownedRefs: current(),
+      blockedRefs
+    }
+    this.claimSessions.set(windowKey, { ...session, revision: params.revision, requestKey, result })
+    this.broadcast()
+    return result
+  }
+
+  private replaceClaims(windowKey: string, refs: JoseWindowWorktreeRef[]): void {
+    const keys = new Set(refs.map(refKey))
+    for (const [other, active] of this.activeByWindow) {
+      if (other !== windowKey && !this.isLive(other)) {
+        this.activeByWindow.set(
+          other,
+          active.filter((ref) => !keys.has(refKey(ref)))
+        )
+      }
+    }
+    if (refs.length === 0) {
+      this.activeByWindow.delete(windowKey)
+    } else {
+      this.activeByWindow.set(
+        windowKey,
+        refs.map((ref) => ({ ...ref }))
+      )
+    }
   }
 
   /** Asks the owning window, and only that window, to come forward on its worktree and carry out
@@ -107,7 +195,7 @@ export class WindowOwnershipRegistry {
   liveOwnerOf(ref: JoseWindowWorktreeRef): string | null {
     const key = refKey(ref)
     for (const [windowKey, active] of this.activeByWindow) {
-      if (refKey(active) === key && this.isLive(windowKey)) {
+      if (active.some((ref) => refKey(ref) === key) && this.isLive(windowKey)) {
         return windowKey
       }
     }
@@ -125,18 +213,22 @@ export class WindowOwnershipRegistry {
 
   private snapshotFor(windowKey: string): JoseWindowOwnershipFrame {
     const ownedElsewhereRefs: JoseWindowWorktreeRef[] = []
-    for (const [owner, ref] of this.activeByWindow) {
+    for (const [owner, refs] of this.activeByWindow) {
       if (owner !== windowKey && this.isLive(owner)) {
-        ownedElsewhereRefs.push(ref)
+        ownedElsewhereRefs.push(...refs)
       }
     }
-    const ownedHereRef = this.activeByWindow.get(windowKey) ?? null
+    const ownedHereRefs = this.activeByWindow.get(windowKey) ?? []
+    const ownedHereRef = ownedHereRefs[0] ?? null
+    const session = this.claimSessions.get(windowKey)
     return {
       type: 'snapshot',
       ownedElsewhere: ownedElsewhereRefs.map((ref) => ref.worktreeId),
       ownedHere: ownedHereRef?.worktreeId ?? null,
       ownedElsewhereRefs,
-      ownedHereRef
+      ownedHereRef,
+      ownedHereRefs,
+      ...(session ? { claimSetSessionId: session.id, claimSetRevision: session.revision } : {})
     }
   }
 

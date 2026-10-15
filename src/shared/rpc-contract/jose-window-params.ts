@@ -10,6 +10,24 @@ export const JoseWindowWorktreeRef = z.object({
 })
 export type JoseWindowWorktreeRef = z.infer<typeof JoseWindowWorktreeRef>
 
+export const JOSE_WINDOW_CLAIM_SET_CAPABILITY = 'joseWindow.claimSet.v1'
+// A window has at most two visible workspace groups.
+export const JOSE_WINDOW_MAX_CLAIMS = 2
+
+export const JoseWindowClaimSetParams = z.object({
+  worktrees: z.array(JoseWindowWorktreeRef).max(JOSE_WINDOW_MAX_CLAIMS),
+  sessionId: z.string().min(1),
+  revision: z.number().int().positive().safe()
+})
+export type JoseWindowClaimSetParams = z.infer<typeof JoseWindowClaimSetParams>
+export type JoseWindowClaimSetResult = {
+  claimed: boolean
+  reason?: 'conflict' | 'stale' | 'invalid'
+  revision: number
+  ownedRefs: JoseWindowWorktreeRef[]
+  blockedRefs: JoseWindowWorktreeRef[]
+}
+
 /** What the redirected request asked for, so the owner can do it after raising. Tab ids are the
  *  ownership host's; each window maps them to its own. */
 export const JoseWindowNavigationIntent = z.discriminatedUnion('kind', [
@@ -69,6 +87,9 @@ export type JoseWindowOwnershipFrame =
       ownedHere: string | null
       ownedElsewhereRefs?: JoseWindowWorktreeRef[]
       ownedHereRef?: JoseWindowWorktreeRef | null
+      ownedHereRefs?: JoseWindowWorktreeRef[]
+      claimSetSessionId?: string
+      claimSetRevision?: number
     }
   | {
       type: 'reveal'

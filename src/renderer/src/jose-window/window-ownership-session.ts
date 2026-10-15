@@ -1,12 +1,10 @@
-import {
-  JoseWindowNavigationIntent,
-  type JoseWindowOwnershipFrame,
-  type JoseWindowWorktreeRef
+import type {
+  JoseWindowOwnershipFrame,
+  JoseWindowWorktreeRef
 } from '../../../shared/rpc-contract/jose-window-params'
-import type { JoseWindowIntentRequest } from '../../../shared/jose-window-intent'
-import type { ExecutionHostId } from '../../../shared/execution-host'
 import type { RuntimeClientTarget } from '../../../shared/runtime-client-target'
-import type { AppState } from '@/store/types'
+import type { WindowOwnershipDeps } from './window-ownership-dependencies'
+export type { WindowOwnershipDeps } from './window-ownership-dependencies'
 import { revealOwningWindow, setWindowOwnershipView } from './ownership-guard'
 import { ClaimWaiters, setOwnershipClaimGate } from './ownership-claim-gate'
 import { createClaimRetry } from './ownership-claim-retry'
@@ -17,39 +15,12 @@ import {
   keyOf,
   ownershipKey,
   setOwnershipLocalRefsOnly,
-  snapshotRefs,
-  viewExecutionHostId
+  snapshotRefs
 } from './ownership-ref'
 import { getExecutionHostIdFromWorktreeHostIdentity } from '../../../shared/worktree/host-qualified-identity'
-import type { OwnershipSubscriptionCallbacks } from './window-ownership-client'
-import { createOwnershipLink, intentRequest, toViewIntent } from './navigation-intent'
-
-type OwnershipStore = {
-  getState: () => AppState
-  subscribe: (listener: (state: AppState, previous: AppState) => void) => () => void
-}
-
-export type WindowOwnershipDeps = {
-  store: OwnershipStore
-  subscribe: (
-    target: RuntimeClientTarget,
-    callbacks: OwnershipSubscriptionCallbacks
-  ) => Promise<{ unsubscribe: () => void }>
-  claim: (target: RuntimeClientTarget, ref: JoseWindowWorktreeRef | null) => Promise<boolean>
-  reveal: (
-    target: RuntimeClientTarget,
-    ref: JoseWindowWorktreeRef,
-    intent?: JoseWindowNavigationIntent
-  ) => Promise<boolean>
-  raise: () => void
-  /** Delivers a redirected request to this window's own UI event bridge. */
-  applyIntent: (request: JoseWindowIntentRequest) => void
-  /** False when the workspace no longer exists here. */
-  activateHere: (worktreeId: string, executionHostId: ExecutionHostId | undefined) => boolean
-  isMissingMethod: (error: unknown) => boolean
-  /** Returns a canceller. */
-  setTimer?: (callback: () => void, ms: number) => () => void
-}
+import { createOwnershipLink } from './navigation-intent'
+import { createWindowClaimSetSession } from './window-claim-set-session'
+import { revealOwnedWorkspace } from './ownership-reveal'
 
 const RETRY_MIN_MS = 1_000
 const RETRY_MAX_MS = 30_000
@@ -120,7 +91,29 @@ export function startWindowOwnership(
     }
   }
 
+  const claimSets = createWindowClaimSetSession({
+    target,
+    deps,
+    settle: (ref, accepted) => claimWaiters.settle(ownershipKey(ref), accepted),
+    refuseOutside: (keys) => claimWaiters.refuseOutside(keys),
+    accepted: () => {
+      const state = deps.store.getState()
+      if (state.activeWorktreeId) {
+        lastValidSelection = {
+          worktreeId: state.activeWorktreeId,
+          executionHostId: state.activeWorkspaceExecutionHostId ?? undefined
+        }
+        hadSuccessfulClaim = true
+      }
+    },
+    refused: restoreAfterRefusal
+  })
+
   const syncClaim = async (): Promise<void> => {
+    if (claimSets.isSupported()) {
+      claimSets.syncSelection()
+      return
+    }
     if (stopped || unsupported || ownedHere === undefined) {
       return
     }
@@ -186,33 +179,6 @@ export function startWindowOwnership(
     }
   }
 
-  // Why: a reveal is only worth raising for while this window still shows that workspace; one that
-  // crossed a newer selection here must not raise (or switch to) the old one.
-  const revealHere = (ref: JoseWindowWorktreeRef, rawIntent: unknown): void => {
-    const state = deps.store.getState()
-    if (keyOf(activeOwnershipRef(state, target)) !== ownershipKey(ref)) {
-      console.info(`[jose-window] obsolete reveal for ${ref.worktreeId} ignored`)
-      return
-    }
-    const parsed = JoseWindowNavigationIntent.safeParse(rawIntent)
-    const intent = parsed.success ? parsed.data : null
-    if (intent && intent.kind !== 'workspace') {
-      // The bridge handler switches to the terminal surface itself.
-      deps.applyIntent(
-        intentRequest(
-          ref.worktreeId,
-          toViewIntent(intent, target, ref.worktreeId),
-          target,
-          viewExecutionHostId(ref, target)
-        )
-      )
-    } else if (state.activeView !== 'terminal') {
-      // Tasks or Settings keep the active worktree; the reveal asks for its workspace surface.
-      state.setActiveView('terminal')
-    }
-    deps.raise()
-  }
-
   const onFrame = (frameGeneration: number, frame: JoseWindowOwnershipFrame): void => {
     if (stopped || frameGeneration !== generation) {
       return
@@ -222,7 +188,10 @@ export function startWindowOwnership(
       return
     }
     if (frame.type === 'reveal') {
-      revealHere(
+      revealOwnedWorkspace(
+        target,
+        deps,
+        claimSets.owns,
         { worktreeId: frame.worktreeId, executionHostId: frame.executionHostId ?? 'local' },
         frame.intent
       )
@@ -239,6 +208,7 @@ export function startWindowOwnership(
       )
     }
     const refs = snapshotRefs(frame)
+    claimSets.snapshot(frame)
     ownedHere = keyOf(refs.here)
     ownedElsewhereKeys = new Set(refs.elsewhere.map(ownershipKey))
     setWindowOwnershipView({ link, ownedElsewhere: refs.elsewhere })
@@ -260,6 +230,7 @@ export function startWindowOwnership(
 
   function teardownStream(): void {
     generation += 1
+    claimSets.disconnect()
     claimRetry.cancel()
     setOwnershipLocalRefsOnly(false)
     ownedHere = undefined
@@ -323,6 +294,7 @@ export function startWindowOwnership(
     stopStore()
     cancelRetry?.()
     teardownStream()
+    claimSets.stop()
     claimWaiters.settleAll(true)
   }
 }
