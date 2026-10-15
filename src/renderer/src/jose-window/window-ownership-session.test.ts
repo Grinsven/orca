@@ -7,7 +7,7 @@ import type {
 import type { Worktree } from '../../../shared/worktree/types'
 import type { JoseWindowIntentRequest } from '../../../shared/jose-window-intent'
 import { useAppStore } from '@/store'
-import type { RuntimeClientTarget } from '@/runtime/runtime-rpc-client'
+import type { RuntimeClientTarget } from '../../../shared/runtime-client-target'
 import { isOwnedByAnotherWindow } from './ownership-guard'
 import { afterOwnershipClaim, CLAIM_WAIT_DEADLINE_MS } from './ownership-claim-gate'
 import { CLAIM_RETRY_LIMIT } from './ownership-claim-retry'

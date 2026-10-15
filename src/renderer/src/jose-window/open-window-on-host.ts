@@ -1,7 +1,8 @@
 import { toast } from 'sonner'
 import type { JoseWindowOpenWindowResult } from '../../../shared/rpc-contract/jose-window-params'
 import { translate } from '@/i18n/i18n'
-import { callRuntimeRpc, type RuntimeClientTarget } from '@/runtime/runtime-rpc-client'
+import { callRuntimeRpc } from '@/runtime/runtime-rpc-client'
+import type { RuntimeClientTarget } from '../../../shared/runtime-client-target'
 import { isMissingOwnershipMethod } from './window-ownership-client'
 
 let loggedHostTooOld = false

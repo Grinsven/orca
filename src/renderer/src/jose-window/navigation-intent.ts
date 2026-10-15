@@ -4,7 +4,7 @@ import type {
 } from '../../../shared/rpc-contract/jose-window-params'
 import type { JoseWindowIntentRequest } from '../../../shared/jose-window-intent'
 import { parseExecutionHostId, type ExecutionHostId } from '../../../shared/execution-host'
-import type { RuntimeClientTarget } from '@/runtime/runtime-rpc-client'
+import type { RuntimeClientTarget } from '../../../shared/runtime-client-target'
 import {
   hostSessionTabIdsByLocalTabForWorktree,
   resolveLocalTabIdForHostSessionTab

@@ -9,16 +9,16 @@ import {
 } from '../../../shared/execution-host'
 import { isFloatingWorkspaceId } from '../../../shared/floating-workspace-worktree'
 import { composeWorktreeHostIdentity } from '../../../shared/worktree/host-qualified-identity'
-import type { RuntimeClientTarget } from '@/runtime/runtime-rpc-client'
+import type { RuntimeClientTarget } from '../../../shared/runtime-client-target'
 import {
   resolveWorktreeOperationRouteForHost,
   type WorktreeOperationRouteState
 } from '@/lib/worktree-operation-route'
 import {
   getExecutionHostIdForWorktree,
-  getRuntimeEnvironmentIdForWorktree,
-  type WorktreeRuntimeOwnerState
+  getRuntimeEnvironmentIdForWorktree
 } from '@/lib/worktree-runtime-owner'
+import type { WorktreeRuntimeOwnerState } from '@/lib/worktree-runtime-owner-state'
 
 export type OwnershipState = WorktreeRuntimeOwnerState & WorktreeOperationRouteState
 

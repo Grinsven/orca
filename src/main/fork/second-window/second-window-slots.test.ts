@@ -54,20 +54,23 @@ describe('second window slots', () => {
     expect(isSecondWindowSlotProfile('')).toBe(false)
   })
 
-  it('reports running only for a live pid whose start time matches the lock', () => {
+  it('reports running only for a live pid whose identity matches the lock', () => {
     const slotDir = tempDir()
-    const probe = { isAlive: vi.fn(() => true), startTimeMatches: vi.fn(() => true) }
+    const probe = { isAlive: vi.fn(() => true), identityMatches: vi.fn(() => true) }
     expect(isSecondWindowSlotRunning(slotDir, probe)).toBe(false)
 
     writeLock(slotDir, 4242, 1000)
     expect(isSecondWindowSlotRunning(slotDir, probe)).toBe(true)
-    expect(probe.startTimeMatches).toHaveBeenCalledWith(4242, 1000)
+    expect(probe.identityMatches).toHaveBeenCalledWith(
+      4242,
+      expect.objectContaining({ startedAtMs: 1000 })
+    )
 
-    probe.startTimeMatches.mockReturnValue(false)
+    probe.identityMatches.mockReturnValue(false)
     expect(isSecondWindowSlotRunning(slotDir, probe)).toBe(false)
 
     probe.isAlive.mockReturnValue(false)
-    probe.startTimeMatches.mockReturnValue(true)
+    probe.identityMatches.mockReturnValue(true)
     expect(isSecondWindowSlotRunning(slotDir, probe)).toBe(false)
 
     writeFileSync(join(slotDir, ORCAD_LOCK_FILE_NAME), '{garbled')

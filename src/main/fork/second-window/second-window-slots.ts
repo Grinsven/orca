@@ -2,7 +2,10 @@ import { readFileSync } from 'node:fs'
 import { basename, dirname, join } from 'node:path'
 import { isProcessAlive } from '../../daemon/daemon-process-inspection'
 import { ORCAD_LOCK_FILE_NAME, readOrcadInstanceLockRecord } from '../../orcad/orcad-instance-lock'
-import { orcadProcessStartTimeMatches } from '../../orcad/orcad-process-start-time'
+import {
+  compareOrcadProcessIdentity,
+  type OrcadRecordedIdentity
+} from '../../orcad/orcad-process-start-time'
 import { writeSecureJsonFile } from '../../../shared/secure-file'
 import { isSecondWindowSlotUserDataPath } from '../../../shared/second-window-slot-profile'
 
@@ -15,12 +18,13 @@ export type SecondWindowRecords = Record<string, SecondWindowSlotRecord>
 
 export type SlotLivenessProbe = {
   isAlive: (pid: number) => boolean
-  startTimeMatches: (pid: number, expected: number | null) => boolean
+  identityMatches: (pid: number, recorded: OrcadRecordedIdentity) => boolean
 }
 
 const defaultLivenessProbe: SlotLivenessProbe = {
   isAlive: isProcessAlive,
-  startTimeMatches: orcadProcessStartTimeMatches
+  // Same policy as the orcad lock: only a proven different process frees the slot.
+  identityMatches: (pid, recorded) => compareOrcadProcessIdentity(pid, recorded) !== 'differs'
 }
 
 /** `<parent>/orca-window-2` next to `<parent>/orca`; dev gets `orca-dev-window-2`. */
@@ -33,7 +37,7 @@ export function isSecondWindowSlotProfile(userDataPath: string): boolean {
   return isSecondWindowSlotUserDataPath(userDataPath)
 }
 
-/** Running means the slot's desktop lock names a live pid that started when the lock says. */
+/** Running means the slot's desktop lock names a live pid not proven to be another process. */
 export function isSecondWindowSlotRunning(
   slotDir: string,
   probe: SlotLivenessProbe = defaultLivenessProbe
@@ -42,7 +46,7 @@ export function isSecondWindowSlotRunning(
   if (!record) {
     return false
   }
-  return probe.isAlive(record.pid) && probe.startTimeMatches(record.pid, record.startedAtMs)
+  return probe.isAlive(record.pid) && probe.identityMatches(record.pid, record)
 }
 
 /** Lowest slot not running; when every slot runs, the first one, which a relaunch only focuses. */

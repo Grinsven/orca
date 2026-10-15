@@ -1,6 +1,6 @@
 import { writeFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
-import { spawnProcess } from '../../../shared/child-process/run-process'
+import { spawnProcess } from '@orca/process-host'
 
 export const SECOND_WINDOW_LAUNCH_RECORD_ENV = 'ORCA_FORK_WINDOW_LAUNCH_RECORD'
 

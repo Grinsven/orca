@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { ExecutionHostId } from '../../../shared/execution-host'
-import type { RuntimeClientTarget } from '@/runtime/runtime-rpc-client'
+import type { RuntimeClientTarget } from '../../../shared/runtime-client-target'
 import { activeOwnershipRef, resolveOwnershipRef, viewExecutionHostId } from './ownership-ref'
 
 const HOST: RuntimeClientTarget = { kind: 'local' }

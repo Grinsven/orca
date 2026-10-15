@@ -5,7 +5,7 @@ import {
 } from '../../../shared/rpc-contract/jose-window-params'
 import type { JoseWindowIntentRequest } from '../../../shared/jose-window-intent'
 import type { ExecutionHostId } from '../../../shared/execution-host'
-import type { RuntimeClientTarget } from '@/runtime/runtime-rpc-client'
+import type { RuntimeClientTarget } from '../../../shared/runtime-client-target'
 import type { AppState } from '@/store/types'
 import { revealOwningWindow, setWindowOwnershipView } from './ownership-guard'
 import { ClaimWaiters, setOwnershipClaimGate } from './ownership-claim-gate'

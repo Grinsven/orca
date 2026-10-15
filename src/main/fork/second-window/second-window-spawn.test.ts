@@ -8,7 +8,7 @@ const { spawnProcessMock, child } = vi.hoisted(() => {
   return { spawnProcessMock: vi.fn(() => child), child }
 })
 
-vi.mock('../../../shared/child-process/run-process', () => ({ spawnProcess: spawnProcessMock }))
+vi.mock('@orca/process-host', () => ({ spawnProcess: spawnProcessMock }))
 
 import { buildSecondWindowLaunch, startSecondWindow } from './second-window-spawn'
 

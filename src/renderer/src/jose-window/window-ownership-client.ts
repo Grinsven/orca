@@ -6,7 +6,8 @@ import type {
   JoseWindowWorktreeRef
 } from '../../../shared/rpc-contract/jose-window-params'
 import { hasRuntimeRpcErrorCode } from '../../../shared/runtime-rpc-error-code'
-import { callRuntimeRpc, type RuntimeClientTarget } from '@/runtime/runtime-rpc-client'
+import { callRuntimeRpc } from '@/runtime/runtime-rpc-client'
+import type { RuntimeClientTarget } from '../../../shared/runtime-client-target'
 import { getRuntimeEnvironmentRevision } from '@/runtime/runtime-environment-revision'
 import { subscribeRuntimeEnvironment } from '@/runtime/runtime-environment-pairing-refresh'
 import { isSecondaryWindow } from './is-secondary-window'
