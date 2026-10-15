@@ -5,6 +5,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ClientCreationActionAvailability } from '@/lib/client-creation-action-policy'
 import { useTerminalCreateActions } from './use-terminal-create-actions'
 import type { TerminalColdActivationController } from './terminal-cold-activation'
+import { bindWindowWorkspaceAdmission } from '@/jose-window/window-workspace-admission'
+import { launchAgentInNewTab } from '@/lib/launch-agent-in-new-tab'
 
 const mocks = vi.hoisted(() => ({
   browserAvailability: {
@@ -77,6 +79,31 @@ function renderActions() {
 }
 
 describe('useTerminalCreateActions creation gates', () => {
+  it('blocks terminal, agent, browser and emulator creation while its visible claim is unknown', () => {
+    const gate = bindWindowWorkspaceAdmission(() => [
+      { ref: { worktreeId: WORKTREE_ID, executionHostId: 'local' }, status: 'pending' }
+    ])
+    try {
+      const actions = renderActions()
+      actions.handleNewTab()
+      actions.handleNewAgentTab('claude')
+      actions.handleNewBrowserTab()
+      actions.handleNewSimulatorTab()
+      expect({
+        terminal: mocks.createTab.mock.calls.length,
+        agent: vi.mocked(launchAgentInNewTab).mock.calls.length,
+        browser: mocks.createBrowserTab.mock.calls.length,
+        emulator: mocks.openMobileEmulatorTab.mock.calls.length
+      }).toEqual({
+        terminal: 0,
+        agent: 0,
+        browser: 0,
+        emulator: 0
+      })
+    } finally {
+      gate.stop()
+    }
+  })
   beforeEach(() => {
     vi.clearAllMocks()
     mocks.browserAvailability = { state: 'enabled', provider: 'local-client' }

@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { isSplitWorktreeVisible } from '@/jose-split-worktree/split-worktree-state'
 import { useAppStore } from '../store'
 import { onBrowserGuestPaintRetentionChange } from './browser-pane/host-guest/browser-guest-paint-retention'
 import {
@@ -70,6 +71,7 @@ export function useTerminalBrowserRetention(controller: TerminalParkingFoundatio
       // Why a shared veto: destroying a guest must respect every paint-retention signal (including
       // remote viewers) as well as active downloads, matching the overlay's mount predicate.
       isEvictable: (worktreeId) =>
+        !isSplitWorktreeVisible(worktreeId, controller.activeView) &&
         !browserTabsVetoGuestEviction(state.browserTabsByWorktree[worktreeId] ?? [])
     })
     for (const worktreeId of evictedWorktreeIds) {
@@ -81,6 +83,7 @@ export function useTerminalBrowserRetention(controller: TerminalParkingFoundatio
     }
     // oxlint-disable-next-line react-hooks/exhaustive-deps -- controller refs preserve their original stable identities.
   }, [
+    controller.splitWorktreeRevision,
     renderedActiveWorktreeId,
     workspaceSurfaceIds,
     browserGuestRetentionBudgetEnabled,

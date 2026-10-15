@@ -208,6 +208,7 @@ export function useTerminalParkingPass(controller: TerminalParkingFoundation): v
     }
     // oxlint-disable-next-line react-hooks/exhaustive-deps -- controller refs and setters preserve their original stable identities.
   }, [
+    controller.splitWorktreeRevision,
     activeView,
     activityTerminalPortals,
     backgroundMountRevision,

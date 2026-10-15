@@ -1,3 +1,6 @@
+import { isSplitWorktreeVisible } from '@/jose-split-worktree/split-worktree-state'
+import { splitWorkspaceHasFocus } from '@/jose-split-worktree/split-worktree-surface'
+import { SplitWorktreeChrome } from '@/jose-split-worktree/SplitWorktreeChrome'
 import { useAnyBrowserGuestNeedsPaint } from './browser-pane/host-guest/browser-guest-paint-retention'
 import { WorktreeSplitSurface } from './TerminalWorktreeSplitSurface'
 import { selectParkedEquivalentMountTabIds } from './terminal/startup-terminal-tab-hold'
@@ -34,6 +37,7 @@ export function TerminalSplitWorkspaceSurfaces({
   }
   return (
     <div
+      data-jose-split-host=""
       className={`relative flex flex-1 min-w-0 min-h-0 overflow-hidden${
         effectiveActiveLayout
           ? ''
@@ -49,7 +53,9 @@ export function TerminalSplitWorkspaceSurfaces({
           if (!layout) {
             return null
           }
-          const isVisible = activeView === 'terminal' && workspace.id === renderedActiveWorktreeId
+          const isVisible =
+            (activeView === 'terminal' && workspace.id === renderedActiveWorktreeId) ||
+            isSplitWorktreeVisible(workspace.id, activeView)
           const shouldMeasureHiddenWorktree =
             !isVisible && measurableBackgroundWorktreeIdsRef.current.has(workspace.id)
           const shouldColdParkTerminalPanes =
@@ -63,6 +69,7 @@ export function TerminalSplitWorkspaceSurfaces({
               worktreePath={workspace.path}
               layout={layout}
               focusedGroupId={activeGroupIdByWorktree[workspace.id]}
+              {...(!splitWorkspaceHasFocus(workspace.id) ? { focusedGroupId: undefined } : {})}
               isVisible={isVisible}
               shouldMeasureHiddenWorktree={shouldMeasureHiddenWorktree}
               shouldColdParkTerminalPanes={shouldColdParkTerminalPanes}
@@ -79,6 +86,7 @@ export function TerminalSplitWorkspaceSurfaces({
             />
           )
         })}
+      <SplitWorktreeChrome />
     </div>
   )
 }

@@ -1,4 +1,5 @@
 import { useMemo, useRef } from 'react'
+import { useSplitWorktreeState } from '@/jose-split-worktree/split-worktree-state'
 import { parseWorkspaceKey } from '../../../shared/workspace-scope'
 import type { TerminalTab } from '../../../shared/terminal-tab-types'
 import { useAppStore } from '../store'
@@ -12,6 +13,8 @@ import { createTerminalWorktreeTopologyProjection } from './terminal-pane/termin
 import { isMainTerminalSideEffectAuthorityForPty } from './terminal-pane/terminal-side-effect-facts-handler'
 
 export function useTerminalWorkspaceFoundation() {
+  const splitWorktreeRevision = useSplitWorktreeState((state) => state.revision)
+  const splitWorkspaceOwners = useSplitWorktreeState((state) => state.layout?.slots)
   const terminalTopologyProjectionRef = useRef<WorktreeTabBucketProjection<
     TerminalTab,
     TerminalTab
@@ -44,12 +47,19 @@ export function useTerminalWorkspaceFoundation() {
   const workspaceSurfaces = useMemo(
     () =>
       projectWorkspaceSurfaces({
+        splitWorkspaceOwners,
         worktreesById,
         folderWorkspaces,
         activeWorkspaceId: activeFolderSurfaceId,
         activeWorkspaceResolvedHostId: activeFolderSurfaceHostId
       }),
-    [worktreesById, folderWorkspaces, activeFolderSurfaceId, activeFolderSurfaceHostId]
+    [
+      worktreesById,
+      folderWorkspaces,
+      activeFolderSurfaceId,
+      activeFolderSurfaceHostId,
+      splitWorkspaceOwners
+    ]
   )
   // Why split the ids out: every mount/park/activation pass reads only `.id`, but
   // the surface array is re-identified on any worktree write. Reusing the previous
@@ -95,6 +105,7 @@ export function useTerminalWorkspaceFoundation() {
   )
 
   return {
+    splitWorktreeRevision,
     mountedWorktreeIdsRef,
     browserGuestWorktreeRecencyRef,
     measurableBackgroundWorktreeIdsRef,

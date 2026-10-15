@@ -1,4 +1,10 @@
 import React from 'react'
+import {
+  useSplitWorktreeSurface,
+  useSplitWorkspaceHasFocus,
+  splitWorkspaceHasFocus
+} from '@/jose-split-worktree/split-worktree-surface'
+import { SplitWorktreeHeader } from '@/jose-split-worktree/SplitWorktreeHeader'
 import type { TabGroupLayoutNode } from '../../../shared/tab-types'
 import type { ActivityTerminalPortalTarget } from './activity/activity-terminal-portal'
 import {
@@ -37,6 +43,8 @@ export const WorktreeSplitSurface = React.memo(function WorktreeSplitSurface({
   backgroundMountTabIds: ReadonlySet<string> | null
   activationDeferredMountTabIds: ReadonlySet<string> | null
 }): React.JSX.Element {
+  const splitFocused = useSplitWorkspaceHasFocus(worktreeId)
+  const splitSurface = useSplitWorktreeSurface(worktreeId, isVisible)
   const browserPageIds = useWorktreeBrowserPageIds(worktreeId)
   const needsBrowserGuestPaint = useBrowserGuestPaintRetention(browserPageIds)
   const shouldKeepPaintable = shouldKeepHiddenWorktreeSurfacePaintable({
@@ -46,6 +54,7 @@ export const WorktreeSplitSurface = React.memo(function WorktreeSplitSurface({
 
   return (
     <div
+      data-jose-split-workspace={worktreeId}
       className={
         isVisible
           ? 'absolute inset-0 flex'
@@ -55,14 +64,18 @@ export const WorktreeSplitSurface = React.memo(function WorktreeSplitSurface({
       }
       inert={!isVisible}
       aria-hidden={!isVisible}
+      {...splitSurface}
     >
+      <SplitWorktreeHeader worktreeId={worktreeId} />
       <TabGroupSplitLayout
         layout={layout}
         worktreeId={worktreeId}
         focusedGroupId={focusedGroupId}
+        {...(!splitFocused ? { focusedGroupId: undefined } : {})}
         isWorktreeActive={isVisible}
       />
       <WorkspacePaneOverlayLayers
+        ownsNativeChatToggleShortcut={splitWorkspaceHasFocus(worktreeId)}
         worktreeId={worktreeId}
         worktreePath={worktreePath}
         isVisible={isVisible}

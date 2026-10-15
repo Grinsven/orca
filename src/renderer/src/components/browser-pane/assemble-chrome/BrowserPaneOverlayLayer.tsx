@@ -1,3 +1,7 @@
+import {
+  useSplitWorkspaceHasFocus,
+  useSplitGroupFocus
+} from '@/jose-split-worktree/split-worktree-surface'
 import { memo, useCallback, useMemo } from 'react'
 import { registerBrowserOverlaySlotViewport } from '../host-guest/browser-page-viewport'
 import { useShallow } from 'zustand/react/shallow'
@@ -126,6 +130,7 @@ const BrowserPaneOverlayLayer = memo(function BrowserPaneOverlayLayer({
   worktreeId: string
   isWorktreeActive: boolean
 }): React.JSX.Element {
+  const splitFocused = useSplitWorkspaceHasFocus(worktreeId)
   const { browserTabs, unifiedTabs, groups, focusedGroupId } = useAppStore(
     useShallow((state) => ({
       browserTabs: state.browserTabsByWorktree[worktreeId] ?? EMPTY_BROWSER_TABS,
@@ -152,6 +157,7 @@ const BrowserPaneOverlayLayer = memo(function BrowserPaneOverlayLayer({
   )
 
   // Why: build this lookup outside the zustand selector — a fresh object inside it would break useShallow equality and re-render on every unrelated mutation.
+  const splitGroupFocus = useSplitGroupFocus(worktreeId, focusOwningGroup)
   const groupActiveTabById = useMemo(() => {
     const lookup: Record<string, string | null | undefined> = {}
     for (const group of groups) {
@@ -196,7 +202,11 @@ const BrowserPaneOverlayLayer = memo(function BrowserPaneOverlayLayer({
             groupId={assignment?.groupId}
             isActive={isActive}
             chromeShortcutScope={chromeShortcutScope}
+            {...(!splitFocused ? { chromeShortcutScope: 'inactive' as const } : {})}
             onFocusOwningGroup={focusOwningGroup}
+            {...(splitGroupFocus !== focusOwningGroup
+              ? { onFocusOwningGroup: splitGroupFocus }
+              : {})}
           />
         )
       })}

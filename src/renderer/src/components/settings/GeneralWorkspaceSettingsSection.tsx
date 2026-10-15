@@ -1,4 +1,5 @@
 import type React from 'react'
+import { SplitWorktreeDragSetting } from '@/jose-split-worktree/SplitWorktreeDragSetting'
 import type { GlobalSettings } from '../../../../shared/global-settings-types'
 import { OpenInMenuSetting } from './OpenInMenuSetting'
 import { SearchableSetting } from './SearchableSetting'
@@ -37,6 +38,7 @@ export function GeneralWorkspaceSettingsSection({
       />
 
       <WorkspaceDirectorySetting settings={settings} updateSettings={updateSettings} />
+      <SplitWorktreeDragSetting />
 
       <div
         id={GLOBAL_WORKTREE_VISIBILITY_SETTINGS_TARGET_ID}

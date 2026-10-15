@@ -9,6 +9,7 @@
  */
 import {
   canParkTerminalWorktreeRenderers,
+  type TerminalParkRestorePolicy,
   type ColdParkableTerminalTab
 } from './terminal-hidden-view-parking'
 
@@ -36,6 +37,7 @@ export function canManuallyParkTerminalWorktreeRenderers(args: {
   terminalTabs: readonly ColdParkableTerminalTab[]
   pendingStartupByTabId: Readonly<Record<string, unknown>>
   parkingEnabled: boolean
+  restorePolicy?: TerminalParkRestorePolicy
   hasLivePty: (tabId: string) => boolean
 }): boolean {
   return (

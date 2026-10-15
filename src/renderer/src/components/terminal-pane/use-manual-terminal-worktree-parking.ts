@@ -1,4 +1,9 @@
 import { useCallback, useEffect, useState } from 'react'
+import {
+  useSplitManualParkingReset,
+  splitManualRestorePolicy,
+  captureManuallyParkedSplit
+} from '@/jose-split-worktree/split-worktree-terminal-admission'
 import { toast } from 'sonner'
 import { useAppStore } from '@/store'
 import { translate } from '@/i18n/i18n'
@@ -46,6 +51,8 @@ export function useManualTerminalWorktreeParking(args: {
     () => new Set()
   )
 
+  useSplitManualParkingReset(setManuallyParkedWorktreeIds)
+
   const parkWorktree = useCallback((worktreeId: string) => {
     const state = useAppStore.getState()
     const terminalTabs = state.tabsByWorktree[worktreeId] ?? []
@@ -53,6 +60,7 @@ export function useManualTerminalWorktreeParking(args: {
       canManuallyParkTerminalWorktreeRenderers({
         worktreeId,
         terminalTabs,
+        restorePolicy: splitManualRestorePolicy(state),
         pendingStartupByTabId: state.pendingStartupByTabId,
         parkingEnabled: state.settings?.terminalHiddenViewParking !== false,
         hasLivePty: (tabId) => tabHasLivePty(state.ptyIdsByTabId, tabId)
@@ -64,6 +72,9 @@ export function useManualTerminalWorktreeParking(args: {
           'These terminals cannot be parked safely.'
         )
       )
+      return
+    }
+    if (!captureManuallyParkedSplit(worktreeId, state)) {
       return
     }
     setManuallyParkedWorktreeIds((current) => addWorktreeId(current, worktreeId))

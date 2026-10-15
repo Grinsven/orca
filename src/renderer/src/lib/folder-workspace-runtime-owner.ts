@@ -1,3 +1,4 @@
+import { retainedSplitWorkspace } from '@/jose-split-worktree/split-worktree-state'
 import { parseExecutionHostId, toSshExecutionHostId } from '../../../shared/execution-host'
 import type { ExecutionHostId, ParsedExecutionHost } from '../../../shared/execution-host'
 import type { FolderWorkspace } from '../../../shared/folder-workspace-types'
@@ -33,6 +34,10 @@ function getPreferredFolderExecutionHostId(
 ): ExecutionHostId | undefined {
   if (executionHostId) {
     return executionHostId
+  }
+  const retained = retainedSplitWorkspace(folderWorkspaceKey(folderWorkspaceId))
+  if (retained) {
+    return retained.executionHostId
   }
   return state.activeWorktreeId === folderWorkspaceKey(folderWorkspaceId)
     ? (state.activeWorkspaceExecutionHostId ?? undefined)

@@ -40,3 +40,12 @@ export type WindowOwnershipDeps = {
   /** Returns a canceller. */
   setTimer?: (callback: () => void, ms: number) => () => void
 }
+
+export type WindowClaimSetDependencies = {
+  target: RuntimeClientTarget
+  deps: WindowOwnershipDeps
+  settle: (ref: JoseWindowWorktreeRef, accepted: boolean) => void
+  refuseOutside: (keys: ReadonlySet<string>) => void
+  accepted: () => void
+  refused: (ref: JoseWindowWorktreeRef) => void
+}

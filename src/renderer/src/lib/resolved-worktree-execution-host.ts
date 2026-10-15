@@ -1,3 +1,4 @@
+import { withSplitWorkspaceOwner } from '@/jose-split-worktree/split-worktree-owners'
 import {
   LOCAL_EXECUTION_HOST_ID,
   getRepoExecutionHostId,
@@ -62,6 +63,10 @@ export function getResolvedExecutionHostIdForWorktree(
 ): ExecutionHostId | null {
   if (!worktreeId) {
     return null
+  }
+  const selectedOwner = withSplitWorkspaceOwner(state, worktreeId)
+  if (selectedOwner !== state) {
+    return getResolvedExecutionHostIdForWorktree(selectedOwner, worktreeId)
   }
   if (worktreeId === FLOATING_TERMINAL_WORKTREE_ID) {
     return LOCAL_EXECUTION_HOST_ID

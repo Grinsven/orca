@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { useSplitPreferenceConnection } from '@/jose-split-worktree/split-worktree-preference'
 import { useAppStore } from '@/store'
 import { activateAndRevealWorkspace } from '@/lib/worktree-activation'
 import {
@@ -12,9 +13,10 @@ import {
 import { startWindowOwnership } from './window-ownership-session'
 import { openWindowOnHost } from './open-window-on-host'
 
-/** One worktree per Orca window (fork). Deliberately not parked while hidden: a hidden window
- *  still owns its worktree and must still answer a reveal. */
+/** Visible workspace ownership stays active while the window is hidden so it can answer reveals. */
 export function useWindowOwnership(): void {
+  useSplitPreferenceConnection()
+  const profileId = useAppStore((state) => state.activeOrcaProfileId)
   const environmentId = useAppStore((s) => {
     const target = resolveOwnershipTarget(s.settings)
     return target === null ? undefined : target.kind === 'local' ? null : target.environmentId
@@ -47,7 +49,7 @@ export function useWindowOwnership(): void {
         isMissingMethod: isMissingOwnershipMethod
       }
     )
-  }, [environmentId])
+  }, [environmentId, profileId])
   useEffect(() => {
     // Only a second window forwards New Window; the host window's menu opens it directly.
     if (!environmentId) {

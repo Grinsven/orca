@@ -1,4 +1,10 @@
 import { useEffect } from 'react'
+import {
+  dispatchSplitFallbackMove,
+  dispatchSplitFallbackRelease,
+  cancelSplitPointer,
+  cleanupSplitPointerClick
+} from '@/jose-split-worktree/split-worktree-drag'
 import type { WorktreeDragRuntime } from './use-runtime'
 import type {
   WorktreeDropCommitContext,
@@ -30,6 +36,9 @@ export function useWorktreePointerDragWindowEvents(args: {
 
   useEffect(() => {
     const handlePointerMove = (event: PointerEvent): void => {
+      if (dispatchSplitFallbackMove(event, SIDEBAR_POINTER_DRAG_THRESHOLD_PX)) {
+        return
+      }
       const drag = worktreePointerDragRef.current
       if (!drag || event.pointerId !== drag.pointerId) {
         return
@@ -49,6 +58,9 @@ export function useWorktreePointerDragWindowEvents(args: {
     }
 
     const handlePointerUp = (event: PointerEvent): void => {
+      if (dispatchSplitFallbackRelease(event, ctx, onDropWorktreesOnWorkspaceBoard)) {
+        return
+      }
       const drag = worktreePointerDragRef.current
       if (!drag || event.pointerId !== drag.pointerId) {
         return
@@ -56,6 +68,7 @@ export function useWorktreePointerDragWindowEvents(args: {
       drag.currentX = event.clientX
       drag.currentY = event.clientY
       if (!drag.active) {
+        cleanupSplitPointerClick()
         worktreePointerDragRef.current = null
         return
       }
@@ -71,6 +84,7 @@ export function useWorktreePointerDragWindowEvents(args: {
     }
 
     const handlePointerCancel = (event: PointerEvent): void => {
+      cancelSplitPointer(event)
       const drag = worktreePointerDragRef.current
       if (!drag || event.pointerId !== drag.pointerId) {
         return
@@ -79,6 +93,9 @@ export function useWorktreePointerDragWindowEvents(args: {
     }
 
     const handleKeyDown = (event: KeyboardEvent): void => {
+      if (event.key === 'Escape') {
+        cancelSplitPointer()
+      }
       if (event.key !== 'Escape' || !worktreePointerDragRef.current) {
         return
       }
@@ -87,11 +104,14 @@ export function useWorktreePointerDragWindowEvents(args: {
       clearWorktreeDrag()
     }
 
+    const handleBlur = (): void => cancelSplitPointer()
+    window.addEventListener('blur', handleBlur)
     window.addEventListener('keydown', handleKeyDown, { capture: true })
     window.addEventListener('pointermove', handlePointerMove, { capture: true })
     window.addEventListener('pointerup', handlePointerUp, { capture: true })
     window.addEventListener('pointercancel', handlePointerCancel, { capture: true })
     return () => {
+      window.removeEventListener('blur', handleBlur)
       window.removeEventListener('keydown', handleKeyDown, { capture: true })
       window.removeEventListener('pointermove', handlePointerMove, { capture: true })
       window.removeEventListener('pointerup', handlePointerUp, { capture: true })

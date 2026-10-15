@@ -1,3 +1,4 @@
+import { useSplitWorktreeAdmission } from '@/jose-split-worktree/split-worktree-terminal-admission'
 import { useTerminalWorkspaceFoundation } from './use-terminal-workspace-foundation'
 import { useTerminalWorkspaceStoreBindings } from './use-terminal-workspace-store-bindings'
 import { useTerminalWorkspaceProjection } from './use-terminal-workspace-projection'
@@ -28,6 +29,7 @@ export function useTerminalController() {
   useTerminalParkingPass(parking)
   useTerminalBrowserRetention(parking)
   const coldActivation = Object.assign(parking, applyTerminalColdActivation(parking))
+  useSplitWorktreeAdmission(coldActivation)
   useTerminalWatcherEffects(coldActivation)
   useActivationDeferredTabAdmission(coldActivation)
   const create = Object.assign(coldActivation, useTerminalCreateActions(coldActivation))

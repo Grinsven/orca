@@ -1,3 +1,4 @@
+import { captureSplitWorktreeDrag } from '@/jose-split-worktree/split-worktree-drag'
 import { useCallback, useEffect } from 'react'
 import type React from 'react'
 import type { WorkspaceStatus, Worktree } from '../../../../../../shared/worktree/types'
@@ -171,6 +172,14 @@ export function useWorktreePointerDrag(args: {
       if (isSidebarPointerDragBlocked(event.target, sourceRow)) {
         return
       }
+      captureSplitWorktreeDrag(
+        event,
+        worktree,
+        selectedWorktreeIds,
+        selectedWorktrees,
+        runtime,
+        session.groupKeyByRowKey.has(rowKey)
+      )
       const sourceGroupKey = session.groupKeyByRowKey.get(rowKey)
       const container = scrollRef.current
       if (!sourceGroupKey || !container) {
@@ -225,6 +234,7 @@ export function useWorktreePointerDrag(args: {
     [
       onWorkspaceBoardDragPreviewStart,
       preferSidebarStatusDropTargetsOnDrag,
+      runtime,
       scrollRef,
       selectedWorktreeIds,
       selectedWorktrees,

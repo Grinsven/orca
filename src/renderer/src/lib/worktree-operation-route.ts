@@ -1,3 +1,4 @@
+import { withSplitWorkspaceOwner } from '@/jose-split-worktree/split-worktree-owners'
 import type { AppState } from '@/store/types'
 import {
   LOCAL_EXECUTION_HOST_ID,
@@ -94,6 +95,10 @@ export function resolveActiveWorkspaceRoute(
   state: WorktreeOperationRouteState,
   worktreeId: string
 ): WorktreeOperationRoute | null {
+  const selectedOwner = withSplitWorkspaceOwner(state, worktreeId)
+  if (selectedOwner !== state) {
+    return resolveActiveWorkspaceRoute(selectedOwner, worktreeId)
+  }
   const activeHost =
     state.activeWorktreeId === worktreeId
       ? parseExecutionHostId(state.activeWorkspaceExecutionHostId)

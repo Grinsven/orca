@@ -1,6 +1,11 @@
 import type { JoseWindowWorktreeRef } from '../../../shared/rpc-contract/jose-window-params'
 import type { ExecutionHostId } from '../../../shared/execution-host'
 import { ownershipKey } from './ownership-ref'
+import {
+  CLAIM_WAIT_DEADLINE_MS,
+  pendingWindowWorkspaceAdmission
+} from './window-workspace-admission'
+export { CLAIM_WAIT_DEADLINE_MS } from './window-workspace-admission'
 
 export type OwnershipClaimGate = {
   resolve: (
@@ -24,6 +29,10 @@ function pendingClaim(
   workspaceKey: string,
   executionHostId: ExecutionHostId | null | undefined
 ): Promise<boolean> | null {
+  const admission = pendingWindowWorkspaceAdmission(workspaceKey, executionHostId)
+  if (admission !== undefined) {
+    return admission
+  }
   const ref = gate?.resolve(workspaceKey, executionHostId)
   return gate && ref ? gate.waitForClaim(ownershipKey(ref)) : null
 }
@@ -58,9 +67,6 @@ export function deferredUntilOwnershipClaim(workspaceKey: string, run: () => voi
 
 type CancelTimer = () => void
 type Waiter = { resolve: (claimed: boolean) => void; cancelDeadline: CancelTimer }
-
-/** How long a seeding step waits for ownership evidence before giving up on it. */
-export const CLAIM_WAIT_DEADLINE_MS = 60_000
 
 /** Pending waits on this window's own claims, settled by the ownership session. A wait that
  *  outlives the deadline settles false: an uncertain claim never authorises seeding. */

@@ -1,3 +1,4 @@
+import { isWindowWorkspaceCreationBlocked } from '@/jose-window/window-workspace-admission'
 import { focusTerminalTabSurface } from '@/lib/focus-terminal-tab-surface'
 import { persistAgentLaunchTabOrder } from '@/lib/launch-agent-tab-order'
 import { getRuntimeEnvironmentIdForWorktree } from '@/lib/worktree-runtime-owner'
@@ -29,6 +30,9 @@ export function registerTabLifecycleIpcBridge(unsubs: (() => void)[]): void {
       }
       const worktreeId = store.activeWorktreeId
       if (!worktreeId) {
+        return
+      }
+      if (isWindowWorkspaceCreationBlocked(worktreeId, store.activeWorkspaceExecutionHostId)) {
         return
       }
       void (async () => {

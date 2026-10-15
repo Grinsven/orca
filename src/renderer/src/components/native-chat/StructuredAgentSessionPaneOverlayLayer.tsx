@@ -1,3 +1,7 @@
+import {
+  useSplitWorkspaceHasFocus,
+  useSplitGroupFocus
+} from '@/jose-split-worktree/split-worktree-surface'
 import { memo, useCallback, useMemo } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 import type { Tab, TabGroup } from '../../../../shared/tab-types'
@@ -67,6 +71,7 @@ const StructuredAgentSessionPaneOverlayLayer = memo(
     worktreeId: string
     isWorktreeActive: boolean
   }): React.JSX.Element {
+    const splitFocused = useSplitWorkspaceHasFocus(worktreeId)
     const { unifiedTabs, groups, activeGroupId } = useAppStore(
       useShallow((state) => ({
         unifiedTabs: state.unifiedTabsByWorktree[worktreeId] ?? EMPTY_UNIFIED_TABS,
@@ -79,6 +84,7 @@ const StructuredAgentSessionPaneOverlayLayer = memo(
       (groupId: string) => focusGroup(worktreeId, groupId),
       [focusGroup, worktreeId]
     )
+    const splitGroupFocus = useSplitGroupFocus(worktreeId, focusOwningGroup)
     const groupActiveTabById = useMemo(
       () => new Map(groups.map((group) => [group.id, group.activeTabId] as const)),
       [groups]
@@ -101,7 +107,11 @@ const StructuredAgentSessionPaneOverlayLayer = memo(
               groupActiveTabById.get(tab.groupId) === tab.id &&
               tab.groupId === activeGroupId
             )}
+            {...(!splitFocused ? { isFocusedGroup: false } : {})}
             onFocusOwningGroup={focusOwningGroup}
+            {...(splitGroupFocus !== focusOwningGroup
+              ? { onFocusOwningGroup: splitGroupFocus }
+              : {})}
           />
         ))}
       </>

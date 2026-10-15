@@ -1,4 +1,8 @@
 import type React from 'react'
+import {
+  routeSplitWorktreeDrag,
+  splitWorktreeGestureActive
+} from '@/jose-split-worktree/split-worktree-drag'
 import type { WorkspaceStatus } from '../../../../../../shared/worktree/types'
 import {
   clearWorkspaceKanbanSidebarDropTargetVisual,
@@ -100,12 +104,16 @@ export function flushWorktreePointerDragFrame(args: WorktreePointerDragFrameArgs
     offsetX: drag.previewOffsetX,
     offsetY: drag.previewOffsetY
   })
+  if (routeSplitWorktreeDrag(drag.currentX, drag.currentY)) {
+    return
+  }
   if (!ctx.refreshWorktreeDragSession()) {
     ctx.clearWorktreeDrag()
     return
   }
   // Why: show the board preview as soon as a card drag begins so the drop target is visible up front, not only at the sidebar edge.
   if (
+    !splitWorktreeGestureActive() &&
     !drag.workspaceBoardDragPreviewRequested &&
     !args.preferSidebarStatusDropTargetsOnDrag &&
     !args.workspaceBoardOpen &&

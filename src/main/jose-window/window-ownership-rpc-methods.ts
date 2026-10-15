@@ -1,4 +1,5 @@
 import { defineMethod, defineStreamingMethod, type RpcContext } from '../runtime/rpc/core'
+import { JOSE_SPLIT_PREFERENCE_METHODS } from './split-preference-rpc-methods'
 import {
   JoseWindowClaimParams,
   JoseWindowClaimSetParams,
@@ -37,6 +38,7 @@ async function openWindowOnThisHost(): Promise<JoseWindowOpenWindowResult> {
 }
 
 export const JOSE_WINDOW_METHODS = [
+  ...JOSE_SPLIT_PREFERENCE_METHODS,
   defineMethod({
     name: 'joseWindow.claimSet',
     permission: 'workspace',

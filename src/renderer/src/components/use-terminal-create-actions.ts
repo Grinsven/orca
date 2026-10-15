@@ -1,3 +1,4 @@
+import { isWindowWorkspaceCreationBlocked } from '@/jose-window/window-workspace-admission'
 import { useCallback } from 'react'
 import { toast } from 'sonner'
 import type { TuiAgent } from '../../../shared/tui-agent'
@@ -34,6 +35,9 @@ export function useTerminalCreateActions(controller: TerminalColdActivationContr
       if (!activeWorktreeId) {
         return
       }
+      if (isWindowWorkspaceCreationBlocked(activeWorktreeId)) {
+        return
+      }
       const targetGroupId =
         useAppStore.getState().activeGroupIdByWorktree[activeWorktreeId] ??
         useAppStore.getState().groupsByWorktree[activeWorktreeId]?.[0]?.id
@@ -65,6 +69,9 @@ export function useTerminalCreateActions(controller: TerminalColdActivationContr
       if (!activeWorktreeId) {
         return
       }
+      if (isWindowWorkspaceCreationBlocked(activeWorktreeId)) {
+        return
+      }
       const state = useAppStore.getState()
       const targetGroupId =
         state.activeGroupIdByWorktree[activeWorktreeId] ??
@@ -93,6 +100,9 @@ export function useTerminalCreateActions(controller: TerminalColdActivationContr
     if (!activeWorktreeId) {
       return
     }
+    if (isWindowWorkspaceCreationBlocked(activeWorktreeId)) {
+      return
+    }
     const targetGroupId =
       useAppStore.getState().activeGroupIdByWorktree[activeWorktreeId] ??
       useAppStore.getState().groupsByWorktree[activeWorktreeId]?.[0]?.id
@@ -104,6 +114,9 @@ export function useTerminalCreateActions(controller: TerminalColdActivationContr
 
   const handleNewBrowserTab = useCallback(() => {
     if (!activeWorktreeId) {
+      return
+    }
+    if (isWindowWorkspaceCreationBlocked(activeWorktreeId)) {
       return
     }
     const targetGroupId =
@@ -139,12 +152,18 @@ export function useTerminalCreateActions(controller: TerminalColdActivationContr
   }, [activeWorktreeId, createBrowserTab, openNewBrowserTabInActiveWorkspace])
 
   const handleOpenEntry = useCallback(async (args: TabCreateEntryArgs) => {
+    if (isWindowWorkspaceCreationBlocked(args.worktreeId)) {
+      return
+    }
     await openTabBarEntry(args)
   }, [])
 
   const handleDuplicateBrowserTab = useCallback(
     (browserTabId: string, sourceUnifiedTabId: string) => {
       if (!activeWorktreeId) {
+        return
+      }
+      if (isWindowWorkspaceCreationBlocked(activeWorktreeId)) {
         return
       }
       const state = useAppStore.getState()
@@ -190,6 +209,9 @@ export function useTerminalCreateActions(controller: TerminalColdActivationContr
 
   const handleNewFile = useCallback(async () => {
     if (!activeWorktreeId) {
+      return
+    }
+    if (isWindowWorkspaceCreationBlocked(activeWorktreeId)) {
       return
     }
     const targetGroupId =

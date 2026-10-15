@@ -1,3 +1,4 @@
+import { SplitWorktreeMenuItem } from '@/jose-split-worktree/SplitWorktreeMenuItem'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -173,6 +174,7 @@ export default function WorktreeContextMenuView({ model }: { model: WorktreeCont
           <DropdownMenuSeparator />
           {!isMultiContext && (
             <>
+              <SplitWorktreeMenuItem worktree={worktree} disabled={isDeleting} />
               <WorktreeRowOpenInSubMenu
                 worktree={worktree}
                 connectionId={repo?.connectionId ?? null}

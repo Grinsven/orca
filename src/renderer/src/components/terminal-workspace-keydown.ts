@@ -1,4 +1,5 @@
 import { toast } from 'sonner'
+import { isWindowWorkspaceCreationBlocked } from '@/jose-window/window-workspace-admission'
 import { dispatchWorkspaceTabCommand } from '@/lib/workspace-tab-commands'
 import type { KeybindingActionId } from '../../../shared/keybindings'
 import { keybindingMatchesAction } from '../../../shared/keybindings'
@@ -47,6 +48,13 @@ export function handleTerminalWorkspaceKeyDown(
   }
   const context = getKeybindingContext(event.target)
   const floatingWorkspaceFocused = isFloatingWorkspacePanelFocused()
+  if (
+    !floatingWorkspaceFocused &&
+    controller.activeView === 'terminal' &&
+    isWindowWorkspaceCreationBlocked(activeWorktreeId)
+  ) {
+    return
+  }
   const matchShortcut = (actionId: KeybindingActionId): boolean =>
     keybindingMatchesAction(actionId, event, shortcutPlatform, keybindings, {
       context,

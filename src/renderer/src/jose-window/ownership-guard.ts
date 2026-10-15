@@ -27,9 +27,28 @@ export type OwnershipTargetOptions = {
 
 let link: WindowOwnershipLink | null = null
 let ownedElsewhere: ReadonlySet<string> = new Set()
+const authorityViews = new Map<
+  string,
+  { link: WindowOwnershipLink; ownedElsewhere: ReadonlySet<string> }
+>()
 let redirectEpoch = 0
 let navigationRevision = 0
 let navigationTracked = false
+
+let navigationInterceptor:
+  | ((worktreeId: string, options?: OwnershipTargetOptions) => boolean)
+  | null = null
+
+export function setWorkspaceNavigationInterceptor(
+  next: (worktreeId: string, options?: OwnershipTargetOptions) => boolean
+): () => void {
+  navigationInterceptor = next
+  return () => {
+    if (navigationInterceptor === next) {
+      navigationInterceptor = null
+    }
+  }
+}
 
 // Why a counter, not the selection value: B to C and back to B ends on the same selection, yet the
 // user has navigated since the redirect started.
@@ -57,6 +76,38 @@ export function setWindowOwnershipView(
   ownedElsewhere = new Set([...(next?.ownedElsewhere ?? [])].map(ownershipKey))
 }
 
+/** Independent runtime authorities retain their own host-side identity namespace. */
+export function setWindowOwnershipAuthorityView(
+  authority: string,
+  next: { link: WindowOwnershipLink; ownedElsewhere: Iterable<JoseWindowWorktreeRef> } | null
+): void {
+  if (next) {
+    authorityViews.set(authority, {
+      link: next.link,
+      ownedElsewhere: new Set([...next.ownedElsewhere].map(ownershipKey))
+    })
+  } else {
+    authorityViews.delete(authority)
+  }
+}
+
+function matchingOwnershipView(
+  worktreeId: string,
+  opts?: OwnershipTargetOptions
+): { link: WindowOwnershipLink; ref: JoseWindowWorktreeRef } | null {
+  const primaryRef = refOwnedElsewhere(link, worktreeId, opts)
+  if (link && primaryRef) {
+    return { link, ref: primaryRef }
+  }
+  for (const view of authorityViews.values()) {
+    const ref = view.link.resolve(worktreeId, opts?.executionHostId)
+    if (ref && view.ownedElsewhere.has(ownershipKey(ref))) {
+      return { link: view.link, ref }
+    }
+  }
+  return null
+}
+
 function refOwnedElsewhere(
   current: WindowOwnershipLink | null,
   worktreeId: string,
@@ -70,7 +121,7 @@ function refOwnedElsewhere(
 }
 
 export function isOwnedByAnotherWindow(worktreeId: string, opts?: OwnershipTargetOptions): boolean {
-  return refOwnedElsewhere(link, worktreeId, opts) !== null
+  return matchingOwnershipView(worktreeId, opts) !== null
 }
 
 // Why: a sidebar click marks its row active in the DOM before activation runs, and the store never
@@ -104,10 +155,19 @@ function revealThroughLink(
   const epoch = ++redirectEpoch
   const revision = navigationRevision
   const isStillCurrent = (): boolean =>
-    link === current && epoch === redirectEpoch && navigationRevision === revision
+    (link === current || [...authorityViews.values()].some((view) => view.link === current)) &&
+    epoch === redirectEpoch &&
+    navigationRevision === revision
   const fallBack = (): void => {
     const key = ownershipKey(ref)
-    ownedElsewhere = new Set([...ownedElsewhere].filter((owned) => owned !== key))
+    if (link === current) {
+      ownedElsewhere = new Set([...ownedElsewhere].filter((owned) => owned !== key))
+    }
+    for (const view of authorityViews.values()) {
+      if (view.link === current) {
+        view.ownedElsewhere = new Set([...view.ownedElsewhere].filter((owned) => owned !== key))
+      }
+    }
     if (intent) {
       current.activateHere?.(ref, intent)
     } else {
@@ -136,13 +196,15 @@ export function redirectIfOwnedElsewhere(
   worktreeId: string,
   opts?: OwnershipTargetOptions
 ): boolean {
-  const current = link
-  const ref = refOwnedElsewhere(current, worktreeId, opts)
-  if (!current || !ref) {
+  const match = matchingOwnershipView(worktreeId, opts)
+  if (!match) {
+    if (navigationInterceptor?.(worktreeId, opts)) {
+      return true
+    }
     return false
   }
   restoreSidebarActiveRow()
-  revealThroughLink(current, ref, opts?.intent)
+  revealThroughLink(match.link, match.ref, opts?.intent)
   return true
 }
 

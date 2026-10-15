@@ -1,3 +1,4 @@
+import { retainedSplitWorkspace } from '@/jose-split-worktree/split-worktree-state'
 import {
   getRepoExecutionHostId,
   parseExecutionHostId,
@@ -54,6 +55,10 @@ function getActiveWorkspaceExecutionHostId(
   state: WorktreeRuntimeOwnerState,
   worktreeId: string
 ): ExecutionHostId | null {
+  const retained = retainedSplitWorkspace(worktreeId)
+  if (retained) {
+    return retained.executionHostId
+  }
   return state.activeWorktreeId === worktreeId
     ? (state.activeWorkspaceExecutionHostId ?? null)
     : null

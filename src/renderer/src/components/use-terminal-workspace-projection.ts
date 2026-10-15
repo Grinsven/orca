@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useMemo } from 'react'
+import { useSplitWorktreeState } from '@/jose-split-worktree/split-worktree-state'
+import { addSplitForegroundTerminals } from '@/jose-split-worktree/split-worktree-terminal-admission'
 import { useAppStore } from '../store'
 import { hasFeatureInteraction } from '../../../shared/feature-interactions'
 import { setForegroundTerminalTabIds } from '@/lib/foreground-terminal-tabs'
@@ -10,6 +12,7 @@ import type { TerminalWorkspaceStoreController } from './use-terminal-workspace-
 import { useWorktreeFiles } from './terminal/use-worktree-files'
 
 export function useTerminalWorkspaceProjection(controller: TerminalWorkspaceStoreController) {
+  const splitLayout = useSplitWorktreeState((state) => state.layout)
   const {
     activeGroupIdByWorktree,
     activeTabId,
@@ -35,8 +38,16 @@ export function useTerminalWorkspaceProjection(controller: TerminalWorkspaceStor
     for (const portal of activityTerminalPortals) {
       ids.add(portal.tabId)
     }
+    addSplitForegroundTerminals(ids, { ...useAppStore.getState(), groupsByWorktree }, splitLayout)
     return Array.from(ids)
-  }, [activeTabId, activeTabType, activeView, activityTerminalPortals])
+  }, [
+    activeTabId,
+    activeTabType,
+    activeView,
+    activityTerminalPortals,
+    splitLayout,
+    groupsByWorktree
+  ])
 
   useEffect(() => {
     setForegroundTerminalTabIds(foregroundTerminalTabIds)

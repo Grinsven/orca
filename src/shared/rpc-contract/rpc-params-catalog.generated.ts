@@ -338,7 +338,8 @@ import { JiraSavedFilterMutationParam } from './jira-saved-filter-params'
 import {
   JoseWindowClaimParams,
   JoseWindowClaimSetParams,
-  JoseWindowRevealParams
+  JoseWindowRevealParams,
+  JoseWindowSplitPreference
 } from './jose-window-params'
 import {
   AgentIssueContext,
@@ -1020,6 +1021,8 @@ export const RPC_PARAMS_BY_METHOD = {
   'joseWindow.claimSet': JoseWindowClaimSetParams,
   'joseWindow.openWindow': null,
   'joseWindow.reveal': JoseWindowRevealParams,
+  'joseWindow.splitPreference.set': JoseWindowSplitPreference,
+  'joseWindow.splitPreference.subscribe': null,
   'joseWindow.subscribe': null,
   'layout.getRemoteSnapshots': null,
   'layout.subscribe': LayoutSubscribeParams,

@@ -1,3 +1,4 @@
+import { isSplitWorktreeVisible } from '@/jose-split-worktree/split-worktree-state'
 import type { TerminalTab } from '../../../shared/terminal-tab-types'
 import {
   TERMINAL_WORKTREE_COLD_PARK_DELAY_MS,
@@ -55,7 +56,9 @@ export function collectTerminalParkingPassCandidates(controller: TerminalParking
       terminalWorktreeParkCooldownUntilRef.current.delete(worktreeId)
       continue
     }
-    const isVisible = activeView === 'terminal' && renderedActiveWorktreeId === worktreeId
+    const isVisible =
+      (activeView === 'terminal' && renderedActiveWorktreeId === worktreeId) ||
+      isSplitWorktreeVisible(worktreeId, activeView)
     const shouldMeasureHiddenWorktree =
       !isVisible && measurableBackgroundWorktreeIdsRef.current.has(worktreeId)
     const hasActivityTerminalPortal = portalWorktreeIds.has(worktreeId)

@@ -1,3 +1,4 @@
+import { applySplitFolderOwners } from '@/jose-split-worktree/split-worktree-owners'
 import { parseExecutionHostId, type ExecutionHostId } from '../../../shared/execution-host'
 import type { FolderWorkspace } from '../../../shared/folder-workspace-types'
 import type { Worktree } from '../../../shared/worktree/types'
@@ -45,7 +46,8 @@ export function projectWorkspaceSurfaces({
   worktreesById,
   folderWorkspaces,
   activeWorkspaceId,
-  activeWorkspaceResolvedHostId
+  activeWorkspaceResolvedHostId,
+  splitWorkspaceOwners
 }: {
   worktreesById: ReadonlyMap<string, Pick<Worktree, 'path'>>
   folderWorkspaces: readonly FolderWorkspaceSurfaceRow[]
@@ -53,6 +55,7 @@ export function projectWorkspaceSurfaces({
   activeWorkspaceId: string | null
   /** Resolved (not user-selected) host of the active workspace; the folder tie-break. */
   activeWorkspaceResolvedHostId: ExecutionHostId | null
+  splitWorkspaceOwners?: readonly { worktreeId: string; executionHostId: ExecutionHostId }[]
 }): WorkspaceSurface[] {
   const surfaces: WorkspaceSurface[] = []
   for (const [worktreeId, worktree] of worktreesById) {
@@ -90,5 +93,11 @@ export function projectWorkspaceSurfaces({
       })
     }
   }
+  applySplitFolderOwners(
+    surfaces,
+    folderWorkspaces,
+    getStampedFolderWorkspaceHostId,
+    splitWorkspaceOwners
+  )
   return surfaces
 }

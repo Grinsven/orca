@@ -1,3 +1,4 @@
+import { leaveEmptySplitWorkspace } from '@/jose-split-worktree/split-worktree-actions'
 import { worktreeWorkspaceKey } from '../../../../../../shared/workspace-scope'
 import type { ExecutionHostId } from '../../../../../../shared/execution-host'
 import type { WorktreeSliceSet } from '../listing/worktree-slice-types'
@@ -143,4 +144,5 @@ export function applyRemoveWorktreeSuccessState(
       sortEpoch: s.sortEpoch + 1
     }
   })
+  leaveEmptySplitWorkspace(worktreeId, executionHostId)
 }

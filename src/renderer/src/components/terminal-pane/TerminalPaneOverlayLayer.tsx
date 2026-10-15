@@ -1,3 +1,7 @@
+import {
+  useSplitWorkspaceHasFocus,
+  useSplitGroupFocus
+} from '@/jose-split-worktree/split-worktree-surface'
 import { memo, useCallback, useMemo } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 import type { Tab, TabGroup } from '../../../../shared/tab-types'
@@ -54,6 +58,7 @@ const TerminalPaneOverlayLayer = memo(function TerminalPaneOverlayLayer({
    *  chords — the toggle listener is gated to one live workspace at a time. */
   ownsNativeChatToggleShortcut?: boolean
 }): React.JSX.Element | null {
+  const splitFocused = useSplitWorkspaceHasFocus(worktreeId)
   const { terminalTabs, unifiedTabs, groups, activeGroupId } = useAppStore(
     useShallow((state) => ({
       terminalTabs: state.tabsByWorktree[worktreeId] ?? EMPTY_TERMINAL_TABS,
@@ -77,6 +82,7 @@ const TerminalPaneOverlayLayer = memo(function TerminalPaneOverlayLayer({
     [focusGroup, worktreeId]
   )
 
+  const splitGroupFocus = useSplitGroupFocus(worktreeId, focusOwningGroup)
   const groupActiveTabById = useMemo(() => {
     const lookup: Record<string, string | null | undefined> = {}
     for (const group of groups) {
@@ -143,6 +149,9 @@ const TerminalPaneOverlayLayer = memo(function TerminalPaneOverlayLayer({
               groupId={assignment?.groupId}
               isVisible
               onFocusOwningGroup={focusOwningGroup}
+              {...(splitGroupFocus !== focusOwningGroup
+                ? { onFocusOwningGroup: splitGroupFocus }
+                : {})}
             >
               <TerminalRestoringPlaceholder />
             </RetainedPaneHost>
@@ -168,8 +177,12 @@ const TerminalPaneOverlayLayer = memo(function TerminalPaneOverlayLayer({
             isWorktreeActive={isWorktreeActive}
             isVisible={isVisible}
             isActive={isActive}
+            {...(!splitFocused ? { isActive: false } : {})}
             activityTerminalPortal={activityTerminalPortal}
             onFocusOwningGroup={focusOwningGroup}
+            {...(splitGroupFocus !== focusOwningGroup
+              ? { onFocusOwningGroup: splitGroupFocus }
+              : {})}
             consumeSuppressedPtyExit={consumeSuppressedPtyExit}
             captureEmptiedReaction={captureEmptiedReaction}
           />

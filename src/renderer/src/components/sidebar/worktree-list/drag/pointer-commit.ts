@@ -1,3 +1,4 @@
+import { consumeSplitWorktreeDrop } from '@/jose-split-worktree/split-worktree-drag'
 import {
   getWorkspaceKanbanSidebarDropGroups,
   getWorkspaceKanbanSidebarDropTarget,
@@ -64,6 +65,9 @@ function commitStatusOrPinDrop(
 // status/pin section, or a reorder slot inside the source group.
 export function commitWorktreePointerDrop(args: PointerDropCommitArgs): void {
   const { event, drag, ctx } = args
+  if (consumeSplitWorktreeDrop(event, ctx)) {
+    return
+  }
   if (!ctx.refreshWorktreeDragSession()) {
     ctx.clearWorktreeDrag()
     return

@@ -1,5 +1,7 @@
 import { z } from 'zod'
 
+export const JoseWindowSplitPreference = z.object({ enabled: z.boolean() })
+
 // Fork-only: worktree ownership between Orca windows (src/main/jose-window).
 
 /** One workspace on the ownership host, named as that host sees it: its own checkouts are

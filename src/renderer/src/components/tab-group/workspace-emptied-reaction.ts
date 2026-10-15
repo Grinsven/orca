@@ -1,3 +1,4 @@
+import { leaveEmptySplitWorkspace } from '@/jose-split-worktree/split-worktree-actions'
 import { FLOATING_TERMINAL_WORKTREE_ID } from '../../../../shared/constants'
 import { useAppStore } from '../../store'
 import { armFloatingPanelReclaimIntent } from '@/lib/floating-workspace-focus-reclaim'
@@ -34,6 +35,9 @@ function leaveWorktreeIfEmpty(worktreeId: string): void {
   }
   // Why: split-group closes bypass legacy Terminal.tsx; deselect the emptied worktree here or the window goes blank instead of landing.
   if (state.reconcileWorktreeTabModel(worktreeId).renderableTabCount === 0) {
+    if (leaveEmptySplitWorkspace(worktreeId)) {
+      return
+    }
     state.setActiveWorktree(null)
   }
 }
