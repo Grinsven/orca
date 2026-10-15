@@ -22,6 +22,16 @@ html[data-jose-ui] [data-sidebar-activity][data-active='true'] {
   color: var(--accent-foreground);
 }
 
+html[data-jose-ui] [data-sidebar-activity] > div.bg-foreground:is(.rounded-t, .rounded-l) {
+  display: none;
+}
+
+html.dark[data-jose-ui]
+  .right-sidebar-activity-strip
+  button[data-sidebar-activity][data-active='true'][type='button'] {
+  background: transparent;
+}
+
 html[data-jose-ui] [data-sidebar-activity][data-active='true']::before,
 html[data-jose-ui] [data-sidebar-activity]:hover::before {
   background: var(--accent);
@@ -38,9 +48,9 @@ html[data-jose-ui] [data-source-control-path]:focus-visible {
 }
 
 [data-sidebar-change-count] {
-  height: 1rem;
-  min-width: 1rem;
-  padding: 0 0.2rem;
+  height: 0.75rem;
+  min-width: 0.75rem;
+  padding: 0 0.125rem;
   font-size: var(--text-3xs);
   line-height: 1;
   font-variant-numeric: tabular-nums;
@@ -50,8 +60,8 @@ html[data-jose-ui] [data-source-control-path]:focus-visible {
 
 [data-sidebar-activity] > [data-sidebar-change-count] {
   position: absolute;
-  right: 1px;
-  bottom: 2px;
+  right: 0;
+  bottom: 0;
 }
 
 [data-source-control-path][data-current='true'] > [data-source-control-row-actions],

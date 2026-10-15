@@ -1,7 +1,25 @@
 import { describe, expect, it } from 'vitest'
-import { countChangedFiles, formatGitChangeCount, gitChangeCountKey } from './git-change-count'
+import {
+  countChangedFiles,
+  describeGitChangeCount,
+  formatGitChangeCount,
+  gitChangeCountKey
+} from './git-change-count'
 
 describe('sidebar changed file count', () => {
+  it('describes exact and partial counts in English', () => {
+    expect([
+      describeGitChangeCount(null),
+      describeGitChangeCount({ count: 1, partial: false }),
+      describeGitChangeCount({ count: 42, partial: false }),
+      describeGitChangeCount({ count: 12, partial: true })
+    ]).toEqual([
+      '',
+      '1 changed file',
+      '42 changed files',
+      'at least 12 changed files, count incomplete'
+    ])
+  })
   it('counts a partially staged path once and includes untracked, renamed and conflicted paths', () => {
     expect(
       countChangedFiles({

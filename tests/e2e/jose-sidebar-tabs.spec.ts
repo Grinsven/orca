@@ -63,7 +63,9 @@ test('quiet sidebar tabs, live file count and keyboard diff actions', async ({
   const activeStyle = await sourceControl.evaluate((element) => ({
     color: getComputedStyle(element).color,
     tile: getComputedStyle(element, '::before').backgroundColor,
-    underline: element.querySelector('div.bg-foreground') !== null,
+    underline: Array.from(element.querySelectorAll('div.bg-foreground')).some(
+      (marker) => getComputedStyle(marker).display !== 'none'
+    ),
     current: element.getAttribute('aria-current')
   }))
   const screenshotDirectory = process.env.JOSE_SIDEBAR_SCREENSHOT_DIR
@@ -95,14 +97,42 @@ test('quiet sidebar tabs, live file count and keyboard diff actions', async ({
   await staged.getByRole('button', { name: 'Unstage', exact: true }).click()
   await staged.waitFor({ state: 'detached' })
   await sidebar.locator('[data-sidebar-activity="explorer"]').click()
-  await Promise.all(
-    Array.from({ length: 100 }, (_, index) =>
-      writeFile(path.join(worktreePath, `new-${index}.txt`), 'new\n')
+  const badgeStates: {
+    count: string | null
+    iconClear: boolean
+    insideButton: boolean
+    description: string | null
+  }[] = []
+  let previousCount = 1
+  for (const count of [1, 9, 42, 100]) {
+    await Promise.all(
+      Array.from({ length: count - previousCount }, (_, index) =>
+        writeFile(path.join(worktreePath, `new-${previousCount + index}.txt`), 'new\n')
+      )
     )
-  )
-  await badge.filter({ hasText: /^99\+$/ }).waitFor({ timeout: 20_000 })
-  if (screenshotDirectory) {
-    await screenshot('sidebar-dark-count-cap.png')
+    previousCount = count
+    const label = count > 99 ? '99+' : String(count)
+    await badge
+      .filter({ hasText: new RegExp(`^${label.replace('+', '\\+')}$`) })
+      .waitFor({ timeout: 20_000 })
+    badgeStates.push(
+      await sourceControl.evaluate((element) => {
+        const icon = element.querySelector('svg')!.getBoundingClientRect()
+        const badge = element.querySelector('[data-sidebar-change-count]')!
+        const badgeBox = badge.getBoundingClientRect()
+        const button = element.getBoundingClientRect()
+        const overlap =
+          Math.max(0, Math.min(icon.right, badgeBox.right) - Math.max(icon.left, badgeBox.left)) *
+          Math.max(0, Math.min(icon.bottom, badgeBox.bottom) - Math.max(icon.top, badgeBox.top))
+        return {
+          count: badge.textContent,
+          iconClear: overlap / (icon.width * icon.height) <= 0.25,
+          insideButton: badgeBox.right <= button.right + 1 && badgeBox.bottom <= button.bottom + 1,
+          description: element.getAttribute('aria-description')
+        }
+      })
+    )
+    await screenshot(count > 99 ? 'sidebar-dark-count-cap.png' : `sidebar-dark-count-${count}.png`)
   }
   await cdp.detach()
   expect({
@@ -111,6 +141,7 @@ test('quiet sidebar tabs, live file count and keyboard diff actions', async ({
     activeStyle,
     stagedCount,
     partiallyStagedCount,
+    badgeStates,
     cappedCount: await badge.textContent()
   }).toEqual({
     zoom: 0.5,
@@ -123,6 +154,12 @@ test('quiet sidebar tabs, live file count and keyboard diff actions', async ({
     },
     stagedCount: '1',
     partiallyStagedCount: '1',
+    badgeStates: [
+      { count: '1', iconClear: true, insideButton: true, description: '1 changed file' },
+      { count: '9', iconClear: true, insideButton: true, description: '9 changed files' },
+      { count: '42', iconClear: true, insideButton: true, description: '42 changed files' },
+      { count: '99+', iconClear: true, insideButton: true, description: '100 changed files' }
+    ],
     cappedCount: '99+'
   })
 })

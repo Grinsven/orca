@@ -40,8 +40,7 @@ const STATUS_DOT_COLOR: Record<CheckStatus, string> = {
 }
 
 function activityItemAriaLabel(item: ActivityBarItem, status?: CheckStatus | null): string {
-  const title = [item.title, item.countDescription].filter(Boolean).join(', ')
-  const base = item.shortcut ? `${title} (${item.shortcut})` : title
+  const base = item.shortcut ? `${item.title} (${item.shortcut})` : item.title
   return status === 'failure'
     ? `${base} — ${translate('auto.components.right.sidebar.activityBar.error', 'Error')}`
     : base
@@ -107,6 +106,7 @@ export function TopActivityOverflowMenu({
               className={cn(active && 'bg-accent text-accent-foreground')}
               aria-current={active ? 'page' : undefined}
               aria-label={activityItemAriaLabel(item, item.statusIndicator)}
+              aria-description={item.countDescription}
             >
               <Icon size={14} />
               <span>{item.title}</span>
@@ -159,6 +159,7 @@ export function ActivityBarButton({
           )}
           onClick={onClick}
           aria-label={activityItemAriaLabel(item, effectiveStatus)}
+          aria-description={item.countDescription}
         >
           <Icon size={isTop ? 16 : 18} />
           <ActivityCountBadge count={item.count} />
@@ -172,10 +173,18 @@ export function ActivityBarButton({
               )}
             />
           )}
+
+          {active && isTop && (
+            <div className="absolute bottom-0 left-[25%] right-[25%] h-[2px] bg-foreground rounded-t" />
+          )}
+          {active && !isTop && (
+            <div className="absolute right-0 top-[25%] bottom-[25%] w-[2px] bg-foreground rounded-l" />
+          )}
         </button>
       </TooltipTrigger>
       <TooltipContent side={isTop ? 'bottom' : 'left'} sideOffset={6}>
-        {activityItemAriaLabel(item, effectiveStatus)}
+        {item.shortcut ? `${item.title} (${item.shortcut})` : item.title}
+        {item.countDescription && `, ${item.countDescription}`}
       </TooltipContent>
     </Tooltip>
   )
