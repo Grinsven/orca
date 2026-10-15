@@ -41,21 +41,28 @@ export function activeSplitWorkspace(): SplitWorkspaceRef | null {
   return worktreeId && executionHostId ? { worktreeId, executionHostId } : null
 }
 
+function hasSplitWorkspaceFocus(ref: SplitWorkspaceRef): boolean {
+  const state = useAppStore.getState()
+  return (
+    state.activeView === 'terminal' &&
+    state.activeWorktreeId === ref.worktreeId &&
+    (state.activeWorkspaceExecutionHostId ??
+      getResolvedExecutionHostIdForWorktree(state, ref.worktreeId)) === ref.executionHostId
+  )
+}
+
 export function focusSplitWorkspace(ref: SplitWorkspaceRef): boolean {
+  // Restored pane focus must not restart activation while its PTY is still reconnecting.
+  if (hasSplitWorkspaceFocus(ref)) {
+    return true
+  }
   activating = true
   try {
     const result = activateAndRevealWorkspace(ref.worktreeId, {
       executionHostId: ref.executionHostId,
       revealInSidebar: false
     })
-    const state = useAppStore.getState()
-    return (
-      result !== false &&
-      state.activeView === 'terminal' &&
-      state.activeWorktreeId === ref.worktreeId &&
-      (state.activeWorkspaceExecutionHostId ??
-        getResolvedExecutionHostIdForWorktree(state, ref.worktreeId)) === ref.executionHostId
-    )
+    return result !== false && hasSplitWorkspaceFocus(ref)
   } finally {
     activating = false
   }
