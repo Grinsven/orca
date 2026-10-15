@@ -13,6 +13,8 @@ import {
 import type { ActiveRightSidebarTab } from '@/store/slices/editor'
 import { resetRendererAppPlatformCacheForTests } from '@/lib/renderer-app-platform'
 
+vi.mock('@/fork/sidebar-tabs/use-git-change-count', () => ({ useActiveGitChangeCount: () => null }))
+
 const mockAppState = vi.hoisted(() => ({
   rightSidebarOpen: true,
   rightSidebarTab: 'explorer' as ActiveRightSidebarTab,

@@ -23,6 +23,7 @@ import {
   SUBMODULE_WORKTREE_ONLY_TOOLTIP
 } from './row-layout'
 import { STATUS_COLORS, STATUS_LABELS } from '../../status-display'
+import { activateSourceControlRow } from '@/fork/sidebar-tabs/source-control-row-keyboard'
 
 /**
  * Renders one uncommitted change row: file identity, conflict/diff badges, and the hover actions
@@ -103,6 +104,10 @@ export const UncommittedEntryRow = React.memo(function UncommittedEntryRow({
       }}
     >
       <div
+        tabIndex={0}
+        role="group"
+        aria-label={entry.path}
+        onKeyDown={activateSourceControlRow}
         data-testid="source-control-entry"
         data-source-control-path={entry.path}
         data-source-control-area={entry.area}
@@ -208,7 +213,7 @@ export const UncommittedEntryRow = React.memo(function UncommittedEntryRow({
             </span>
           </>
         )}
-        <div className={SOURCE_CONTROL_ROW_ACTION_OVERLAY_CLASS}>
+        <div data-source-control-row-actions="" className={SOURCE_CONTROL_ROW_ACTION_OVERLAY_CLASS}>
           {canDiscard && (
             <ActionButton
               icon={entry.area === 'untracked' ? Trash : Undo2}

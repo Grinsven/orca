@@ -21,6 +21,8 @@ import { useShortcutLabel } from '@/hooks/useShortcutLabel'
 import { translate } from '@/i18n/i18n'
 import { AgentSessionHistoryIcon } from './agent-session-history-icon'
 import type { ActivityBarItem } from './activity-bar-buttons'
+import { useActiveGitChangeCount } from '@/fork/sidebar-tabs/use-git-change-count'
+import { describeGitChangeCount, formatGitChangeCount } from '@/fork/sidebar-tabs/git-change-count'
 
 export type RightSidebarActivityItems = {
   visibleItems: ActivityBarItem[]
@@ -36,6 +38,7 @@ export function useRightSidebarActivityItems({
   rightSidebarOpen: boolean
 }): RightSidebarActivityItems {
   const explorerShortcut = useShortcutLabel('sidebar.explorer.toggle')
+  const changeCount = useActiveGitChangeCount()
   const sourceControlShortcut = useShortcutLabel('sidebar.sourceControl.toggle')
   const checksShortcut = useShortcutLabel('sidebar.checks.toggle')
   const portsShortcut = useShortcutLabel('sidebar.ports.toggle')
@@ -105,6 +108,8 @@ export function useRightSidebarActivityItems({
         id: 'source-control',
         icon: GitBranch,
         title: translate('auto.components.right.sidebar.index.0314901467', 'Source Control'),
+        countDescription: describeGitChangeCount(changeCount),
+        count: formatGitChangeCount(changeCount),
         shortcut: sourceControlShortcut === 'Unassigned' ? '' : sourceControlShortcut,
         gitOnly: true
       },
@@ -128,6 +133,7 @@ export function useRightSidebarActivityItems({
     ],
     [
       checksShortcut,
+      changeCount,
       explorerShortcut,
       pluginPanelErrors,
       visiblePluginPanels,

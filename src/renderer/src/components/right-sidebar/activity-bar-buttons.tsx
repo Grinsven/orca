@@ -13,12 +13,15 @@ import {
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu'
 import { translate } from '@/i18n/i18n'
+import { ActivityCountBadge } from '@/fork/sidebar-tabs/ActivityCountBadge'
 
 export type ActivityBarItem = {
   id: ActiveRightSidebarTab
   icon: React.ComponentType<{ size?: number; className?: string }>
   title: string
   shortcut: string
+  count?: string | null
+  countDescription?: string
   /** When true, hidden for non-git (folder-mode) repos. */
   gitOnly?: boolean
   /** When true, shown only for folder workspaces. */
@@ -37,7 +40,8 @@ const STATUS_DOT_COLOR: Record<CheckStatus, string> = {
 }
 
 function activityItemAriaLabel(item: ActivityBarItem, status?: CheckStatus | null): string {
-  const base = item.shortcut ? `${item.title} (${item.shortcut})` : item.title
+  const title = [item.title, item.countDescription].filter(Boolean).join(', ')
+  const base = item.shortcut ? `${title} (${item.shortcut})` : title
   return status === 'failure'
     ? `${base} — ${translate('auto.components.right.sidebar.activityBar.error', 'Error')}`
     : base
@@ -106,6 +110,7 @@ export function TopActivityOverflowMenu({
             >
               <Icon size={14} />
               <span>{item.title}</span>
+              <ActivityCountBadge count={item.count} />
               {item.statusIndicator === 'failure' ? (
                 <span
                   className={cn('ml-auto size-2 rounded-full', STATUS_DOT_COLOR.failure)}
@@ -143,6 +148,9 @@ export function ActivityBarButton({
       <TooltipTrigger asChild>
         <button
           type="button"
+          data-sidebar-activity={item.id}
+          data-active={active}
+          aria-current={active ? 'page' : undefined}
           className={cn(
             'relative flex shrink-0 items-center justify-center transition-colors',
             RIGHT_SIDEBAR_HEADER_NO_DRAG_CLASS_NAME,
@@ -153,6 +161,7 @@ export function ActivityBarButton({
           aria-label={activityItemAriaLabel(item, effectiveStatus)}
         >
           <Icon size={isTop ? 16 : 18} />
+          <ActivityCountBadge count={item.count} />
 
           {effectiveStatus && effectiveStatus !== 'neutral' && (
             <div
@@ -163,17 +172,10 @@ export function ActivityBarButton({
               )}
             />
           )}
-
-          {active && isTop && (
-            <div className="absolute bottom-0 left-[25%] right-[25%] h-[2px] bg-foreground rounded-t" />
-          )}
-          {active && !isTop && (
-            <div className="absolute right-0 top-[25%] bottom-[25%] w-[2px] bg-foreground rounded-l" />
-          )}
         </button>
       </TooltipTrigger>
       <TooltipContent side={isTop ? 'bottom' : 'left'} sideOffset={6}>
-        {item.shortcut ? `${item.title} (${item.shortcut})` : item.title}
+        {activityItemAriaLabel(item, effectiveStatus)}
       </TooltipContent>
     </Tooltip>
   )

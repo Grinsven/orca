@@ -1,4 +1,5 @@
 import { getRuntimeGitStatus } from '@/runtime/runtime-git-status-client'
+import { createGitChangeCountPublisher } from '@/fork/sidebar-tabs/use-git-change-count'
 import { getRuntimeGitUpstreamStatus } from '@/runtime/runtime-git-sync-client'
 import { getBranchLineTotalMergeBase } from './branch-line-total-request-gate'
 import {
@@ -123,6 +124,12 @@ export async function refreshGitStatusForWorktree({
   }
 }): Promise<void> {
   const refreshOrder = beginAutomaticUpstreamRefresh(worktreeId)
+  const publishCount = createGitChangeCountPublisher({
+    target,
+    worktreeId,
+    worktreePath,
+    connectionId
+  })
   // Why: every status path must carry the merge base, or the chip blanks out on
   // whichever poll happened to omit it.
   const branchLineTotalMergeBase = getBranchLineTotalMergeBase(worktreeId)
@@ -147,6 +154,7 @@ export async function refreshGitStatusForWorktree({
     }
 
     deps.setGitStatus(worktreeId, status)
+    publishCount(status)
     // Why: branch switches can happen inside a terminal. `git status --branch`
     // gives us the new identity without a separate worktree-list poll.
     deps.updateWorktreeGitIdentity(worktreeId, {
@@ -252,6 +260,12 @@ export async function refreshGitStatusForWorktreeStrict({
   }
 }): Promise<{ status: GitStatusResult; upstreamStatus: GitUpstreamStatus }> {
   beginStrictUpstreamRefresh(worktreeId)
+  const publishCount = createGitChangeCountPublisher({
+    target,
+    worktreeId,
+    worktreePath,
+    connectionId
+  })
   clearAutomaticPushTargetUpstreamStatusCache()
   const strictBranchLineTotalMergeBase = getBranchLineTotalMergeBase(worktreeId)
   const status = await getRuntimeGitStatus(
@@ -275,6 +289,7 @@ export async function refreshGitStatusForWorktreeStrict({
   )
 
   deps.setGitStatus(worktreeId, status)
+  publishCount(status)
   // Why: branch switches can happen inside a terminal. `git status --branch`
   // gives us the new identity without a separate worktree-list poll.
   deps.updateWorktreeGitIdentity(worktreeId, {
