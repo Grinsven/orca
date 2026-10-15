@@ -23,6 +23,7 @@ import {
   type SplitWorkspaceRef
 } from './split-worktree-state'
 import { saveSplitWorktreeLayout } from './split-worktree-persistence'
+import { canParkSplitWorktree } from './split-worktree-park-policy'
 
 let activating = false
 let operation = 0
@@ -102,7 +103,8 @@ function parkRemovedWorkspaces(
       repos: state.repos,
       localOnly: true
     })
-    if (captured) {
+    // Keep automatic split cleanup silent when parking safety checks fail.
+    if (captured && canParkSplitWorktree(ref.worktreeId, useAppStore.getState())) {
       requestManualTerminalWorktreePark(ref.worktreeId)
     }
   }

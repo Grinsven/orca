@@ -8,12 +8,12 @@ import {
 import { useActivationDeferredTabAdmission } from '@/components/terminal/use-activation-deferred-tab-admission'
 import type { StartupTerminalTabHold } from '@/components/terminal/startup-terminal-tab-hold'
 import { canAdmitTerminalTabsForStartup } from '@/components/terminal/background-terminal-worktree-mount'
-import { selectPairedRuntimeParkingEnvironmentIds } from '@/components/terminal-pane/terminal-hidden-view-parking'
 import { captureParkedTerminalBuffers } from '@/components/terminal-pane/parked-terminal-buffer-capture'
 import { shutdownBufferCaptures } from '@/components/terminal-pane/shutdown-buffer-captures'
 import type { AppState } from '@/store/types'
 import { useSplitWorktreeState, type SplitLayout } from './split-worktree-state'
 import { useSplitWorktreeLifecycle } from './split-worktree-lifecycle'
+export { splitManualRestorePolicy } from './split-worktree-park-policy'
 
 /** Runs the existing admission policy for the other visible workspace without a second controller. */
 export function useSplitWorktreeAdmission(controller: TerminalColdActivationController): void {
@@ -76,15 +76,6 @@ export function useSplitManualParkingReset(
       return next
     })
   }, [layout, activeView, setParked])
-}
-
-export function splitManualRestorePolicy(state: AppState) {
-  return {
-    sshParkingEnabled: state.settings?.terminalSshViewParking !== false,
-    pairedRuntimeParkingEnvironmentIds: selectPairedRuntimeParkingEnvironmentIds(
-      state.runtimeStatusByEnvironmentId
-    )
-  }
 }
 
 export function captureManuallyParkedSplit(worktreeId: string, state: AppState): boolean {
