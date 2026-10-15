@@ -1,3 +1,5 @@
+@import './tab-strip.css';
+
 html[data-jose-ui] [data-sidebar-activity] {
   color: var(--muted-foreground);
   outline-offset: -2px;

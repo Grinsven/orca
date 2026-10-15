@@ -13,6 +13,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { QuickLaunchAgentMenuItems } from './QuickLaunchButton'
 import TabBarCreateEntry from './TabBarCreateEntry'
 import { TabStripScrollIndicator } from './TabStripScrollIndicator'
+import { SHOW_TAB_STRIP_SCROLL_INDICATOR } from '@/fork/sidebar-tabs/tab-strip-presentation'
 import { TabStripTooltipProvider } from './TabStripTooltipProvider'
 import { getTabStripScrollMaskClassName } from './tab-strip-scroll-metrics'
 import type { useTabStripOverflowNavigation } from './tab-strip-overflow-navigation'
@@ -169,12 +170,14 @@ export function renderTabBarSurface({
               ) : null}
             </TabStripTooltipProvider>
           </div>
-          <TabStripScrollIndicator
-            hasOverflow={tabStripOverflowState.hasOverflow}
-            scrollContainerRef={tabStripRef}
-            subscribeToStripResize={subscribeToStripResize}
-            disabled={tabStripDragScroll.isTabDragActive}
-          />
+          {SHOW_TAB_STRIP_SCROLL_INDICATOR && (
+            <TabStripScrollIndicator
+              hasOverflow={tabStripOverflowState.hasOverflow}
+              scrollContainerRef={tabStripRef}
+              subscribeToStripResize={subscribeToStripResize}
+              disabled={tabStripDragScroll.isTabDragActive}
+            />
+          )}
         </div>
       </SortableContext>
       {tabStripOverflowState.hasOverflow ? (

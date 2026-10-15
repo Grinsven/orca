@@ -370,6 +370,41 @@ describe('TabBar context menu wiring', () => {
     expect(strip?.props.className).not.toContain('scrollbar-sleek')
   })
 
+  it('keeps overflow navigation while omitting the fork scroll rail', async () => {
+    vi.doMock('@/components/ui/button', () => ({
+      Button: (props: Record<string, unknown>) => ({ type: 'button', props }),
+      buttonVariants: () => ''
+    }))
+    vi.doMock('./tab-strip-overflow-navigation', () => ({
+      useTabStripOverflowNavigation: () => ({
+        tabStripRef: { current: null },
+        tabStripOverflowState: { hasOverflow: true, canScrollStart: true, canScrollEnd: true },
+        activeTabDockSide: null,
+        scrollTabStrip: vi.fn(),
+        subscribeToStripResize: vi.fn()
+      })
+    }))
+    try {
+      const element = await renderTabBar({
+        tabs: [TERMINAL_TAB],
+        editorFiles: [],
+        browserTabs: [],
+        tabBarOrder: ['term-1']
+      })
+      expect({
+        arrows: findChildrenByType(element, 'button')
+          .map((button) => button.props['aria-label'])
+          .filter((label) => typeof label === 'string' && label.startsWith('Scroll tabs ')),
+        rails: findChildrenByType(element, 'div').filter(
+          (div) => div.props['data-testid'] === 'tab-strip-scroll-indicator'
+        ).length
+      }).toEqual({ arrows: ['Scroll tabs left', 'Scroll tabs right'], rails: 0 })
+    } finally {
+      vi.doUnmock('./tab-strip-overflow-navigation')
+      vi.doUnmock('@/components/ui/button')
+    }
+  })
+
   it('passes the editor unifiedTabId when EditorFileTab triggers onCloseToRight', async () => {
     // Why: TabBar wires the editor tab as () => onCloseToRight(item.id). The
     // emitted id is the editor's unifiedTabId (item.id for editors), not the

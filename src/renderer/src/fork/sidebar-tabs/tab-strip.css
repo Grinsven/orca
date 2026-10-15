@@ -1,0 +1,9 @@
+/* The end shoulder extends scrollWidth beyond the last slot even when every tab fits. */
+html[data-jose-ui][data-modern-ui='on'][data-modern-ui-tabs='connected']
+  [data-tab-group-strip-id]
+  .terminal-tab-strip
+  > [data-tab-strip-slot]:not(:has(~ [data-tab-strip-slot]))
+  > [data-tab-id][data-active='true']
+  > span.bottom-0.h-\[2px\]::after {
+  content: none;
+}
