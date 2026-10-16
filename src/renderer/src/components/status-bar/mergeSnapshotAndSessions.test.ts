@@ -4,6 +4,7 @@ import type { MemorySnapshot, WorktreeMemory } from '../../../../shared/process-
 import type { TerminalTab } from '../../../../shared/terminal-tab-types'
 import type { Worktree } from '../../../../shared/worktree/types'
 import { mergeSnapshotAndSessions, UNATTRIBUTED_REPO_ID } from './mergeSnapshotAndSessions'
+import { requiresKillConfirmation } from './resource-session-kill-confirmation'
 import type { DaemonSession, MergeContext } from './resource-usage-merge-types'
 
 function emptyAppMemory() {
@@ -166,7 +167,8 @@ describe('mergeSnapshotAndSessions', () => {
   })
 
   it('carries agent ownership onto the snapshot-derived row for the same session', () => {
-    // Only the daemon list reports ownership for snapshot-derived rows.
+    // Why: only the daemon list reports ownership. A snapshot row describing the same session must
+    // not report `false` — that row is the one whose kill skips confirmation (#8459).
     const wt: WorktreeMemory = {
       worktreeId: 'orca::/Users/me/Triton',
       worktreeName: 'Triton',
@@ -194,7 +196,9 @@ describe('mergeSnapshotAndSessions', () => {
     })
   })
 
-  it('binds a deferred SSH row to its terminal tab', () => {
+  it('binds a deferred SSH row so its single-row kill cannot skip confirmation', () => {
+    // Why: the bulk selector already excluded these, but the rendered row took its own path.
+    // An unbound row with no agent skips the dialog entirely — the same #8459 defect, one click over.
     const sessionId = 'orca::/remote/Stingray@@deferred1'
     const out = mergeSnapshotAndSessions(
       null,
@@ -208,6 +212,7 @@ describe('mergeSnapshotAndSessions', () => {
 
     const row = out[0].worktrees[0].sessions[0]
     expect(row).toMatchObject({ sessionId, bound: true, tabId: 'tab-ssh' })
+    expect(requiresKillConfirmation(row)).toBe(true)
   })
 
   it('treats a snapshot row the daemon never listed as unknown ownership, not absent', () => {
@@ -225,6 +230,7 @@ describe('mergeSnapshotAndSessions', () => {
     const out = mergeSnapshotAndSessions(makeSnapshot([wt]), [], baseCtx())
 
     expect(out[0].worktrees[0].sessions[0]).toMatchObject({ agentOwnership: 'unknown' })
+    expect(requiresKillConfirmation(out[0].worktrees[0].sessions[0])).toBe(true)
   })
 
   it('@@ parse: an SSH-style session id resolves to its worktree group', () => {
