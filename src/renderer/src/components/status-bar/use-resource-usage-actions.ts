@@ -12,7 +12,6 @@ import type { DaemonSession, UnifiedSessionRow } from './resource-usage-merge-ty
 import type { ResourceSessionBindingInputs } from './resource-session-bindings'
 import { selectUnboundDaemonSessions } from './resource-session-bindings'
 import { navigateResourceSessionToTab } from './resource-session-navigation'
-import { requiresKillConfirmation } from './resource-session-kill-confirmation'
 import { resolveResourceManagerWorktreeTarget } from './resource-manager-worktree-target'
 
 export function useResourceUsageActions({
@@ -146,22 +145,32 @@ export function useResourceUsageActions({
       if (session.readOnly) {
         return
       }
-      if (!requiresKillConfirmation(session)) {
-        removeSession(session.sessionId)
-        // Why: await the kill before refreshing, else the refresh re-reads the daemon list before the kill lands and re-adds the row.
-        void (async () => {
-          try {
-            await window.api.pty.kill(session.sessionId)
-          } catch {
-            /* already dead */
-          }
-          await refreshSessions()
-        })()
-        return
+      removeSession(session.sessionId)
+      // Keep keyboard focus in the list after the killed row unmounts.
+      cancelPopoverBodyFocusFrame()
+      if (popoverBodyRef.current) {
+        popoverBodyFocusFrameRef.current = requestAnimationFrame(() => {
+          popoverBodyFocusFrameRef.current = null
+          popoverBodyRef.current?.focus()
+        })
       }
-      setKillConfirm(session)
+      // Await the kill so refresh cannot re-add a session that is still shutting down.
+      void (async () => {
+        try {
+          await window.api.pty.kill(session.sessionId)
+        } catch {
+          /* already dead */
+        }
+        await refreshSessions()
+      })()
     },
-    [refreshSessions, removeSession, setKillConfirm]
+    [
+      cancelPopoverBodyFocusFrame,
+      popoverBodyFocusFrameRef,
+      popoverBodyRef,
+      refreshSessions,
+      removeSession
+    ]
   )
 
   const handleKillOrphans = useCallback(async () => {

@@ -19,7 +19,7 @@ export type UnifiedSessionRow = {
   pid: number
   label: string
   bound: boolean
-  /** Ownership as the provider could establish it; anything but `absent` means confirm first. */
+  /** Ownership as the provider could establish it. */
   agentOwnership: AgentOwnershipEvidence
   tabId: string | null
   cpu: Metric
