@@ -5,7 +5,8 @@ export type GitChangeCount = { count: number; partial: boolean }
 
 export function countChangedFiles(status: GitStatusResult): GitChangeCount {
   return {
-    count: new Set(status.entries.map((entry) => entry.path)).size,
+    // VS Code sums SCM groups: a partially staged path contributes to both groups.
+    count: status.entries.length,
     partial: status.didHitLimit === true
   }
 }
@@ -23,11 +24,9 @@ export function formatGitChangeCount(value: GitChangeCount | null): string | nul
   if (!value) {
     return null
   }
-  if (value.count > 99) {
-    return '99+'
-  }
-  if (value.partial) {
-    return '…'
+  if (value.count > 999) {
+    const thousands = Math.floor(value.count / 1000)
+    return `${thousands}K${value.count % 1000 === 0 ? '' : '+'}`
   }
   return value.count > 0 ? String(value.count) : null
 }
@@ -37,7 +36,7 @@ export function describeGitChangeCount(value: GitChangeCount | null): string {
     return ''
   }
   if (value.partial) {
-    return `at least ${value.count} changed files, count incomplete`
+    return `minstens ${value.count} wijzigingen, telling onvolledig`
   }
-  return `${value.count} changed ${value.count === 1 ? 'file' : 'files'}`
+  return `${value.count} ${value.count === 1 ? 'wijziging' : 'wijzigingen'}`
 }

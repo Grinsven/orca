@@ -92,6 +92,7 @@ test('quiet sidebar tabs, live file count and keyboard diff actions', async ({
     'export const hello = "partially staged"\n'
   )
   await row.waitFor({ timeout: 20_000 })
+  await badge.filter({ hasText: /^2$/ }).waitFor({ timeout: 20_000 })
   const partiallyStagedCount = await badge.textContent()
   await staged.hover()
   await staged.getByRole('button', { name: 'Unstage', exact: true }).click()
@@ -111,7 +112,7 @@ test('quiet sidebar tabs, live file count and keyboard diff actions', async ({
       )
     )
     previousCount = count
-    const label = count > 99 ? '99+' : String(count)
+    const label = String(count)
     await badge
       .filter({ hasText: new RegExp(`^${label.replace('+', '\\+')}$`) })
       .waitFor({ timeout: 20_000 })
@@ -121,18 +122,15 @@ test('quiet sidebar tabs, live file count and keyboard diff actions', async ({
         const badge = element.querySelector('[data-sidebar-change-count]')!
         const badgeBox = badge.getBoundingClientRect()
         const button = element.getBoundingClientRect()
-        const overlap =
-          Math.max(0, Math.min(icon.right, badgeBox.right) - Math.max(icon.left, badgeBox.left)) *
-          Math.max(0, Math.min(icon.bottom, badgeBox.bottom) - Math.max(icon.top, badgeBox.top))
         return {
           count: badge.textContent,
-          iconClear: overlap / (icon.width * icon.height) <= 0.25,
+          iconClear: badgeBox.top >= icon.top + icon.height / 2 - 0.5,
           insideButton: badgeBox.right <= button.right + 1 && badgeBox.bottom <= button.bottom + 1,
           description: element.getAttribute('aria-description')
         }
       })
     )
-    await screenshot(count > 99 ? 'sidebar-dark-count-cap.png' : `sidebar-dark-count-${count}.png`)
+    await screenshot(`sidebar-dark-count-${count}.png`)
   }
   await cdp.detach()
   expect({
@@ -142,7 +140,7 @@ test('quiet sidebar tabs, live file count and keyboard diff actions', async ({
     stagedCount,
     partiallyStagedCount,
     badgeStates,
-    cappedCount: await badge.textContent()
+    lastCount: await badge.textContent()
   }).toEqual({
     zoom: 0.5,
     actionsVisible: '1',
@@ -153,13 +151,13 @@ test('quiet sidebar tabs, live file count and keyboard diff actions', async ({
       current: 'page'
     },
     stagedCount: '1',
-    partiallyStagedCount: '1',
+    partiallyStagedCount: '2',
     badgeStates: [
-      { count: '1', iconClear: true, insideButton: true, description: '1 changed file' },
-      { count: '9', iconClear: true, insideButton: true, description: '9 changed files' },
-      { count: '42', iconClear: true, insideButton: true, description: '42 changed files' },
-      { count: '99+', iconClear: true, insideButton: true, description: '100 changed files' }
+      { count: '1', iconClear: true, insideButton: true, description: '1 wijziging' },
+      { count: '9', iconClear: true, insideButton: true, description: '9 wijzigingen' },
+      { count: '42', iconClear: true, insideButton: true, description: '42 wijzigingen' },
+      { count: '100', iconClear: true, insideButton: true, description: '100 wijzigingen' }
     ],
-    cappedCount: '99+'
+    lastCount: '100'
   })
 })

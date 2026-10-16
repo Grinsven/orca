@@ -48,20 +48,29 @@ html[data-jose-ui] [data-source-control-path]:focus-visible {
 }
 
 [data-sidebar-change-count] {
-  height: 0.75rem;
-  min-width: 0.75rem;
-  padding: 0 0.125rem;
-  font-size: var(--text-3xs);
-  line-height: 1;
-  font-variant-numeric: tabular-nums;
-  border-color: var(--border);
+  /* VS Code activityaction.css uses content-box dimensions for its number badge. */
+  box-sizing: content-box;
+  display: inline-block;
+  height: 16px;
+  min-width: 8px;
+  padding: 0 4px;
+  border-radius: 20px;
+  font-size: 9px;
+  font-weight: 600;
+  line-height: 16px;
+  text-align: center;
+  white-space: nowrap;
+  /* The fork's sidebar primary pair also supplies the activityBarBadge theme colors. */
+  background-color: var(--vscode-activityBarBadge-background, var(--sidebar-primary));
+  color: var(--vscode-activityBarBadge-foreground, var(--sidebar-primary-foreground));
   pointer-events: none;
 }
 
 [data-sidebar-activity] > [data-sidebar-change-count] {
   position: absolute;
-  right: 0;
-  bottom: 0;
+  z-index: 2;
+  top: 50%;
+  right: calc(50% - 16px);
 }
 
 [data-source-control-path][data-current='true'] > [data-source-control-row-actions],
