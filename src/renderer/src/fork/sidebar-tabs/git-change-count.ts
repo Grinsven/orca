@@ -36,7 +36,7 @@ export function describeGitChangeCount(value: GitChangeCount | null): string {
     return ''
   }
   if (value.partial) {
-    return `minstens ${value.count} wijzigingen, telling onvolledig`
+    return `at least ${value.count} changed files, count incomplete`
   }
-  return `${value.count} ${value.count === 1 ? 'wijziging' : 'wijzigingen'}`
+  return `${value.count} changed ${value.count === 1 ? 'file' : 'files'}`
 }

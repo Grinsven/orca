@@ -153,10 +153,10 @@ test('quiet sidebar tabs, live file count and keyboard diff actions', async ({
     stagedCount: '1',
     partiallyStagedCount: '2',
     badgeStates: [
-      { count: '1', iconClear: true, insideButton: true, description: '1 wijziging' },
-      { count: '9', iconClear: true, insideButton: true, description: '9 wijzigingen' },
-      { count: '42', iconClear: true, insideButton: true, description: '42 wijzigingen' },
-      { count: '100', iconClear: true, insideButton: true, description: '100 wijzigingen' }
+      { count: '1', iconClear: true, insideButton: true, description: '1 changed file' },
+      { count: '9', iconClear: true, insideButton: true, description: '9 changed files' },
+      { count: '42', iconClear: true, insideButton: true, description: '42 changed files' },
+      { count: '100', iconClear: true, insideButton: true, description: '100 changed files' }
     ],
     lastCount: '100'
   })

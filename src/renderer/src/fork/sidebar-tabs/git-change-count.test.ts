@@ -8,13 +8,18 @@ import {
 } from './git-change-count'
 
 describe('sidebar pending change count', () => {
-  it('describes exact and partial change counts in Dutch', () => {
+  it('describes exact and partial change counts in English', () => {
     expect([
       describeGitChangeCount(null),
       describeGitChangeCount({ count: 1, partial: false }),
       describeGitChangeCount({ count: 42, partial: false }),
       describeGitChangeCount({ count: 12, partial: true })
-    ]).toEqual(['', '1 wijziging', '42 wijzigingen', 'minstens 12 wijzigingen, telling onvolledig'])
+    ]).toEqual([
+      '',
+      '1 changed file',
+      '42 changed files',
+      'at least 12 changed files, count incomplete'
+    ])
   })
   it('counts both sides of a partially staged path alongside untracked, renamed and conflicted changes', () => {
     expect(

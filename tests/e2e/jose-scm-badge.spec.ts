@@ -135,7 +135,7 @@ test('SCM badge matches VS Code for mixed Git changes and Jose display settings'
     observations: ['top', 'side'].map((layout) => ({
       layout,
       count: '6',
-      description: '6 wijzigingen',
+      description: '6 changed files',
       height: 16,
       fontSize: '9px',
       fontWeight: '600',
