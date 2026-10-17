@@ -148,6 +148,21 @@ describe('WindowOwnershipRegistry', () => {
     })
   })
 
+  it('lists only live windows as owners and marks the host window as main', () => {
+    const registry = new WindowOwnershipRegistry()
+    registry.subscribe(W1, vi.fn())
+    const unsubscribe2 = registry.subscribe(W2, vi.fn())
+    registry.claim(W1, local('wt-a'))
+    registry.claim(W2, { worktreeId: 'wt-b', executionHostId: 'ssh:box' })
+
+    expect(registry.liveOwners()).toEqual([
+      { ...local('wt-a'), window: 'main' },
+      { worktreeId: 'wt-b', executionHostId: 'ssh:box', window: 'other' }
+    ])
+    unsubscribe2()
+    expect(registry.liveOwners()).toEqual([{ ...local('wt-a'), window: 'main' }])
+  })
+
   it('reads a bare id from an older window as one of the host own checkouts', () => {
     expect(toWorktreeRef('repo::a')).toEqual(local('repo::a'))
     expect(toWorktreeRef('repo::a', 'ssh:box')).toEqual({

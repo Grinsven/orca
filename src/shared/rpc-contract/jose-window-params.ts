@@ -78,6 +78,10 @@ export type JoseWindowClaimResult = { claimed: boolean }
 export type JoseWindowRevealResult = { revealed: boolean }
 /** `joseWindow.openWindow` (no params): the host's own New Window, asked for by a second window. */
 export type JoseWindowOpenWindowResult = { outcome: 'spawned' | 'recorded' | 'skipped-e2e' }
+/** `joseWindow.owners` (no params): each live window's visible workspaces; `main` is the host's own. */
+export type JoseWindowOwnersResult = {
+  owners: (JoseWindowWorktreeRef & { window: 'main' | 'other' })[]
+}
 
 /** Stream frames of `joseWindow.subscribe`, projected per window. `ownedHere` is the caller's own
  *  claim as the host holds it, so a window re-claims after the host dropped it on a reconnect.

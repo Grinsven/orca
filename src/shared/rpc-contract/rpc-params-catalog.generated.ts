@@ -1020,6 +1020,7 @@ export const RPC_PARAMS_BY_METHOD = {
   'joseWindow.claim': JoseWindowClaimParams,
   'joseWindow.claimSet': JoseWindowClaimSetParams,
   'joseWindow.openWindow': null,
+  'joseWindow.owners': null,
   'joseWindow.reveal': JoseWindowRevealParams,
   'joseWindow.splitPreference.set': JoseWindowSplitPreference,
   'joseWindow.splitPreference.subscribe': null,

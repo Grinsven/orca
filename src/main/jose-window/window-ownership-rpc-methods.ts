@@ -7,6 +7,7 @@ import {
   JoseWindowRevealParams,
   type JoseWindowClaimResult,
   type JoseWindowOpenWindowResult,
+  type JoseWindowOwnersResult,
   type JoseWindowRevealResult
 } from '../../shared/rpc-contract/jose-window-params'
 import { isSecondWindowSlotProfile } from '../fork/second-window/second-window-slots'
@@ -98,6 +99,15 @@ export const JOSE_WINDOW_METHODS = [
         toWorktreeRef(params.worktreeId, params.executionHostId),
         params.intent
       )
+  }),
+  defineMethod({
+    name: 'joseWindow.owners',
+    permission: 'workspace',
+    params: null,
+    // Why no window key: the CLI owns no window but must not sleep a workspace another window shows.
+    handler: async (): Promise<JoseWindowOwnersResult> => ({
+      owners: windowOwnershipRegistry.liveOwners()
+    })
   }),
   defineMethod({
     name: 'joseWindow.openWindow',

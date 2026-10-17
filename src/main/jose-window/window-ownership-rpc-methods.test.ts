@@ -121,6 +121,23 @@ describe('joseWindow RPC methods', () => {
   it('gives the orca CLI no window', async () => {
     expect(await call('joseWindow.claim', { worktreeId: 'wt-a' })).toMatchObject({ ok: false })
   })
+
+  it('tells the orca CLI which window has each workspace open', async () => {
+    subscribe(HOST)
+    subscribe(WINDOW_2)
+    await call('joseWindow.claim', { worktreeId: 'wt-host' }, HOST)
+    await call('joseWindow.claim', { worktreeId: 'wt-two' }, WINDOW_2)
+
+    expect(await call('joseWindow.owners', {})).toMatchObject({
+      ok: true,
+      result: {
+        owners: expect.arrayContaining([
+          { worktreeId: 'wt-host', executionHostId: 'local', window: 'main' },
+          { worktreeId: 'wt-two', executionHostId: 'local', window: 'other' }
+        ])
+      }
+    })
+  })
 })
 
 describe('joseWindow.openWindow', () => {

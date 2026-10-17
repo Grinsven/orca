@@ -5,6 +5,7 @@ import {
   type JoseWindowClaimSetResult,
   type JoseWindowNavigationIntent,
   type JoseWindowOwnershipFrame,
+  type JoseWindowOwnersResult,
   type JoseWindowWorktreeRef
 } from '../../shared/rpc-contract/jose-window-params'
 import { composeWorktreeHostIdentity } from '../../shared/worktree/host-qualified-identity'
@@ -190,6 +191,18 @@ export class WindowOwnershipRegistry {
       }
     }
     return { revealed: true }
+  }
+
+  /** Read-only view for callers that own no window, such as the CLI. */
+  liveOwners(): JoseWindowOwnersResult['owners'] {
+    const owners: JoseWindowOwnersResult['owners'] = []
+    for (const [windowKey, refs] of this.activeByWindow) {
+      if (this.isLive(windowKey)) {
+        const role: 'main' | 'other' = windowKey === 'desktop' ? 'main' : 'other'
+        owners.push(...refs.map((ref) => ({ ...ref, window: role })))
+      }
+    }
+    return owners
   }
 
   liveOwnerOf(ref: JoseWindowWorktreeRef): string | null {
