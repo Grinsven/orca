@@ -148,6 +148,27 @@ export const CORE_COMMAND_SPECS: CommandSpec[] = [
     ]
   },
   {
+    path: ['worktree', 'sleep'],
+    summary: 'Put worktrees to sleep: stop their terminals and agents, keep them resumable',
+    usage:
+      'orca worktree sleep (--worktree <selector> [--worktree <selector> ...] | --workspace-status <status-id>) [--dry-run] [--json]',
+    allowedFlags: [...GLOBAL_FLAGS, 'worktree', 'workspace-status', 'dry-run'],
+    repeatableFlags: ['worktree'],
+    notes: [
+      'Same as Sleep in the sidebar: terminals and agent processes stop, and the workspace resumes when it is opened again.',
+      '--workspace-status takes a board status id (defaults: todo, in-progress, in-review, completed) or its label; every workspace in that column is a candidate, except the one on screen.',
+      'Skipped with a reason: the workspace this command runs in, one already asleep, a folder workspace, one being removed, one open in another Orca window, and a selector that does not resolve.',
+      'The execution host that owns the workspace runs the sleep; the command waits until the host reports no live terminal or agent, and reports failed otherwise.',
+      '--dry-run prints what would sleep and changes nothing. A failed sleep exits non-zero; with --json the error data carries every row.'
+    ],
+    examples: [
+      'orca worktree sleep --worktree name:fix-login',
+      'orca worktree sleep --worktree id:<repoId>::<worktreePath> --worktree branch:feature/x --json',
+      'orca worktree sleep --workspace-status completed --dry-run',
+      'orca worktree sleep --workspace-status completed --json'
+    ]
+  },
+  {
     path: ['worktree', 'ps'],
     summary: 'Show a compact orchestration summary across worktrees',
     usage: 'orca worktree ps [--limit <n>] [--json]',

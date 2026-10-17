@@ -28,6 +28,7 @@ import type { TuiAgent } from '../../shared/tui-agent'
 import { parseCliAgent, readCliAgentLaunch } from '../agent-launch-request'
 import { createWorktreeWithAgent } from './worktree-create-agent-launch'
 import { printLineageSummary } from './worktree-lineage-summary'
+import { worktreeSleepHandler } from './worktree-sleep'
 import { projectWorktreePsTerminalVerdict } from '../worktree-ps-terminal-verdict'
 import {
   assertWorkspaceTargetFlagsCompatible,
@@ -97,6 +98,7 @@ function getOptionalSetupDecision(
 }
 
 export const WORKTREE_HANDLERS: Record<string, CommandHandler> = {
+  'worktree sleep': worktreeSleepHandler,
   'worktree ps': async ({ flags, client, json }) => {
     const result = await client.call<WithAnnotatedHostScope<RuntimeWorktreePsResult>>(
       'worktree.ps',

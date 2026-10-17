@@ -96,6 +96,8 @@ ORCA worktree create --repo id:<repoId> --name review-task --pr 123 --json
 ORCA worktree set --worktree active --gitlab-issue '#42' --gitlab-mr '!77' --json
 ORCA worktree set --worktree active --pr null --gitlab-mr null --json
 ORCA worktree rm --worktree id:<repoId>::<worktreePath> --force --json
+ORCA worktree sleep --worktree id:<repoId>::<worktreePath> --json
+ORCA worktree sleep --workspace-status completed --dry-run --json
 ```
 
 Use `repo set --external-worktree-visibility show` to show a repo's non-Orca worktrees.
@@ -212,7 +214,7 @@ Terminal rules:
 - `--terminal` is optional for most commands; omitted means the active terminal in the current worktree.
 - Use `terminal close --terminal <handle>` to close one terminal. Use `terminal close --worktree <selector> --all` to stop every terminal process in exactly that workspace and durably remove its terminal tabs, layouts, and agent-resume records.
 - A bulk close fails when the execution host cannot confirm every PTY stopped. Treat that as `unverifiable`; do not report the processes as exited or retry against another host.
-- Use workspace Sleep, not close, when the terminals and agent sessions should resume later. `terminal stop` is legacy compatibility plumbing and should not be used in new agent workflows.
+- Use workspace Sleep (`ORCA worktree sleep --worktree <selector>`), not close, when the terminals and agent sessions should resume later. It never sleeps the workspace it runs in, and skips one already asleep, open in another window, or being removed, with the reason. `terminal stop` is legacy compatibility plumbing and should not be used in new agent workflows.
 - `terminal list --json` omits `visualLayouts` to keep the common agent payload bounded. Add `--include-visual-layouts` only when tab and pane topology is required.
 - Use `terminal read` before `terminal send` unless the next input is obvious.
 - Use `terminal send` only for direct terminal input or one-off prompts where no task state, inbox, or reply tracking is needed.
