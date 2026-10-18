@@ -101,6 +101,10 @@ export function useAppChromeLayout() {
   const titlebarLeftControlsRef = useRef<HTMLDivElement | null>(null)
   const [collapsedSidebarHeaderWidth, setCollapsedSidebarHeaderWidth] = useState(0)
   useLayoutEffect(() => {
+    // Only floating chrome consumes this inherited width; other writes restyle the whole app.
+    if (!leftTitlebarChromeLayout.isFloating) {
+      return
+    }
     const controls = titlebarLeftControlsRef.current
     if (!controls) {
       return
