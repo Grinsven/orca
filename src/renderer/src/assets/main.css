@@ -920,6 +920,8 @@ body:has(> [data-slot='dialog-overlay'], > [data-slot='sheet-overlay']) {
   height: 100dvh;
   width: 100vw;
   overflow: hidden;
+  /* The fixed viewport needs no body scrollbar compensation; block its inherited restyles. */
+  --removed-body-scroll-bar-size: initial;
 }
 
 .app-layout {
