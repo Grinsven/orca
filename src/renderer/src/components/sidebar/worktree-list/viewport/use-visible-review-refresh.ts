@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 import type React from 'react'
 import type { VirtualItem } from '@tanstack/react-virtual'
 import { useAppStore } from '@/store'
@@ -7,6 +7,9 @@ import type { WorktreeGroupBy } from '../grouping/row-types'
 import type { RenderRow } from '../listing/render-row'
 import type { WorktreeItemRow } from '../listing/renderable-rows'
 import { getMountedWorktreeOptions } from '../rows/option-dom'
+
+// Review visibility can trail scrolling briefly; hidden cards clear immediately.
+const VISIBLE_REVIEW_PUBLICATION_INTERVAL_MS = 100
 
 export function installWorktreeVisibleRefreshVisibilityListener(onChange: () => void): () => void {
   document.addEventListener('visibilitychange', onChange)
@@ -75,6 +78,37 @@ export function useVisiblePrRefreshReporting(args: {
   scrollRef: React.RefObject<HTMLDivElement | null>
 }): void {
   const publish = useAppStore((s) => s.setVisibleReviewCardWorktreeIds)
+  const pendingIdsRef = useRef<string[] | null>(null)
+  const publicationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const cancelPendingPublication = useCallback(() => {
+    if (publicationTimerRef.current !== null) {
+      clearTimeout(publicationTimerRef.current)
+      publicationTimerRef.current = null
+    }
+    pendingIdsRef.current = null
+  }, [])
+  const queuePublication = useCallback(
+    (ids: string[]) => {
+      if (ids.length === 0) {
+        cancelPendingPublication()
+        publish([])
+        return
+      }
+      pendingIdsRef.current = [...ids]
+      if (publicationTimerRef.current !== null) {
+        return
+      }
+      publicationTimerRef.current = setTimeout(() => {
+        publicationTimerRef.current = null
+        const latestIds = pendingIdsRef.current
+        pendingIdsRef.current = null
+        if (latestIds !== null) {
+          publish(latestIds)
+        }
+      }, VISIBLE_REVIEW_PUBLICATION_INTERVAL_MS)
+    },
+    [cancelPendingPublication, publish]
+  )
   const cardProps = useAppStore((s) => s.worktreeCardProperties)
   const enabled =
     args.groupBy === 'pr-status' ||
@@ -86,7 +120,7 @@ export function useVisiblePrRefreshReporting(args: {
     const update = (): void => {
       const scroll = args.scrollRef.current
       const viewport = scroll?.getBoundingClientRect()
-      publish(
+      queuePublication(
         scroll && document.visibilityState === 'visible'
           ? visibleReviewCardIds({
               enabled,
@@ -117,7 +151,13 @@ export function useVisiblePrRefreshReporting(args: {
       stopVisibility()
       stopScroll()
     }
-  }, [enabled, args.renderRows, args.virtualItems, args.scrollRef, publish])
+  }, [enabled, args.renderRows, args.virtualItems, args.scrollRef, queuePublication])
 
-  useEffect(() => () => publish([]), [publish])
+  useEffect(
+    () => () => {
+      cancelPendingPublication()
+      publish([])
+    },
+    [cancelPendingPublication, publish]
+  )
 }
