@@ -22,6 +22,7 @@ import { getFolderWorkspaceCardPrDisplay } from '../../folder-workspace-card-pr-
 import { FolderPathStatusIndicator } from './FolderPathStatusIndicator'
 import type { FolderWorkspaceItemRow } from '../listing/renderable-rows'
 import { getWorktreeOptionId } from './option-dom'
+import { getNestedSectionCardAlignment } from './nested-section-card-alignment'
 
 export type FolderWorkspaceRowContext = {
   groupBy: WorktreeGroupBy
@@ -95,6 +96,15 @@ export function renderFolderWorkspaceVirtualRow(args: {
     groupDepth: row.groupDepth,
     lineageDepth: row.depth
   })
+  const sectionAlignment = getNestedSectionCardAlignment({
+    groupBy: ctx.groupBy,
+    sectionKey: row.sectionKey ?? '',
+    groupDepth: row.groupDepth,
+    lineageDepth: row.depth,
+    nested: false,
+    newCardStyle: ctx.newCardStyle,
+    surfaceInset
+  })
   return (
     <div
       key={vItem.key}
@@ -105,6 +115,7 @@ export function renderFolderWorkspaceVirtualRow(args: {
       data-worktree-id={folderWorktree.id}
       data-worktree-host-identity={folderWorktreeIdentity}
       data-worktree-row-key={folderWorktreeIdentity}
+      data-worktree-section-key={row.sectionKey}
       data-worktree-virtual-row
       data-worktree-virtual-row-key={String(vItem.key)}
       data-worktree-virtual-row-start={vItem.start}
@@ -117,7 +128,10 @@ export function renderFolderWorkspaceVirtualRow(args: {
     >
       <div
         className="relative"
-        style={surfaceInset > 0 ? { paddingLeft: surfaceInset } : undefined}
+        style={{
+          paddingLeft:
+            sectionAlignment?.surfaceInset ?? (surfaceInset > 0 ? surfaceInset : undefined)
+        }}
       >
         <WorktreeCard
           worktree={folderWorktree}
@@ -125,6 +139,7 @@ export function renderFolderWorkspaceVirtualRow(args: {
           isActive={isActiveWorktree}
           isCurrentWorktree={ctx.currentWorktreeId === folderWorktree.id}
           contentIndent={cardContentIndent}
+          sectionContentPaddingLeft={sectionAlignment?.contentPaddingLeft}
           flushSurface
           nativeDragEnabled={false}
           onImmediateActivate={activationDisabled ? undefined : ctx.onImmediateActivate}

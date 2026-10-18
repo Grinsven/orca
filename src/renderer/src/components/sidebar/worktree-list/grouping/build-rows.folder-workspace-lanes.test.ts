@@ -99,6 +99,12 @@ describe('folder workspaces render under every Group by mode', () => {
 })
 
 describe('a folder workspace can be the only member of a lane', () => {
+  it('retains the section identity for folder card alignment', () => {
+    expect(folderRows(buildSidebarRows({ groupBy: 'workspace-status' }))[0]?.sectionKey).toBe(
+      'workspace-status:in-progress'
+    )
+  })
+
   it('creates its status lane with no worktrees present', () => {
     const rows = buildSidebarRows({ groupBy: 'workspace-status', worktrees: [] })
     expect(folderRows(rows)).toHaveLength(1)

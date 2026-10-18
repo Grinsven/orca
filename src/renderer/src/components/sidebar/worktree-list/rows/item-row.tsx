@@ -23,7 +23,7 @@ import type { LineageToggleHandler } from '../../worktree-lineage-toggle-handler
 import { stopNestedWorktreeCardBubble } from './header-event-guards'
 import type { WorktreeItemRow } from '../listing/renderable-rows'
 import { getWorktreeOptionId } from './option-dom'
-import { getNestedAlignContentShift } from './two-level-nested-alignment'
+import { getNestedSectionCardAlignment } from './nested-section-card-alignment'
 import type { WorktreeRowDragState } from '../drag/row-state'
 
 export type WorktreeItemRowContext = {
@@ -133,6 +133,15 @@ export function renderWorktreeItemRow(
 ): React.JSX.Element {
   const { surfaceInset, cardContentIndent, lineageChildrenInlineOffset } =
     getWorktreeItemRowGeometry(ctx, itemRow, nested)
+  const sectionAlignment = getNestedSectionCardAlignment({
+    groupBy: ctx.groupBy,
+    sectionKey: itemRow.sectionKey,
+    groupDepth: itemRow.groupDepth,
+    lineageDepth: itemRow.depth,
+    nested,
+    newCardStyle: ctx.settings?.experimentalNewWorktreeCardStyle === true,
+    surfaceInset
+  })
   const lineageChildrenStyle = lineageChildren
     ? getLineageChildrenInlineStyle(lineageChildrenInlineOffset ?? LINEAGE_CHILDREN_INLINE_OFFSET)
     : undefined
@@ -183,7 +192,8 @@ export function renderWorktreeItemRow(
         ctx.onRowPointerDown(event, itemRow.worktree, itemRow.rowKey)
       }}
       style={{
-        paddingLeft: surfaceInset > 0 ? `${surfaceInset}px` : undefined
+        paddingLeft:
+          sectionAlignment?.surfaceInset ?? (surfaceInset > 0 ? `${surfaceInset}px` : undefined)
       }}
     >
       <WorktreeCard
@@ -205,8 +215,7 @@ export function renderWorktreeItemRow(
         nativeDragEnabled={false}
         isLineageDropTarget={Boolean(isLineageDropTarget)}
         contentIndent={cardContentIndent}
-        // Why nested 0: lineage children sit inside the parent's shifted content and move with it.
-        contentShift={nested ? 0 : getNestedAlignContentShift(itemRow.sectionKey)}
+        sectionContentPaddingLeft={sectionAlignment?.contentPaddingLeft}
         flushSurface
         activationRowKey={itemRow.rowKey}
         onImmediateActivate={ctx.onImmediateActivate}

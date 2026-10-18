@@ -105,6 +105,7 @@ export type PendingCreationRow = {
 export type FolderWorkspaceRow = {
   type: 'folder-workspace'
   key: string
+  sectionKey?: string
   folderWorkspace: FolderWorkspace
   projectGroup: ProjectGroup
   depth: number

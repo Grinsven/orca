@@ -18,10 +18,13 @@ import type { GroupHeaderRow, WorktreeGroupBy } from '../grouping/row-types'
 import { PINNED_GROUP_KEY } from '../grouping/group-keys'
 import { getWorkspaceStatusFromGroupKey } from '../../workspace-status'
 import { getVirtualRowTransform } from '../viewport/virtual-rows'
-import { getSectionHeaderPaddingLeft } from './two-level-nested-alignment'
 import { resolveProjectGroupHeaderColor } from '../../project-header-color'
 import { getRepoHeaderCreateState } from '../../repo-header-create-state'
 import { ProjectHeaderActions } from '../../ProjectHeaderActions'
+import {
+  getProjectGroupHeaderPaddingLeft,
+  WORKTREE_SECTION_HEADER_PADDING_LEFT
+} from './indentation'
 import { FolderPathStatusIndicator } from './FolderPathStatusIndicator'
 import { RepoScanUnavailableIndicator } from './RepoScanUnavailableIndicator'
 import {
@@ -249,10 +252,10 @@ export function renderWorktreeSectionHeaderRow(args: {
         )}
         style={{
           // Why: non-project headers like "All" are flat-list labels; don't reserve project hierarchy indent.
-          paddingLeft: getSectionHeaderPaddingLeft(
-            row.projectGroupDepth,
-            isRepoHeader || isProjectGroupHeader
-          )
+          paddingLeft:
+            isRepoHeader || isProjectGroupHeader || (row.projectGroupDepth ?? 0) > 0
+              ? getProjectGroupHeaderPaddingLeft(row.projectGroupDepth ?? 0)
+              : WORKTREE_SECTION_HEADER_PADDING_LEFT
         }}
         onDragOver={
           isPinnedHeader

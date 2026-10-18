@@ -239,7 +239,9 @@ export function appendOrderedGroups(
         cyclicLineageIds
       })
       for (const pair of folderPairs) {
-        result.push(buildFolderWorkspaceRow(pair, projectGroupDepth, ctx.projectGroupingActive))
+        result.push(
+          buildFolderWorkspaceRow(pair, projectGroupDepth, ctx.projectGroupingActive, key)
+        )
       }
     }
   }

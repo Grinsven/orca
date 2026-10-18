@@ -252,11 +252,13 @@ export function appendWorktreeRows(
 export function buildFolderWorkspaceRow(
   pair: RenderableFolderWorkspace,
   groupDepth: number,
-  projectGrouped = false
+  projectGrouped = false,
+  sectionKey?: string
 ): FolderWorkspaceRow {
   return {
     type: 'folder-workspace',
     key: `folder-workspace:${pair.folderWorkspace.id}`,
+    ...(sectionKey ? { sectionKey } : {}),
     folderWorkspace: pair.folderWorkspace,
     projectGroup: pair.projectGroup,
     depth: 0,
