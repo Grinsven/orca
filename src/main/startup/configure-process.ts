@@ -331,6 +331,14 @@ export function enableMainProcessGpuFeatures(): void {
   // 128 raises the ceiling for real layouts while staying bounded so context leaks still surface.
   app.commandLine.appendSwitch('max-active-webgl-contexts', '128')
 
+  // Why: tools that read other apps' windows (window managers, Computer Use, screen capture) set
+  // AXEnhancedUserInterface on the focused app; Chromium then builds a full accessibility tree and
+  // answers tree walks on the UI thread, which stalls keystrokes in every Electron app (see
+  // screenpipe#3789). Jose runs no screen reader. E2E keeps the tree for CDP accessibility snapshots.
+  if (!getMainE2EConfig().userDataDir) {
+    app.commandLine.appendSwitch('disable-renderer-accessibility')
+  }
+
   const waylandSession = isLinuxWaylandSession({
     platform: process.platform,
     env: process.env,
