@@ -42,19 +42,29 @@ describe('pr-comment-presentation', () => {
   })
 
   it('restores block flow for span-rendered markdown paragraphs and headings', () => {
-    for (const variant of ['cards', 'focus', 'flat'] as const) {
+    const observations = (['cards', 'focus', 'flat'] as const).map((variant) => {
       const markdown = getPRCommentPresentationClasses(variant).commentBodyMarkdown
-      // The compact renderer emits no <p>, so a [&_p] rule would be dead code.
-      expect(markdown).not.toContain('[&_p]:')
-      expect(markdown).toContain('[&_.comment-md-p]:block')
-      expect(markdown).toContain('[&_.comment-md-p+.comment-md-p]:mt-2')
-      // Rhythm must key off every top-level block: a <details>/<div> between two
-      // paragraphs breaks an adjacent-sibling chain and zeroes the tail spacing.
-      expect(markdown).toContain('[&>*+*]:mt-2')
-      expect(markdown).toContain('[&_details]:my-2')
-      expect(markdown).toContain('[&_.comment-md-h]:block')
-      expect(markdown).toContain('[&_.comment-md-h]:mt-4')
-    }
+      return {
+        usesParagraphTags: markdown.includes('[&_p]:'),
+        blockParagraphs: markdown.includes('[&_.comment-md-p]:block'),
+        paragraphSpacing: markdown.includes('[&_.comment-md-p+.comment-md-p]:mt-2'),
+        blockSpacing: markdown.includes('[&>:where(:not(:first-child))]:mt-2'),
+        detailsSpacing: markdown.includes('[&_details]:my-2'),
+        blockHeadings: markdown.includes('[&_.comment-md-h]:block'),
+        headingSpacing: markdown.includes('[&_.comment-md-h]:mt-4')
+      }
+    })
+    expect(observations).toEqual(
+      Array.from({ length: 3 }, () => ({
+        usesParagraphTags: false,
+        blockParagraphs: true,
+        paragraphSpacing: true,
+        blockSpacing: true,
+        detailsSpacing: true,
+        blockHeadings: true,
+        headingSpacing: true
+      }))
+    )
   })
 
   it('lifts code, pre, and table off the 10px compact defaults', () => {

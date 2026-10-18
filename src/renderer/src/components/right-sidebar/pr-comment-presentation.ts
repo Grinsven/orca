@@ -76,9 +76,8 @@ export function getPRCommentGroupSurfaceClasses(
 // renderer's other consumers retain their dense layout.
 const MARKDOWN_BASE = cn(
   'break-words',
-  // Why: rhythm keys off every top-level block, not adjacent paragraphs — a <details> or
-  // raw <div> between them otherwise breaks the chain and collapses the tail to zero gap.
-  '[&_.comment-md-p]:block [&_.comment-md-p+.comment-md-p]:mt-2 [&>*+*]:mt-2 [&_details]:my-2',
+  // A universal sibling selector makes body-level focus guards invalidate every descendant.
+  '[&_.comment-md-p]:block [&_.comment-md-p+.comment-md-p]:mt-2 [&>:where(:not(:first-child))]:mt-2 [&_details]:my-2',
   '[&_.comment-md-h]:mt-4 [&_.comment-md-h]:mb-1 [&_.comment-md-h]:block [&_.comment-md-h]:leading-tight [&_.comment-md-h:first-child]:mt-0',
   // Why: the document variant's proven scale (18/16/15 over 13px body) — the sidebar was
   // the only surface rendering this markdown with no perceptible heading step.
