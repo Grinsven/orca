@@ -37,7 +37,6 @@ export function useTabGroupActivationCommands({
         return
       }
       focusGroup(worktreeId, groupId)
-      activateTab(item.id)
       const runtimeEnvironmentId = getRuntimeEnvironmentIdForWorktree(
         useAppStore.getState(),
         worktreeId
@@ -56,7 +55,6 @@ export function useTabGroupActivationCommands({
       focusTerminalTabSurface(terminalId, activeLeafId)
     },
     [
-      activateTab,
       focusGroup,
       groupId,
       groupTabs,
