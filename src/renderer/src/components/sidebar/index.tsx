@@ -2,6 +2,7 @@ import React, { useEffect, useMemo } from 'react'
 import { useAppStore } from '@/store'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { useSidebarResize } from '@/hooks/useSidebarResize'
+import { useSidebarDrawerPortal } from './use-sidebar-drawer-portal'
 import SidebarHeader from './SidebarHeader'
 import SidebarNav from './SidebarNav'
 import SetupScriptPromptCard from './SetupScriptPromptCard'
@@ -111,9 +112,7 @@ function Sidebar({
     cancelWorkspaceBoardDragPreview
   } = useWorkspaceBoardPanel()
 
-  const setLiveSidebarWidth = React.useCallback((width: number) => {
-    document.documentElement.style.setProperty('--workspace-sidebar-live-width', `${width}px`)
-  }, [])
+  const { portalContainer, setLiveSidebarWidth } = useSidebarDrawerPortal(sidebarWidth)
 
   const repoCount = repos.length
   const previousRepoCountRef = React.useRef(repoCount)
@@ -264,8 +263,9 @@ function Sidebar({
         {activeModal === 'confirm-orca-yaml-hooks' ? <OrcaYamlTrustDialog /> : null}
         {activeModal === 'forget-ssh-workspace' ? <ForgetSshWorkspaceDialog /> : null}
       </React.Suspense>
-      {sidebarOpen ? (
+      {sidebarOpen && portalContainer ? (
         <WorkspaceKanbanDrawer
+          portalContainer={portalContainer}
           leftSidebarStyle={leftSidebarStyle}
           open={workspaceBoardRenderedOpen}
           statusBarVisible={statusBarVisible}
@@ -275,9 +275,10 @@ function Sidebar({
           onMenuOpenChange={setWorkspaceBoardMenuOpen}
         />
       ) : null}
-      {showAgentDashboard ? (
+      {showAgentDashboard && portalContainer ? (
         <React.Suspense fallback={null}>
           <AgentDashboardSidebarHost
+            portalContainer={portalContainer}
             sidebarOpen={sidebarOpen}
             workspaceBoardOpen={workspaceBoardOpen}
             closeWorkspaceBoard={closeWorkspaceBoard}

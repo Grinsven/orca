@@ -6,6 +6,7 @@ import WorkspaceKanbanPinDropTarget from './WorkspaceKanbanPinDropTarget'
 import WorkspaceKanbanSheet from './WorkspaceKanbanSheet'
 
 type WorkspaceKanbanDrawerViewProps = {
+  portalContainer?: HTMLElement
   areaSelectionOverlayRef: React.RefObject<HTMLDivElement | null>
   boardRef: React.RefObject<HTMLDivElement | null>
   dragPreview: boolean
@@ -30,6 +31,7 @@ export default function WorkspaceKanbanDrawerView(
 ): React.JSX.Element {
   return (
     <WorkspaceKanbanSheet
+      portalContainer={props.portalContainer}
       boardRef={props.boardRef}
       dragPreview={props.dragPreview}
       leftSidebarStyle={props.leftSidebarStyle}

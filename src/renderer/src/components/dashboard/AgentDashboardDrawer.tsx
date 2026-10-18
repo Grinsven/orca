@@ -81,6 +81,7 @@ function AgentDashboardDrawerBody({
 }
 
 type AgentDashboardDrawerProps = {
+  portalContainer?: HTMLElement
   leftSidebarStyle?: React.CSSProperties
   statusBarVisible: boolean
 }
@@ -91,6 +92,7 @@ type AgentDashboardDrawerProps = {
  * expands from the sidebar edge and keeps the rest of the app interactive.
  */
 export function AgentDashboardDrawer({
+  portalContainer,
   leftSidebarStyle,
   statusBarVisible
 }: AgentDashboardDrawerProps): React.JSX.Element {
@@ -188,6 +190,7 @@ export function AgentDashboardDrawer({
   return (
     <Sheet open={open} onOpenChange={handleSheetOpenChange} modal={false}>
       <SheetContent
+        portalContainer={portalContainer}
         side="left"
         showCloseButton={false}
         aria-describedby={undefined}

@@ -4,6 +4,7 @@ import { isWorkspaceBoardKeepOpenTarget } from './use-workspace-kanban-outside-d
 import { STATUS_BAR_RESERVE_HEIGHT, WORKSPACE_TOP_CHROME_HEIGHT } from './workspace-chrome-metrics'
 
 type WorkspaceKanbanSheetProps = {
+  portalContainer?: HTMLElement
   boardRef: React.RefObject<HTMLDivElement | null>
   children: React.ReactNode
   dragPreview: boolean
@@ -17,6 +18,7 @@ type WorkspaceKanbanSheetProps = {
 }
 
 export default function WorkspaceKanbanSheet({
+  portalContainer,
   boardRef,
   children,
   dragPreview,
@@ -66,6 +68,7 @@ export default function WorkspaceKanbanSheet({
       modal={false}
     >
       <SheetContent
+        portalContainer={portalContainer}
         side="left"
         showCloseButton={false}
         className="workspace-kanban-sheet-content bg-worktree-sidebar p-0 sm:max-w-none"

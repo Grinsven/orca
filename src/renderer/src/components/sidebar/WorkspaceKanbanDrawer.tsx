@@ -23,6 +23,7 @@ import { useWorkspaceKanbanDrawerLingering } from './use-workspace-kanban-drawer
 import { buildWorktreeManualOrderCatalog } from './worktree-manual-order-catalog'
 
 type WorkspaceKanbanDrawerProps = {
+  portalContainer?: HTMLElement
   leftSidebarStyle?: React.CSSProperties
   open: boolean
   statusBarVisible: boolean
@@ -44,6 +45,7 @@ export default function WorkspaceKanbanDrawer(
 }
 
 function WorkspaceKanbanDrawerContent({
+  portalContainer,
   leftSidebarStyle,
   open,
   statusBarVisible,
@@ -235,6 +237,7 @@ function WorkspaceKanbanDrawerContent({
 
   return (
     <WorkspaceKanbanDrawerView
+      portalContainer={portalContainer}
       areaSelectionOverlayRef={areaSelectionOverlayRef}
       boardRef={boardRef}
       dragPreview={dragPreview}

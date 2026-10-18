@@ -1,7 +1,6 @@
 // @vitest-environment happy-dom
 
 import type { CSSProperties, ReactNode } from 'react'
-import { renderToStaticMarkup } from 'react-dom/server'
 import { tmpdir } from 'node:os'
 import { cleanup, render, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -121,9 +120,9 @@ function setSidebarState(settings: GlobalSettings, statusBarVisible = true): voi
 }
 
 function renderSidebar(): string {
-  return renderToStaticMarkup(
+  return render(
     <Sidebar worktreeScrollOffsetRef={{ current: 0 }} worktreeScrollAnchorRef={{ current: null }} />
-  )
+  ).container.innerHTML
 }
 
 function sidebarElement(): ReactNode {
@@ -168,10 +167,11 @@ describe('Sidebar', () => {
 
     const markup = renderSidebar()
 
-    expect(markup).toContain('--worktree-sidebar:#101820')
-    expect(markup).toContain('--worktree-sidebar-foreground:#f0f4f8')
-    expect(markup).toContain('data-testid="workspace-kanban-drawer"')
-    expect(markup.match(/--worktree-sidebar:#101820/g)).toHaveLength(2)
+    expect({
+      foreground: /--worktree-sidebar-foreground:\s*#f0f4f8/.test(markup),
+      drawer: markup.includes('data-testid="workspace-kanban-drawer"'),
+      backgroundCount: markup.match(/--worktree-sidebar:\s*#101820/g)?.length
+    }).toEqual({ foreground: true, drawer: true, backgroundCount: 2 })
   })
 
   it('passes status bar visibility into the workspace board drawer', () => {
@@ -179,8 +179,10 @@ describe('Sidebar', () => {
 
     const markup = renderSidebar()
 
-    expect(markup).toContain('data-testid="workspace-kanban-drawer"')
-    expect(markup).toContain('data-status-bar-visible="false"')
+    expect({
+      drawer: markup.includes('data-testid="workspace-kanban-drawer"'),
+      hiddenStatusBar: markup.includes('data-status-bar-visible="false"')
+    }).toEqual({ drawer: true, hiddenStatusBar: true })
   })
 
   it('does not start a full worktree scan while the startup session is hydrating', () => {

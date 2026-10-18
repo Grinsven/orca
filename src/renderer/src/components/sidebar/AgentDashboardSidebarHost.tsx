@@ -3,6 +3,7 @@ import { useAppStore } from '@/store'
 import { AgentDashboardDrawer } from '@/components/dashboard/AgentDashboardDrawer'
 
 type AgentDashboardSidebarHostProps = {
+  portalContainer?: HTMLElement
   sidebarOpen: boolean
   workspaceBoardOpen: boolean
   closeWorkspaceBoard: () => void
@@ -12,6 +13,7 @@ type AgentDashboardSidebarHostProps = {
 
 /** Opt-in dashboard coordination stays outside the normal sidebar path. */
 export default function AgentDashboardSidebarHost({
+  portalContainer,
   sidebarOpen,
   workspaceBoardOpen,
   closeWorkspaceBoard,
@@ -38,6 +40,10 @@ export default function AgentDashboardSidebarHost({
   }, [setDrawerOpen, workspaceBoardOpen])
 
   return sidebarOpen ? (
-    <AgentDashboardDrawer leftSidebarStyle={leftSidebarStyle} statusBarVisible={statusBarVisible} />
+    <AgentDashboardDrawer
+      portalContainer={portalContainer}
+      leftSidebarStyle={leftSidebarStyle}
+      statusBarVisible={statusBarVisible}
+    />
   ) : null
 }
