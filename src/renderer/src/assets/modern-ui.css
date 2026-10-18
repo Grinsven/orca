@@ -40,3 +40,9 @@ html[data-modern-ui='on']:not([data-modern-ui-uppercase='on']) [data-orca-sectio
   text-transform: none;
   letter-spacing: normal;
 }
+
+@media (prefers-reduced-motion: no-preference) {
+  html[data-modern-ui='on'] .agent-working-spinner {
+    animation-timing-function: linear;
+  }
+}
