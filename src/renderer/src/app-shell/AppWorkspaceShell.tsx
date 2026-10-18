@@ -93,6 +93,11 @@ export function AppWorkspaceShell(props: {
   floatingWorkspace: FloatingWorkspacePanelState
 }): React.JSX.Element {
   const { layout, floatingWorkspace } = props
+  const showFullWidthTitlebar = !layout.leftTitlebarChromeLayout.shouldMount
+  const showStackedTitlebar =
+    layout.stackedSidebarOpen &&
+    layout.activeView !== 'automations' &&
+    layout.activeView !== 'artifacts'
   const titlebarLeftControls = <TitlebarLeftControls layout={layout} />
   const titlebarMainStrip = <TitlebarMainStrip layout={layout} />
   // Why: keep virtualized scroll memory above the sidebar's workspace/landing remount so the left list doesn't restart at scrollTop 0.
@@ -116,7 +121,7 @@ export function AppWorkspaceShell(props: {
         {/* Why: keep the non-workspace titlebar inside this left+center wrapper so it doesn't span over the right-sidebar column. */}
         <div className="flex flex-col flex-1 min-w-0 min-h-0">
           {/* Why: workspace view drops the full-width titlebar so tab groups extend to the top; settings/landing/tasks keep it. */}
-          {!layout.leftTitlebarChromeLayout.shouldMount ? (
+          {showFullWidthTitlebar ? (
             <div className="titlebar">
               <div className="flex items-center shrink-0 mr-2">{titlebarLeftControls}</div>
               {titlebarMainStrip}
@@ -157,13 +162,10 @@ export function AppWorkspaceShell(props: {
             ) : null}
             <div className="flex flex-col flex-1 min-w-0 min-h-0 overflow-hidden">
               {/* Why: automations/artifacts own their page headers; the stacked titlebar would be an empty 36px stripe. */}
-              {layout.stackedSidebarOpen &&
-              layout.activeView !== 'automations' &&
-              layout.activeView !== 'artifacts' ? (
-                <div className="titlebar">{titlebarMainStrip}</div>
-              ) : null}
+              {showStackedTitlebar ? <div className="titlebar">{titlebarMainStrip}</div> : null}
               <div
                 data-orca-region="workspace"
+                data-titlebar-above={showFullWidthTitlebar || showStackedTitlebar}
                 className="relative flex flex-1 min-w-0 min-h-0 overflow-hidden"
               >
                 {/* Why: match the RightSidebar header's 36px/top-0 so the toggle's vertical center is identical open vs closed — else the icon jitters. */}

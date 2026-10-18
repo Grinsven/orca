@@ -79,7 +79,7 @@ html[data-modern-ui='on'][data-modern-ui-density='default'] [data-orca-region='w
 }
 
 html[data-modern-ui='on'][data-modern-ui-density='default']
-  :is(.titlebar + [data-orca-region='workspace'], .titlebar + * [data-orca-region='workspace']) {
+  [data-orca-region='workspace'][data-titlebar-above='true'] {
   margin-top: 0;
 }
 
