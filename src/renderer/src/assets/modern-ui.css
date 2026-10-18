@@ -45,4 +45,19 @@ html[data-modern-ui='on']:not([data-modern-ui-uppercase='on']) [data-orca-sectio
   html[data-modern-ui='on'] .agent-working-spinner {
     animation-timing-function: linear;
   }
+
+  html[data-modern-ui='on'] [data-slot='dropdown-menu-content'][data-state='open'] {
+    animation-duration: 80ms;
+    transition-duration: 80ms;
+  }
+
+  html[data-modern-ui='on'] .settings-view-shell {
+    animation-duration: 100ms;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-modern-ui='on'] .settings-view-shell {
+    animation: none;
+  }
 }
