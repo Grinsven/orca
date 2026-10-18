@@ -708,28 +708,28 @@ describe('enableMainProcessGpuFeatures', () => {
     expect(app.commandLine.appendSwitch).toHaveBeenCalledWith('max-active-webgl-contexts', '128')
   })
 
-  it('disables Skia Graphite only on macOS without disabling hardware acceleration', async () => {
-    const { app } = await import('electron')
-    const { enableMainProcessGpuFeatures } = await import('./configure-process')
+  it.each(['darwin', 'linux', 'win32'] as const)(
+    'leaves Chromium backend selection unchanged on %s',
+    async (platform) => {
+      const { app } = await import('electron')
+      const { enableMainProcessGpuFeatures } = await import('./configure-process')
 
-    delete process.env.ORCA_E2E_USER_DATA_DIR
-    vi.mocked(app.disableHardwareAcceleration).mockClear()
-
-    for (const platform of ['darwin', 'linux', 'win32'] as const) {
       setPlatform(platform)
+      delete process.env.ORCA_E2E_USER_DATA_DIR
       vi.mocked(app.commandLine.appendSwitch).mockClear()
-
+      vi.mocked(app.disableHardwareAcceleration).mockClear()
       enableMainProcessGpuFeatures()
 
-      if (platform === 'darwin') {
-        expect(app.commandLine.appendSwitch).toHaveBeenCalledWith('disable-skia-graphite')
-      } else {
-        expect(app.commandLine.appendSwitch).not.toHaveBeenCalledWith('disable-skia-graphite')
-      }
+      const switches = vi.mocked(app.commandLine.appendSwitch).mock.calls.map(([name]) => name)
+      expect({
+        graphiteOverride: switches.some(
+          (name) => name === 'disable-skia-graphite' || name === 'enable-skia-graphite'
+        ),
+        hardwareAccelerationDisabled:
+          vi.mocked(app.disableHardwareAcceleration).mock.calls.length > 0
+      }).toEqual({ graphiteOverride: false, hardwareAccelerationDisabled: false })
     }
-
-    expect(app.disableHardwareAcceleration).not.toHaveBeenCalled()
-  })
+  )
 
   it('disables the GPU sandbox on Linux Wayland without disabling acceleration', async () => {
     const { app } = await import('electron')
