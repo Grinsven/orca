@@ -9,6 +9,7 @@ import { createPdfjsViewerAssetsPlugin } from './config/build-plugins/pdfjs-view
 import { createProcessHostDevRebuildPlugin } from './config/build-plugins/process-host-dev-rebuild'
 import { MAIN_BUILD_ENTRY_POINTS } from './config/build-plugins/main-build-entry-points'
 import { createPlainNodeEntryGuardPlugin } from './config/build-plugins/plain-node-entry-guard'
+import { rendererReactCompilerPlugins } from './config/build-plugins/renderer-react-compiler'
 import packageJson from './package.json' with { type: 'json' }
 import { resolveBuildSourceCommit } from './config/scripts/build-source-commit.mjs'
 
@@ -285,7 +286,11 @@ export const electronViteConfig: UserConfig = {
         '@': resolve('src/renderer/src')
       }
     },
-    plugins: [react(), tailwindcss(), createPdfjsViewerAssetsPlugin()],
+    plugins: [
+      react({ babel: { plugins: rendererReactCompilerPlugins() } }),
+      tailwindcss(),
+      createPdfjsViewerAssetsPlugin()
+    ],
     worker: {
       format: 'es'
     },
