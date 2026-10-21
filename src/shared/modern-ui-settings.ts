@@ -2,6 +2,7 @@
 // tabs, normal-case headers, frosted overlays). Not for upstream.
 import type { SourceControlHistorySettings } from './git-history-types'
 import { isJoseUiVariant, type JoseUiVariant } from './fork/jose-ui-variant'
+import type { TerminalCursorGlideSettings } from './fork/terminal-cursor-glide-settings'
 
 export type ModernUiTabStyle = 'connected' | 'pill'
 export type ModernUiDensity = 'default' | 'compact'
@@ -20,7 +21,8 @@ export type ModernUiSettings = {
 /** GlobalSettings' trailing intersection, defined here because global-settings-types.ts sits at its
  *  max-lines ceiling and cannot take another import line. */
 export type SourceControlHistoryAndModernUiSettings = SourceControlHistorySettings &
-  ModernUiSettings
+  ModernUiSettings &
+  TerminalCursorGlideSettings
 
 type ModernUiSettingsSource = Partial<Record<keyof ModernUiSettings, unknown>>
 

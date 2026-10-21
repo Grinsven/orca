@@ -31,6 +31,7 @@ import type { TerminalPaneManagerOptionsContext } from './terminal-pane-mount-co
 import { installTerminalPaneInputHandling } from './terminal-pane-pane-input'
 import { installTerminalPaneLinkHandling } from './terminal-pane-pane-links'
 import { scheduleRuntimeGraphSync } from '@/runtime/sync-runtime-graph'
+import { CursorGlideAddon } from '@/fork/cursor-glide/cursor-glide-addon'
 
 export type PaneCreatedSetupContext = TerminalPaneManagerOptionsContext
 
@@ -73,6 +74,7 @@ export function createTerminalPaneCreatedHandler(
       discardDeferredSplitPaneHandoffForKey(paneKey)
     }
     const handoffForInput = deferredSplitHandoff
+    pane.terminal.loadAddon(new CursorGlideAddon())
 
     const osc52Disposable = pane.terminal.parser.registerOscHandler(
       52,

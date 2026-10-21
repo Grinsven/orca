@@ -22,6 +22,7 @@ import {
 } from '@/lib/pane-manager/pane-terminal-options'
 import { getFitOverrideForPty } from '@/lib/pane-manager/mobile-fit-overrides'
 import { setTerminalCursorBlinkOption } from '@/lib/pane-manager/pane-cursor-blink-suspension'
+import { resolveXtermCursorBlink } from '@/fork/cursor-glide/cursor-glide-settings'
 import type { PtyTransport } from './pty-transport-types'
 import type { EffectiveMacOptionAsAlt } from '@/lib/keyboard-layout/detect-option-as-alt'
 import { HEX_COLOR_RE } from '../../../../shared/color-validation'
@@ -185,7 +186,7 @@ export function applyTerminalAppearance(
     pane.terminal.options.cursorInactiveStyle = resolveTerminalCursorInactiveStyle(cursorStyle)
     // Why not a direct write: a suspended (hidden) pane parks the value instead, so a
     // settings change mid-hide cannot re-arm its blink timer behind the hidden surface.
-    setTerminalCursorBlinkOption(pane.terminal, settings.terminalCursorBlink)
+    setTerminalCursorBlinkOption(pane.terminal, resolveXtermCursorBlink(settings))
     const paneSize = paneFontSizes.get(pane.id)
     const metricOptions = {
       fontSize: paneSize ?? settings.terminalFontSize,

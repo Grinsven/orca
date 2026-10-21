@@ -30,6 +30,7 @@ import {
 import { resolveTerminalLayoutActiveLeafId } from './terminal-layout-leaf-ids'
 import type { TerminalPaneManagerOptionsContext } from './terminal-pane-mount-context'
 import { resolveTerminalInlineImagesEnabled } from '../../../../shared/terminal-inline-images-settings'
+import { resolveXtermCursorBlink } from '@/fork/cursor-glide/cursor-glide-settings'
 
 /** Builds the imperative PaneManager option bag from the mount context. */
 export function createTerminalPaneManagerOptions(
@@ -147,7 +148,7 @@ export function createTerminalPaneManagerOptions(
         scrollback: normalizeDesktopTerminalScrollbackRows(currentSettings?.terminalScrollbackRows),
         cursorStyle,
         cursorInactiveStyle: resolveTerminalCursorInactiveStyle(cursorStyle),
-        cursorBlink: currentSettings?.terminalCursorBlink ?? true,
+        cursorBlink: resolveXtermCursorBlink(currentSettings),
         scrollSensitivity: normalizeTerminalScrollSensitivity(
           currentSettings?.terminalScrollSensitivity
         ),

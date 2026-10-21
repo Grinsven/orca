@@ -9,6 +9,7 @@ import {
 import { SearchableSetting } from './SearchableSetting'
 import { clampNumber } from '@/lib/terminal-theme'
 import { translate } from '@/i18n/i18n'
+import { CursorGlideSetting } from '@/fork/cursor-glide/CursorGlideSetting'
 
 type TerminalCursorAppearanceSectionProps = {
   settings: GlobalSettings
@@ -102,6 +103,8 @@ export function TerminalCursorAppearanceSection({
             onChange={() => updateSettings({ terminalCursorBlink: !settings.terminalCursorBlink })}
           />
         </SearchableSetting>
+
+        <CursorGlideSetting settings={settings} updateSettings={updateSettings} />
 
         <SearchableSetting
           title={translate(

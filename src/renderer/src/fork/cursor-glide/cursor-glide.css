@@ -1,0 +1,23 @@
+/* The animated cursor drawn over xterm's canvas. Position and opacity change through
+   transform and opacity only, so a glide or fade never lays out or repaints the terminal. */
+.orca-cursor-glide {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 4;
+  display: none;
+  overflow: hidden;
+  pointer-events: none;
+  will-change: transform, opacity;
+  contain: strict;
+}
+
+.orca-cursor-glide[data-visible='true'] {
+  display: block;
+}
+
+.orca-cursor-glide-glyph {
+  display: block;
+  white-space: pre;
+  text-align: left;
+}
