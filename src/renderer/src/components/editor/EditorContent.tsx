@@ -17,6 +17,7 @@ import { translate } from '@/i18n/i18n'
 import { useEditorConflictNavigation } from './useEditorConflictNavigation'
 import { useMarkdownDocuments } from './useMarkdownDocuments'
 import type { MarkdownRenderState } from './markdown-render-mode'
+import { ForkChangesView, shouldUseForkChangesView } from '@/fork/changes-view/changes-view-entry'
 
 const noopCloseMarkdownTableOfContents = (): void => {}
 
@@ -182,6 +183,9 @@ export function EditorContent({
   }
 
   if (isCombinedDiff) {
+    if (shouldUseForkChangesView(activeFile)) {
+      return <ForkChangesView key={viewStateScopeId} file={activeFile} />
+    }
     return (
       <CombinedDiffViewer
         key={viewStateScopeId}
