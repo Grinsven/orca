@@ -14,8 +14,9 @@ import {
 } from '@/fork/diri-motion/motion-tracks'
 import type { RenderRow } from '../listing/render-row'
 import {
-  addFoldCopy,
+  addFoldCopiesOfRemoved,
   captureCopySources,
+  capturePaintedTops,
   clearFoldCopies,
   contentOf,
   memberElement,
@@ -24,9 +25,13 @@ import {
   type FoldCopySource,
   type FoldHandoff
 } from './fold-overlay'
+import { closeFoldEdge, openFoldEdge, retargetFoldEdge, type FoldEdgeRun } from './fold-clip'
 import {
   buildVirtualRowRemovalMotions,
+  difference,
+  getPreviousRowKey,
   getRenderRowIdentities,
+  startsOf,
   getViewportDelta,
   type VirtualRowLayoutSnapshot
 } from './use-row-removal-animation'
@@ -51,6 +56,7 @@ type PendingFold = {
   layout: VirtualRowLayoutSnapshot
   copies: FoldCopySource[]
   handoff: ReadonlyMap<string, FoldHandoff>
+  paintedTops: ReadonlyMap<string, number>
 }
 
 type ActiveFold = {
@@ -58,6 +64,7 @@ type ActiveFold = {
   endsAt: number
   rankByIdentity: ReadonlyMap<string, number>
   revealed: WeakSet<Element>
+  edge: FoldEdgeRun | null
 }
 
 // Why a window: the collapse commits in the same task as the click; a fold that never commits
@@ -65,35 +72,18 @@ type ActiveFold = {
 const PENDING_FOLD_TTL_MS = 250
 const EMPTY_KEYS: ReadonlySet<string> = new Set()
 
-function startsOf(items: readonly VirtualItem[]): Map<string, number> {
-  return new Map(items.map((item) => [String(item.key), item.start]))
-}
-
-function difference(left: ReadonlySet<string>, right: ReadonlySet<string>): Set<string> {
-  const out = new Set<string>()
-  left.forEach((key) => {
-    if (!right.has(key)) {
-      out.add(key)
-    }
-  })
-  return out
-}
-
 export function createSidebarFoldMotion() {
   const copies: FoldCopies = new Map()
   let previous: VirtualRowLayoutSnapshot | null = null
   let pending: PendingFold | null = null
   let active: ActiveFold | null = null
 
-  const glide = (element: HTMLElement | null, deltaY: number, durationMs: number): void => {
-    if (!element || Math.abs(deltaY) <= 0.5) {
-      return
+  /** Glides `element` to its layout from `fromY` (an offset from that layout), if it moved. */
+  const glide = (element: HTMLElement | null, fromY: number, durationMs: number): void => {
+    const state = element ? (readMotionState(element) ?? REST_STATE) : null
+    if (element && state && Math.abs(fromY - state.y) > 0.5) {
+      playMotion(element, { from: { y: fromY, opacity: state.opacity }, durationMs })
     }
-    const state = readMotionState(element) ?? REST_STATE
-    playMotion(element, {
-      from: { y: state.y + deltaY, opacity: state.opacity },
-      durationMs
-    })
   }
 
   const reveal = (fold: ActiveFold, element: HTMLElement, from: MotionState, id: string): void => {
@@ -122,20 +112,16 @@ export function createSidebarFoldMotion() {
       startedAt: now,
       endsAt: now + (fold.direction === 'open' ? FOLD_MOTION.openMs : FOLD_MOTION.closeMs),
       rankByIdentity,
-      revealed: new WeakSet()
+      revealed: new WeakSet(),
+      edge: null
     }
     active = next
     if (fold.direction === 'close' && commit.overlayHost) {
-      const copied: HTMLElement[] = []
-      for (const source of fold.copies) {
-        if (
-          source.identities.every((identity) => removed.has(identity)) &&
-          !copied.some((element) => element.contains(source.element))
-        ) {
-          addFoldCopy(commit.overlayHost, copies, source)
-          copied.push(source.element)
-        }
-      }
+      const copyRows = addFoldCopiesOfRemoved(commit.overlayHost, copies, fold.copies, removed)
+      const staying = fold.copies.filter((source) =>
+        source.identities.every((identity) => !removed.has(identity))
+      )
+      next.edge = closeFoldEdge(copyRows, staying, FOLD_MOTION.closeMs, now)
     }
     // Plan first: a reopen reads where each row lands before any animation dirties layout.
     const hostTop =
@@ -155,7 +141,7 @@ export function createSidebarFoldMotion() {
         : { y: -FOLD_MOTION.offsetPx, opacity: 0 }
       reveals.push({ element, from, identity })
     }
-    const glides: { element: HTMLElement | null; deltaY: number }[] = []
+    const glides: { element: HTMLElement; fromY: number }[] = []
     const rows = mountedRows(commit.scrollElement)
     for (const item of commit.virtualItems) {
       const row = rows.get(String(item.key))
@@ -176,13 +162,27 @@ export function createSidebarFoldMotion() {
         }
       }
       const deltaY = getViewportDelta(fold.layout, current, String(item.key), commit.rekeyedRowKeys)
-      glides.push({ element: content, deltaY: deltaY ?? 0 })
+      // Why where it was drawn, not its slot: a header's spacing can change with the fold.
+      const key = String(item.key)
+      const drawnBefore =
+        fold.paintedTops.get(key) ??
+        fold.paintedTops.get(getPreviousRowKey(key, commit.rekeyedRowKeys) ?? '')
+      const drawnY = readMotionState(content)?.y ?? 0
+      const fromY =
+        drawnBefore === undefined
+          ? drawnY + (deltaY ?? 0)
+          : drawnBefore - (content.getBoundingClientRect().top - drawnY)
+      glides.push({ element: content, fromY })
+    }
+    if (fold.direction === 'open') {
+      const opening = reveals.map((entry) => entry.element)
+      next.edge = openFoldEdge(opening, glides, FOLD_MOTION.openMs, now)
     }
     for (const entry of reveals) {
       reveal(next, entry.element, entry.from, entry.identity)
     }
     for (const entry of glides) {
-      glide(entry.element, entry.deltaY, next.endsAt - now)
+      glide(entry.element, entry.fromY, next.endsAt - now)
     }
   }
 
@@ -193,8 +193,10 @@ export function createSidebarFoldMotion() {
     last: VirtualRowLayoutSnapshot,
     current: VirtualRowLayoutSnapshot
   ): void => {
-    const remainingMs = fold.endsAt - performance.now()
+    const now = performance.now()
     const rows = mountedRows(commit.scrollElement)
+    const reveals: { content: HTMLElement; identity: string }[] = []
+    const persisting: { content: HTMLElement; deltaY: number | null }[] = []
     for (const item of commit.virtualItems) {
       const row = rows.get(String(item.key))
       const renderRow = commit.renderRows[item.index]
@@ -204,12 +206,27 @@ export function createSidebarFoldMotion() {
       }
       const identity = getRenderRowIdentities(renderRow)[0] ?? ''
       if (fold.rankByIdentity.has(identity) && !fold.revealed.has(content)) {
-        reveal(fold, content, { y: -FOLD_MOTION.offsetPx, opacity: 0 }, identity)
-        continue
+        reveals.push({ content, identity })
+      } else {
+        const deltaY = getViewportDelta(last, current, String(item.key), commit.rekeyedRowKeys)
+        persisting.push({ content, deltaY })
       }
-      const deltaY = getViewportDelta(last, current, String(item.key), commit.rekeyedRowKeys)
+    }
+    // Plan first: the edge measures settled rows before any new animation dirties layout.
+    if (fold.edge && fold.edge.toPx > fold.edge.fromPx) {
+      const opening = [
+        ...fold.edge.rows.map((row) => row.element),
+        ...reveals.map((r) => r.content)
+      ]
+      const others = persisting.map((entry) => entry.content)
+      fold.edge = retargetFoldEdge(fold.edge, opening, others, now, fold.endsAt)
+    }
+    for (const { content, identity } of reveals) {
+      reveal(fold, content, { y: -FOLD_MOTION.offsetPx, opacity: 0 }, identity)
+    }
+    for (const { content, deltaY } of persisting) {
       if (deltaY !== null && Math.abs(deltaY) > 0.5) {
-        shiftMotion(content, deltaY, remainingMs)
+        shiftMotion(content, deltaY, fold.endsAt - now)
       }
     }
   }
@@ -239,7 +256,8 @@ export function createSidebarFoldMotion() {
           args.direction === 'close' && args.overlayHost
             ? captureCopySources(args.scrollElement, args.overlayHost)
             : [],
-        handoff
+        handoff,
+        paintedTops: capturePaintedTops(args.scrollElement)
       }
     },
 
@@ -291,8 +309,10 @@ export function createSidebarFoldMotion() {
         current,
         rekeyedRowKeys: commit.rekeyedRowKeys
       })) {
-        const row = rows.get(motion.key)
-        glide(row ? contentOf(row) : null, motion.deltaY, ROW_REMOVAL_MOTION.durationMs)
+        const content = rows.get(motion.key)
+        const element = content ? contentOf(content) : null
+        const drawnY = element ? (readMotionState(element)?.y ?? 0) : 0
+        glide(element, drawnY + motion.deltaY, ROW_REMOVAL_MOTION.durationMs)
       }
     }
   }

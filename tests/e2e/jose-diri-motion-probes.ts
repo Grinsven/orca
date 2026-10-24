@@ -9,6 +9,10 @@ export type FoldFrame = {
   t: number
   rows: Record<string, RowSample | null>
   copies: number[]
+  /** Lowest painted pixel of the group's rows and copies, after their clip-path. */
+  groupBottom: number | null
+  /** Top of the first row under the group, as drawn. */
+  belowTop: number | null
 }
 
 export type TabFrame = {
@@ -24,14 +28,14 @@ export type TabFrame = {
  */
 export async function recordFold(
   page: Page,
-  args: { trigger: string; rows: string[]; durationMs: number }
+  args: { trigger: string; rows: string[]; group: string[]; below: string; durationMs: number }
 ): Promise<{
   before: Record<string, RowSample | null>
   frames: FoldFrame[]
   longTasks: { start: number; duration: number }[]
 }> {
   return page.evaluate(
-    ({ trigger, rows, durationMs }) =>
+    ({ trigger, rows, group, below: belowKey, durationMs }) =>
       new Promise((resolve) => {
         const sampleRow = (key: string) => {
           const row = document.querySelector(`[data-worktree-virtual-row-key="${CSS.escape(key)}"]`)
@@ -47,13 +51,39 @@ export async function recordFold(
             translateY: Number.parseFloat(translate[1] ?? '0') || 0
           }
         }
-        const sample = () => ({
-          rows: Object.fromEntries(rows.map((key) => [key, sampleRow(key)])),
-          copies: Array.from(
-            document.querySelectorAll<HTMLElement>('[data-worktree-fold-overlay] > *'),
-            (copy) => Number(getComputedStyle(copy).opacity)
-          )
-        })
+        const contentOf = (key: string) =>
+          document.querySelector(`[data-worktree-virtual-row-key="${CSS.escape(key)}"]`)
+            ?.firstElementChild ?? null
+        // A clip-path inset() keeps the box but hides its bottom; that is where painting ends.
+        const paintedBottom = (element: Element) => {
+          const rect = element.getBoundingClientRect()
+          const clip = getComputedStyle(element).clipPath
+          const values = clip.startsWith('inset(')
+            ? clip
+                .slice(6)
+                .split(/[\s)]+/)
+                .filter(Boolean)
+                .map(Number.parseFloat)
+            : []
+          const inset = values.length >= 3 ? values[2] : (values[0] ?? 0)
+          // Why skip an empty band: a row clipped to nothing paints no pixel at all.
+          const visible = rect.height - Math.max(0, inset ?? 0)
+          return visible > 0.5 ? rect.top + visible : Number.NEGATIVE_INFINITY
+        }
+        const copiesNow = () =>
+          Array.from(document.querySelectorAll<HTMLElement>('[data-worktree-fold-overlay] > *'))
+        const sample = () => {
+          const painted = [
+            ...group.map(contentOf).filter((element) => element !== null),
+            ...copiesNow()
+          ].map(paintedBottom)
+          return {
+            rows: Object.fromEntries(rows.map((key) => [key, sampleRow(key)])),
+            copies: copiesNow().map((copy) => Number(getComputedStyle(copy).opacity)),
+            groupBottom: painted.some(Number.isFinite) ? Math.max(...painted) : null,
+            belowTop: contentOf(belowKey)?.getBoundingClientRect().top ?? null
+          }
+        }
         const before = sample().rows
         const target = document.querySelector<HTMLElement>(trigger)
         if (!target) {

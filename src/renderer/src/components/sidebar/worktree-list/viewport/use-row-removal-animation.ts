@@ -33,7 +33,7 @@ export function getSidebarRowIdentityKeys(rows: readonly RenderRow[]): ReadonlyS
   return keys
 }
 
-function getPreviousRowKey(
+export function getPreviousRowKey(
   key: string,
   rekeyedRowKeys: ReadonlyMap<string, string>
 ): string | null {
@@ -43,6 +43,20 @@ function getPreviousRowKey(
     }
   }
   return null
+}
+
+export function startsOf(items: readonly VirtualItem[]): Map<string, number> {
+  return new Map(items.map((item) => [String(item.key), item.start]))
+}
+
+export function difference(left: ReadonlySet<string>, right: ReadonlySet<string>): Set<string> {
+  const out = new Set<string>()
+  left.forEach((key) => {
+    if (!right.has(key)) {
+      out.add(key)
+    }
+  })
+  return out
 }
 
 /** How far the row under `key` moved on screen between two layouts, or null if unknown. */

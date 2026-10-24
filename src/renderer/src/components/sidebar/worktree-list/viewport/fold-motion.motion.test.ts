@@ -6,7 +6,10 @@ import {
   stubReducedMotion,
   type RecordedAnimation
 } from '@/fork/diri-motion/motion-test-animations'
+import { ease3 } from '@/fork/diri-motion/motion'
+import { readMotionState } from '@/fork/diri-motion/motion-tracks'
 import { getRenderRowKey, type RenderRow } from '../listing/render-row'
+import { foldClipKeyframes } from './fold-clip'
 import { createSidebarFoldMotion, type SidebarFoldMotion } from './fold-motion'
 import { getSidebarRowIdentityKeys } from './use-row-removal-animation'
 
@@ -30,12 +33,17 @@ function createList() {
   document.body.append(overlayHost, scrollElement)
   const wrappers = new Map<string, HTMLElement>()
   const tops = new WeakMap<Element, number>()
+  const heights = new WeakMap<Element, number>()
+  // Like a browser: a rect includes the translate a fold is drawing the element with.
   vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(function (this: Element) {
     if (this === overlayHost) {
       return new DOMRect(0, 0, 200, 400)
     }
     const top = tops.get(this)
-    return top === undefined ? new DOMRect(0, 0, 0, 0) : new DOMRect(0, top, 200, ROW)
+    const drawnTop = (top ?? 0) + (readMotionState(this)?.y ?? 0)
+    return top === undefined
+      ? new DOMRect(0, 0, 0, 0)
+      : new DOMRect(0, drawnTop, 200, heights.get(this) ?? ROW)
   })
   const content = (key: string): HTMLElement => {
     const element = wrappers.get(key)?.firstElementChild
@@ -44,7 +52,11 @@ function createList() {
     }
     return element
   }
-  const render = (rows: readonly RenderRow[], extraHeightAfter?: string) => {
+  const render = (
+    rows: readonly RenderRow[],
+    extraHeightAfter?: string,
+    spacingByKey: Readonly<Record<string, number>> = {}
+  ) => {
     let start = 0
     const virtualItems: VirtualItem[] = []
     const keys = new Set<string>()
@@ -62,9 +74,11 @@ function createList() {
         wrappers.set(key, wrapper)
       }
       scrollElement.append(wrapper)
-      tops.set(wrapper, start)
-      tops.set(content(key), start)
       const size = key === extraHeightAfter ? ROW * 2 : ROW
+      tops.set(wrapper, start)
+      tops.set(content(key), start + (spacingByKey[key] ?? 0))
+      heights.set(wrapper, size)
+      heights.set(content(key), size)
       virtualItems.push({ key, index, start, end: start + size, size, lane: 0 })
       start += size
     })
@@ -92,8 +106,24 @@ let now = 0
 let animations: RecordedAnimation[] = []
 
 function animationOn(element: Element): RecordedAnimation | undefined {
-  return animations.findLast((entry) => entry.element === element && !entry.cancelled)
+  return animations.findLast(
+    (entry) =>
+      entry.element === element &&
+      !entry.cancelled &&
+      entry.keyframes.some((keyframe) => 'translate' in keyframe)
+  )
 }
+
+function clipOn(element: Element): RecordedAnimation | undefined {
+  return animations.findLast(
+    (entry) =>
+      entry.element === element &&
+      !entry.cancelled &&
+      entry.keyframes.some((keyframe) => 'clipPath' in keyframe)
+  )
+}
+
+const EASE3 = 'cubic-bezier(0.33, 1, 0.68, 1)'
 
 function toggle(
   motion: SidebarFoldMotion,
@@ -158,6 +188,15 @@ describe('sidebar group fold', () => {
     expect(below?.keyframes).toEqual([{ translate: '0 -120px', opacity: 1, offset: 0 }])
     expect(below?.options.duration).toBe(300)
     expect(animationOn(list.content('hdr:a'))).toBeUndefined()
+
+    // The group is a clip whose edge runs from its top (40) to the row below (160) on ease3.
+    ;['pending:a1', 'pending:a2', 'pending:a3'].forEach((key, index) => {
+      const clip = clipOn(list.content(key))
+      expect(clip?.keyframes).toEqual(foldClipKeyframes(index * ROW, ROW, 0, 120))
+      expect(clip?.options).toMatchObject({ duration: 300, easing: EASE3, fill: 'none' })
+    })
+    expect(clipOn(list.content('hdr:a'))).toBeUndefined()
+    expect(clipOn(list.content('hdr:b'))).toBeUndefined()
   })
 
   it('closes: copies of its rows stay painted, fade out and rise 6 px over 180 ms', () => {
@@ -185,6 +224,12 @@ describe('sidebar group fold', () => {
     const below = animationOn(list.content('hdr:b'))
     expect(below?.keyframes).toEqual([{ translate: '0 120px', opacity: 1, offset: 0 }])
     expect(below?.options.duration).toBe(180)
+    // The copies show only above an edge closing from the row below (160) to the group's top (40).
+    frames.forEach((frame, index) => {
+      const clip = clipOn(frame)
+      expect(clip?.keyframes).toEqual(foldClipKeyframes(index * ROW, ROW, 120, 0))
+      expect(clip?.options).toMatchObject({ duration: 180, easing: EASE3, fill: 'forwards' })
+    })
 
     advance(180)
     frames.forEach((frame) => animationOn(frame)?.finish())
@@ -209,6 +254,10 @@ describe('sidebar group fold', () => {
     expect(animationOn(list.content('hdr:b'))?.keyframes).toEqual([
       { translate: '0 105px', opacity: 1, offset: 0 }
     ])
+    // The edge closes from where it had reached (105 px down the group), riding row b.
+    expect(clipOn(list.overlayHost.children[0]!)?.keyframes).toEqual(
+      foldClipKeyframes(0, ROW, 105, 0)
+    )
   })
 
   it('reversing mid-close starts the open from where the copies are drawn', () => {
@@ -223,6 +272,30 @@ describe('sidebar group fold', () => {
     const reveal = animationOn(list.content('pending:a1'))
     expect(reveal?.keyframes[0]?.translate).toBe('0 -5.25px')
     expect(reveal?.keyframes[0]?.opacity).toBeCloseTo(0.125, 6)
+    // The close had lowered the edge to 15 px; the open raises it from there.
+    expect(clipOn(list.content('pending:a1'))?.keyframes).toEqual(
+      foldClipKeyframes(0, ROW, 15, 120)
+    )
+  })
+
+  it('glides a row from where it was drawn when its spacing changes with the fold', () => {
+    const list = createList()
+    const motion = createSidebarFoldMotion()
+    motion.commit(list.render(CLOSED))
+    motion.begin({
+      direction: 'open',
+      scrollElement: list.scrollElement,
+      overlayHost: list.overlayHost,
+      measurements: list.render(CLOSED).virtualItems
+    })
+    // A header that follows rows gets top spacing: b's slot moves 120 px, its content 124 px.
+    motion.commit(list.render(OPEN, undefined, { 'hdr:b': 4 }))
+
+    expect(animationOn(list.content('hdr:b'))?.keyframes).toEqual([
+      { translate: '0 -124px', opacity: 1, offset: 0 }
+    ])
+    // The edge still runs from the group's top to where b's content lands, so b rides it.
+    expect(clipOn(list.content('pending:a1'))?.keyframes).toEqual(foldClipKeyframes(0, ROW, 0, 124))
   })
 
   it('lands at once under Reduce Motion', () => {
@@ -281,5 +354,12 @@ describe('sidebar group fold', () => {
     expect(Number(below?.options.duration)).toBeCloseTo(200, 6)
     const delayedRow = animationOn(list.content('pending:a3'))
     expect(delayedRow?.options.delay).toBe(0)
+
+    // The edge keeps its height and lands on the taller group (40 + 160), still on row b.
+    const edge = 120 * ease3(100 / 300)
+    const clip = clipOn(list.content('pending:a1'))
+    expect(clip?.keyframes).toEqual(foldClipKeyframes(0, ROW, edge, 160))
+    expect(Number(clip?.options.duration)).toBeCloseTo(200, 6)
+    expect(200 + Number.parseFloat(translate.split(' ')[1] ?? '')).toBeCloseTo(40 + edge, 6)
   })
 })

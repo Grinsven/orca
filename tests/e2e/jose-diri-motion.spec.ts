@@ -58,6 +58,20 @@ function glideReport(
   }
 }
 
+/** How far any group row or copy is painted below the top of the first row under the group. */
+function overlapReport(frames: readonly FoldFrame[]) {
+  const measured = frames.flatMap((frame) =>
+    frame.groupBottom === null || frame.belowTop === null
+      ? []
+      : [{ t: frame.t, overlap: frame.groupBottom - frame.belowTop }]
+  )
+  const worst = measured.reduce((most, frame) => (frame.overlap > most.overlap ? frame : most), {
+    t: 0,
+    overlap: Number.NEGATIVE_INFINITY
+  })
+  return { frames: measured.length, worstOverlapPx: worst.overlap, worstAtMs: Math.round(worst.t) }
+}
+
 function isMonotonic(values: readonly number[], direction: 1 | -1): boolean {
   return values.every(
     (value, index) => index === 0 || (value - values[index - 1]) * direction >= -1e-3
@@ -179,12 +193,15 @@ test('sidebar groups, cards and tabs move with Diri motion', async ({ orcaPage, 
   const close = await recordFold(orcaPage, {
     trigger: PINNED_HEADER,
     rows: watched,
+    group: keys.pinned,
+    below: keys.below[0] ?? '',
     durationMs: 420
   })
   await expect(orcaPage.locator(PINNED_HEADER)).toHaveAttribute('aria-expanded', 'false')
   const copyOpacity = close.frames.map((frame) => frame.copies[0] ?? 0)
   const closeReport = {
     longTasks: close.longTasks,
+    overlap: overlapReport(close.frames),
     rowsGoneAtOnce: keys.pinned.every((key) => close.frames.every((frame) => !frame.rows[key])),
     copiesAtFirstFrame: close.frames[0]?.copies.length,
     firstCopyOpacity: copyOpacity[0],
@@ -205,12 +222,15 @@ test('sidebar groups, cards and tabs move with Diri motion', async ({ orcaPage, 
   const open = await recordFold(orcaPage, {
     trigger: PINNED_HEADER,
     rows: watched,
+    group: keys.pinned,
+    below: keys.below[0] ?? '',
     durationMs: 480
   })
   await expect(orcaPage.locator(PINNED_HEADER)).toHaveAttribute('aria-expanded', 'true')
   const openRows = keys.pinned.map((key) => track(open.frames, key))
   const openReport = {
     longTasks: open.longTasks,
+    overlap: overlapReport(open.frames),
     firstRowFirstFrame: openRows[0]?.[0] && {
       opacity: openRows[0][0].opacity,
       translateY: openRows[0][0].translateY
@@ -278,6 +298,8 @@ test('sidebar groups, cards and tabs move with Diri motion', async ({ orcaPage, 
   const reducedCloseRun = await recordFold(orcaPage, {
     trigger: PINNED_HEADER,
     rows: [],
+    group: [],
+    below: '',
     durationMs: 60
   })
   const reducedClose = {
@@ -379,6 +401,11 @@ test('sidebar groups, cards and tabs move with Diri motion', async ({ orcaPage, 
     )
   }
 
+  // The group is clipped at its moving edge: nothing of it is drawn under the rows below.
+  expect(closeReport.overlap.frames).toBeGreaterThan(8)
+  expect(closeReport.overlap.worstOverlapPx).toBeLessThanOrEqual(1)
+  expect(openReport.overlap.frames).toBeGreaterThan(20)
+  expect(openReport.overlap.worstOverlapPx).toBeLessThanOrEqual(1)
   expect(closeReport.rowsGoneAtOnce).toBe(true)
   expect(closeReport.copiesAtFirstFrame).toBe(2)
   expect(closeReport.firstCopyOpacity).toBeGreaterThan(0.85)

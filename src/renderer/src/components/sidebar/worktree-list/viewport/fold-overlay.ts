@@ -54,10 +54,14 @@ function stripCopyIdentity(element: Element): void {
 export type FoldCopies = Map<HTMLElement, readonly string[]>
 
 /** Paints `source` in `host` at its old box and fades it out while it rises. */
-export function addFoldCopy(host: HTMLElement, copies: FoldCopies, source: FoldCopySource): void {
+export function addFoldCopy(
+  host: HTMLElement,
+  copies: FoldCopies,
+  source: FoldCopySource
+): HTMLElement | null {
   const clone = source.element.cloneNode(true)
   if (!(clone instanceof HTMLElement)) {
-    return
+    return null
   }
   stripCopyIdentity(clone)
   clone.querySelectorAll(COPY_IDENTITY_SELECTOR).forEach(stripCopyIdentity)
@@ -82,6 +86,7 @@ export function addFoldCopy(host: HTMLElement, copies: FoldCopies, source: FoldC
       frame.remove()
     }
   )
+  return frame
 }
 
 /** Removes every copy; returns where each identity was drawn so a reopen starts there. */
@@ -170,4 +175,40 @@ export function captureCopySources(
     }
   })
   return sources
+}
+
+/** Copies every captured source whose identities all closed, each once (not inside another). */
+export function addFoldCopiesOfRemoved(
+  host: HTMLElement,
+  copies: FoldCopies,
+  sources: readonly FoldCopySource[],
+  removed: ReadonlySet<string>
+): { element: HTMLElement; top: number; height: number }[] {
+  const copied: HTMLElement[] = []
+  const rows: { element: HTMLElement; top: number; height: number }[] = []
+  for (const source of sources) {
+    if (
+      source.identities.every((identity) => removed.has(identity)) &&
+      !copied.some((element) => element.contains(source.element))
+    ) {
+      const frame = addFoldCopy(host, copies, source)
+      copied.push(source.element)
+      if (frame) {
+        rows.push({ element: frame, top: source.box.top, height: source.box.height })
+      }
+    }
+  }
+  return rows
+}
+
+/** Where each mounted row's content is drawn on screen, by virtual key. */
+export function capturePaintedTops(scrollElement: HTMLElement): Map<string, number> {
+  const tops = new Map<string, number>()
+  mountedRows(scrollElement).forEach((row, key) => {
+    const content = contentOf(row)
+    if (content) {
+      tops.set(key, content.getBoundingClientRect().top)
+    }
+  })
+  return tops
 }
