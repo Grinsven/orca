@@ -15,6 +15,7 @@ import { getRenderRowKey } from '../listing/render-row'
 import type { RenderRow } from '../listing/render-row'
 import type { WorktreeListVirtualizer } from './use-virtualizer'
 import { useVirtualRowRemovalAnimation } from './use-row-removal-animation'
+import type { SidebarFoldMotion } from './fold-motion'
 
 const recordKeyCountCache = new WeakMap<Record<string, unknown>, number>()
 
@@ -38,6 +39,9 @@ export function useVirtualRowMeasurementSync(args: {
   scrollAnchorRef: React.MutableRefObject<VirtualizedScrollAnchor>
   hasDirectScrollInput: () => boolean
   shouldSkipScrollAnchorRestore: () => boolean
+  foldMotion: SidebarFoldMotion
+  foldOverlayRef: React.RefObject<HTMLDivElement | null>
+  dragActive: boolean
 }) {
   const {
     renderRows,
@@ -46,7 +50,10 @@ export function useVirtualRowMeasurementSync(args: {
     scrollOffsetRef,
     scrollAnchorRef,
     hasDirectScrollInput,
-    shouldSkipScrollAnchorRestore
+    shouldSkipScrollAnchorRestore,
+    foldMotion,
+    foldOverlayRef,
+    dragActive
   } = args
   const { virtualizer, isCurrentVirtualRowElement } = virtualization
   const prCacheLen = useAppStore((s) => countRecordKeysByReference(s.prCache))
@@ -117,7 +124,11 @@ export function useVirtualRowMeasurementSync(args: {
     renderRows,
     rekeyedRowKeys: lineageRowRekeys,
     scrollRef,
-    virtualItems
+    virtualItems,
+    measurements: virtualizer.measurementsCache,
+    foldMotion,
+    foldOverlayRef,
+    dragActive
   })
 
   return { virtualItems, measureVirtualRowElement }

@@ -29,10 +29,18 @@ import { EMPTY_PROJECT_GROUPS, type VirtualizedWorktreeViewportProps } from './v
 import { useWorktreeDropCommitContext } from '../drag/use-drop-commit-context'
 import { buildWorktreeVirtualRowContext } from './virtual-row-context'
 import { renderWorktreeVirtualRow } from '../rows/virtual-row-dispatch'
+import { WORKTREE_LIST_FADE_STYLE } from './list-end-fade'
+import {
+  isWorktreeListDragActive,
+  useWorktreeListMotion,
+  useWorktreeListMotionStyle,
+  WorktreeListFoldOverlay
+} from './list-motion'
 
 const WORKTREE_SIDEBAR_SCROLL_STYLE: React.CSSProperties = {
   // Why: TanStack Virtual owns scroll correction; native overflow anchoring fights it and causes jumps.
-  overflowAnchor: 'none'
+  overflowAnchor: 'none',
+  ...WORKTREE_LIST_FADE_STYLE
 }
 
 export const VirtualizedWorktreeViewport = React.memo(function VirtualizedWorktreeViewport(
@@ -56,6 +64,7 @@ export const VirtualizedWorktreeViewport = React.memo(function VirtualizedWorktr
     onWorktreeDragSourceChange
   } = props
   const scrollRef = useRef<HTMLDivElement>(null)
+  const listMotion = useWorktreeListMotion(scrollRef)
   // Why: callback-ref only mutates scrollRef; state re-runs the scroll-to-top listener attach.
   const [scrollElement, setScrollElement] = useState<HTMLDivElement | null>(null)
   const settings = useAppStore((s) => s.settings)
@@ -191,12 +200,22 @@ export const VirtualizedWorktreeViewport = React.memo(function VirtualizedWorktr
     scrollOffsetRef,
     scrollAnchorRef,
     hasDirectScrollInput: scrollSuppression.hasDirectScrollInput,
-    shouldSkipScrollAnchorRestore: scrollSuppression.shouldSkipScrollAnchorRestore
+    shouldSkipScrollAnchorRestore: scrollSuppression.shouldSkipScrollAnchorRestore,
+    foldMotion: listMotion.foldMotion,
+    foldOverlayRef: listMotion.foldOverlayRef,
+    dragActive: isWorktreeListDragActive(draggingWorktreeId, headerDrag)
   })
+  const listMotionStyle = useWorktreeListMotionStyle(
+    virtualization.activeStickyHostIndexRef.current !== null,
+    virtualization.activeStickyHeaderIndexRef.current !== null
+  )
 
   const { toggleGroupWithScrollAnchor, getLineageToggleHandler } = useGroupToggleWithScrollAnchor({
     scrollRef,
-    toggleGroup
+    toggleGroup,
+    foldMotion: listMotion.foldMotion,
+    foldOverlayRef: listMotion.foldOverlayRef,
+    virtualizer: virtualization.virtualizer
   })
 
   const { handleContainerKeyDown } = useWorktreeListKeyboardNavigation({
@@ -309,9 +328,11 @@ export const VirtualizedWorktreeViewport = React.memo(function VirtualizedWorktr
     },
     [markDirectScrollInput]
   )
+  const { syncTopFade } = listMotion
   const handleScroll = useCallback(() => {
     markScrollMovement()
-  }, [markScrollMovement])
+    syncTopFade()
+  }, [markScrollMovement, syncTopFade])
 
   const rowContext = buildWorktreeVirtualRowContext({
     props,
@@ -341,10 +362,13 @@ export const VirtualizedWorktreeViewport = React.memo(function VirtualizedWorktr
 
   return (
     <div
+      ref={listMotion.containerRef}
       data-worktree-sidebar-container
       data-contextual-tour-target="workspace-list"
       className="relative min-h-0 flex-1"
+      style={listMotionStyle}
     >
+      <WorktreeListFoldOverlay ref={listMotion.foldOverlayRef} />
       <div
         ref={setScrollRootRef}
         data-worktree-sidebar

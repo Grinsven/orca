@@ -72,18 +72,21 @@ vi.mock('@tanstack/react-virtual', () => ({
   }: {
     count: number
     getItemKey?: (index: number) => string | number
-  }) => ({
-    elementsCache: new Map(),
-    getTotalSize: () => count * 96,
-    getVirtualItems: () =>
-      Array.from({ length: count }, (_, index) => ({
-        index,
-        key: getItemKey ? getItemKey(index) : `row-${index}`,
-        start: index * 96
-      })),
-    measureElement: vi.fn(),
-    scrollToIndex: vi.fn()
-  })
+  }) => {
+    const items = Array.from({ length: count }, (_, index) => ({
+      index,
+      key: getItemKey ? getItemKey(index) : `row-${index}`,
+      start: index * 96
+    }))
+    return {
+      elementsCache: new Map(),
+      measurementsCache: items,
+      getTotalSize: () => count * 96,
+      getVirtualItems: () => items,
+      measureElement: vi.fn(),
+      scrollToIndex: vi.fn()
+    }
+  }
 }))
 
 vi.mock('@/hooks/useVirtualizedScrollAnchor', () => ({
