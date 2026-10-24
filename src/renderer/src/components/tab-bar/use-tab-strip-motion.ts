@@ -36,10 +36,10 @@ export function shrinkClosedTabStripSlot(
   closed: HTMLElement,
   before: Node | null,
   ghosts: Set<HTMLElement>
-): void {
+): HTMLElement | null {
   const ghost = closed.cloneNode(true)
   if (!(ghost instanceof HTMLElement) || typeof ghost.animate !== 'function') {
-    return
+    return null
   }
   // Why keep the attributes: the strip's styles key on them; empty values answer no lookup.
   ghost.setAttribute('data-tab-strip-slot', '')
@@ -68,6 +68,13 @@ export function shrinkClosedTabStripSlot(
     ghosts.delete(ghost)
     ghost.remove()
   })
+  return ghost
+}
+
+// Why: a scrolling strip's reveal and end-pinning measure slots; a slot changing width under
+// them scrolls the strip, so tabs there land at once.
+function stripOverflows(strip: HTMLElement): boolean {
+  return strip.scrollWidth > strip.clientWidth + 1
 }
 
 function removeGhosts(ghosts: Set<HTMLElement>): void {
@@ -145,18 +152,29 @@ export function useTabStripMotion(args: {
       closedIndexes.length === 1 &&
       opened[0] !== undefined &&
       slots.indexOf(opened[0]) === closedIndexes[0]
-    if (replacedInPlace) {
+    if (replacedInPlace || stripOverflows(strip)) {
       return
     }
     // Why only one: a restore or a group merge fills the strip at once and lands at once.
     if (opened.length === 1 && opened[0]) {
       growTabStripSlot(opened[0].element)
     }
+    const painted: HTMLElement[] = []
     for (const index of closedIndexes) {
       const closed = previous.slots[index]
-      if (closed) {
-        const before = findInsertionPoint(strip, previous.slots, index, currentIds, slots)
-        shrinkClosedTabStripSlot(strip, closed.element, before, ghosts)
+      const before = closed && findInsertionPoint(strip, previous.slots, index, currentIds, slots)
+      const ghost = closed
+        ? shrinkClosedTabStripSlot(strip, closed.element, before ?? null, ghosts)
+        : null
+      if (ghost) {
+        painted.push(ghost)
+      }
+    }
+    // Copies that would make the strip scroll are dropped before they paint.
+    if (painted.length > 0 && stripOverflows(strip)) {
+      for (const ghost of painted) {
+        ghosts.delete(ghost)
+        ghost.remove()
       }
     }
   }, [groupId, isTabDragActive, layoutKey, tabStripRef, worktreeId])

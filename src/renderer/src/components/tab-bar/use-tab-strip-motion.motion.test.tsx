@@ -153,6 +153,16 @@ describe('tab strip motion', () => {
     expect(childOrder()).toEqual(['x', 'y', 'z'])
   })
 
+  it('lands at once in a strip that scrolls, where reveals measure the slots', () => {
+    render(['a', 'b', 'c'])
+    Object.defineProperty(strip(), 'scrollWidth', { configurable: true, value: 900 })
+    Object.defineProperty(strip(), 'clientWidth', { configurable: true, value: 400 })
+    render(['a', 'b', 'c', 'd'])
+    render(['a', 'c', 'd'])
+    expect(animations).toHaveLength(0)
+    expect(childOrder()).toEqual(['a', 'c', 'd'])
+  })
+
   it('lands at once under Reduce Motion', () => {
     stubReducedMotion(true)
     render(['a', 'b'])
