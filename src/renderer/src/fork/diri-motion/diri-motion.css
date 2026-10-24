@@ -1,0 +1,58 @@
+/* Sidebar and tab bar motion. The numbers and curves live in motion.ts and reach this file as
+   custom properties set on the sidebar container, so the two never drift apart. */
+
+/* Card fills: the hover fill appears at once and springs out; a selected or active fill
+   springs in. Opacity keeps the card's own 200 ms dim. */
+[data-worktree-sidebar-container] [data-worktree-card-surface] {
+  transition-property: background-color, border-color, box-shadow, opacity;
+  transition-duration:
+    var(--worktree-card-hover-out-duration), var(--worktree-card-hover-out-duration),
+    var(--worktree-card-hover-out-duration), 200ms;
+  transition-timing-function:
+    var(--worktree-card-hover-out-easing), var(--worktree-card-hover-out-easing),
+    var(--worktree-card-hover-out-easing), var(--default-transition-timing-function, ease);
+}
+
+[data-worktree-sidebar-container] .worktree-sidebar-card-hover:hover {
+  transition-duration: 0s, 0s, 0s, 200ms;
+}
+
+[data-worktree-sidebar-container]
+  [data-worktree-card-surface]:is([data-worktree-card-active], [data-worktree-card-selected]) {
+  transition-duration:
+    var(--worktree-card-selection-in-duration), var(--worktree-card-selection-in-duration),
+    var(--worktree-card-selection-in-duration), 200ms;
+  transition-timing-function:
+    var(--worktree-card-selection-in-easing), var(--worktree-card-selection-in-easing),
+    var(--worktree-card-selection-in-easing), var(--default-transition-timing-function, ease);
+}
+
+/* An agent row grows and shrinks with its grid track so the card resizes without a snap. */
+[data-agent-row-presence] {
+  display: grid;
+  grid-template-rows: 1fr;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+[data-agent-row-presence] > * {
+  min-height: 0;
+}
+
+/* Clip only while moving: at rest a row's focus ring may overhang it. */
+[data-agent-row-presence][data-agent-row-motion] > * {
+  overflow-y: clip;
+}
+
+/* A tab growing in or shrinking out clips its content to its animated width. */
+[data-tab-motion] {
+  overflow: clip;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-worktree-sidebar-container] [data-worktree-card-surface],
+  [data-worktree-sidebar-container] .worktree-sidebar-card-hover:hover,
+  [data-worktree-sidebar-container]
+    [data-worktree-card-surface]:is([data-worktree-card-active], [data-worktree-card-selected]) {
+    transition-duration: 0s, 0s, 0s, 200ms;
+  }
+}
