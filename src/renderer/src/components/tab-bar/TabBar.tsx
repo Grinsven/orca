@@ -10,6 +10,7 @@ import { renderTabBarSurface } from './tab-bar-surface'
 import { useTabBarItemActions } from './use-tab-bar-item-actions'
 import { useActiveClientHostedBrowserRowId } from '@/lib/pane-manager/client-hosted-browser-row-state'
 import { useEditorGroupFileDropOwner } from '../editor/use-editor-group-file-drop-owner'
+import { useTabStripMotion } from './use-tab-strip-motion'
 
 function TabBarInner(props: TabBarProps): React.JSX.Element {
   const {
@@ -98,6 +99,14 @@ function TabBarInner(props: TabBarProps): React.JSX.Element {
   const tabStripDragScroll = useTabStripDragScrollHandlers(tabStripNavigation.scrollTabStrip, {
     start: tabStripNavigation.tabStripOverflowState.canScrollStart,
     end: tabStripNavigation.tabStripOverflowState.canScrollEnd
+  })
+  // Why after the overflow navigation: its reveal measures the new tab at its full width.
+  useTabStripMotion({
+    tabStripRef: tabStripNavigation.tabStripRef,
+    layoutKey: itemProjection.tabStripLayoutKey,
+    worktreeId,
+    groupId: runtime.resolvedGroupId,
+    isTabDragActive: tabStripDragScroll.isTabDragActive
   })
 
   return renderTabBarSurface({

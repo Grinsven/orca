@@ -88,6 +88,7 @@ const ITEM_PROJECTION = Object.freeze({
   tabStripLayoutKey: 'probe'
 })
 const OVERFLOW_NAVIGATION = Object.freeze({
+  tabStripRef: Object.freeze({ current: null }),
   scrollTabStrip: noop,
   tabStripOverflowState: Object.freeze({ canScrollStart: false, canScrollEnd: false })
 })

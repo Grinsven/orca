@@ -7,7 +7,10 @@ export type TabStripScrollAnchor = {
 }
 
 function tabElements(strip: HTMLElement): HTMLElement[] {
-  return Array.from(strip.querySelectorAll<HTMLElement>('[data-tab-id]'))
+  // Why the filter: a closed tab's shrinking copy keeps an empty id.
+  return Array.from(strip.querySelectorAll<HTMLElement>('[data-tab-id]')).filter((tab) =>
+    Boolean(tab.dataset.tabId)
+  )
 }
 
 function findTab(strip: HTMLElement, tabId: string): HTMLElement | undefined {
