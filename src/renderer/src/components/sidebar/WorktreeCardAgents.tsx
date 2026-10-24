@@ -29,6 +29,7 @@ import { useWorktreeAgentExpansionState } from './worktree-card-agents-expansion
 import { translate } from '@/i18n/i18n'
 import { activateStructuredAgentSessionTab } from '@/lib/structured-agent-session-tab-activation'
 import { selectAcknowledgedAgentTimes } from './worktree-card-agent-ack-inputs'
+import { AgentRowPresence, AgentRowPresenceList, useAgentListPresence } from './agent-row-presence'
 
 export const SUPPRESS_WORKTREE_LIST_SCROLL_ADJUSTMENT_EVENT =
   'orca-suppress-worktree-list-scroll-adjustment'
@@ -60,12 +61,20 @@ const WorktreeCardAgents = React.memo(function WorktreeCardAgents({
   className
 }: Props) {
   const selectedAgents = useWorktreeAgentRows(worktreeId, precomputedAgents === undefined)
-  const agents = precomputedAgents ?? selectedAgents
-  if (agents.length === 0) {
+  const presence = useAgentListPresence(precomputedAgents ?? selectedAgents)
+  if (presence.agents.length === 0) {
     return null
   }
   // Why: mount the inner body (owns the 30s useNow tick) only for non-empty rows, so idle worktrees pay no timer cost.
-  return <WorktreeCardAgentsBody worktreeId={worktreeId} agents={agents} className={className} />
+  return (
+    <AgentRowPresence phase={presence.phase} onExited={presence.onExited}>
+      <WorktreeCardAgentsBody
+        worktreeId={worktreeId}
+        agents={presence.agents}
+        className={className}
+      />
+    </AgentRowPresence>
+  )
 })
 
 type BodyProps = {
@@ -288,9 +297,10 @@ const WorktreeCardAgentsBody = React.memo(function WorktreeCardAgentsBody({
         />
         {hasChildAgents && expanded ? (
           <div className="worktree-agent-lineage-children">
-            {childAgents.map((childAgent) =>
-              renderAgentBranch(childAgent, descendantAncestorPaneKeys)
-            )}
+            <AgentRowPresenceList
+              items={childAgents}
+              render={(childAgent) => renderAgentBranch(childAgent, descendantAncestorPaneKeys)}
+            />
           </div>
         ) : null}
       </React.Fragment>
@@ -339,13 +349,16 @@ const WorktreeCardAgentsBody = React.memo(function WorktreeCardAgentsBody({
         {hasChildAgents ? (
           <CompactAgentExpansion expanded={expanded}>
             <div className="worktree-agent-lineage-children flex flex-col gap-0.5">
-              {childAgents.map((childAgent) =>
-                renderCompactAgentBranch(
-                  childAgent,
-                  descendantAncestorPaneKeys,
-                  cacheTimerActive && expanded
-                )
-              )}
+              <AgentRowPresenceList
+                items={childAgents}
+                render={(childAgent) =>
+                  renderCompactAgentBranch(
+                    childAgent,
+                    descendantAncestorPaneKeys,
+                    cacheTimerActive && expanded
+                  )
+                }
+              />
             </div>
           </CompactAgentExpansion>
         ) : null}
@@ -389,13 +402,19 @@ const WorktreeCardAgentsBody = React.memo(function WorktreeCardAgentsBody({
               }}
             />
             <CompactAgentExpansion expanded={compactRootListExpanded}>
-              {rootAgents.map((rootAgent) =>
-                renderCompactAgentBranch(rootAgent, new Set(), compactRootListExpanded)
-              )}
+              <AgentRowPresenceList
+                items={rootAgents}
+                render={(rootAgent) =>
+                  renderCompactAgentBranch(rootAgent, new Set(), compactRootListExpanded)
+                }
+              />
             </CompactAgentExpansion>
           </div>
         ) : (
-          rootAgents.map((rootAgent) => renderCompactAgentBranch(rootAgent))
+          <AgentRowPresenceList
+            items={rootAgents}
+            render={(rootAgent) => renderCompactAgentBranch(rootAgent)}
+          />
         )}
       </div>
     )
@@ -412,7 +431,10 @@ const WorktreeCardAgentsBody = React.memo(function WorktreeCardAgentsBody({
       role={hasLineage ? 'tree' : 'group'}
       aria-label={translate('auto.components.sidebar.WorktreeCardAgents.1b0a156717', 'Agents')}
     >
-      {rootAgents.map((rootAgent) => renderAgentBranch(rootAgent))}
+      <AgentRowPresenceList
+        items={rootAgents}
+        render={(rootAgent) => renderAgentBranch(rootAgent)}
+      />
     </div>
   )
 })
